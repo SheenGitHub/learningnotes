@@ -1,0 +1,68 @@
+﻿is not in the sudoers file 解决
+解决方案：
+首需要切换到root身份
+$su -
+(注意有- ，这和su是不同的，在用命令"su"的时候只是切换到root，但没有把root的环境变量传过去，还是当前用户的环境变量，用"su -"命令将环境变量也一起带过去，就象和root登录一样)
+
+然后
+$visudo     //切记，此处没有vi和sudo之间没有空格
+
+1、移动光标，到最后一行
+2、按a，进入append模式
+3、输入
+your_user_name ALL=(ALL)  ALL
+4、按Esc
+5、输入“:w”(保存文件)
+6、输入“:q”(退出)
+
+这样就把自己加入了sudo组，可以使用sudo命令了。
+
+Linux 操作系统和驱动程序运行在内核空间，应用程序运行在用户空间，
+两者不能简单地使用指针传递数据，因为Linux使用的虚拟内存机制，
+用户空间的数据可能被换出，当内核空间使用用户空间指针时，对应的数据可能不在内存中。
+
+
+#   vi   /etc/sysconfig/network-scripts/ifcfg-eth0 激活网络
+onboot=yes
+init 3
+
+startx启动字符界面
+/etc/inittab 配置启动选项
+
+export ALT_FREETYPE_HEADERS_PATH=/usr/local/include/freetype2 #freetype2头文件安装目录
+export ALT_FREETYPE_LIB_PATH=/usr/local/lib #freetype2 lib目录
+
+配置freetype路径
+
+预处理阶段 预处理器(cpp)
+读取#include命令 得到另一个C程序.i 
+
+编译阶段 编译器(cc1)
+包含汇编语言程序 .s
+
+汇编阶段 
+翻译成机器指令，打包成可以重定位目标程序(relocatable object program) .o
+
+链接阶段 链接器(ld)
+链接函数 生成可执行文件 hello
+
+
+set nohlsearch 去掉高亮颜色
+set wm 每行的字符数(wrapmargin)  set wm=0 撤销wrapmargin
+set nu显示行号(number)
+w W 下一个单词
+b B 退一个单词
+G 1G 42G
+s 替换单个字
+P 大写P添加到前
+3p对删除一行有用
+x trans p pose
+Ctrl-R redo
+
+~/.vimrc 配置文件
+set shiftwidth = 2
+set tabstop = 2
+set number 
+
+http://pan.baidu.com/s/1dDgXB1j
+

@@ -1,0 +1,35 @@
+﻿汇总：
+[2015-03-24]:
+[Python]
+[Description]NameError: global name 'numpy' is not defined
+[processing]只能在系统盘(C盘)执行
+[Solved]设置Python环境变量，在PYTHONPATH中设置numpy包的目录
+[Python]
+[Description]no python installation found in the registry
+[Solved]you create your own registry value:
+HKEY_LOCAL_MACHINE/SOFTWARE/Wow6432Node/Python/PythonCore/2.7/InstallPath
+and copy over the InstallPath value from:
+HKEY_LOCAL_MACHINE/SOFTWARE/Python/PythonCore/2.7/InstallPath
+[2015-03-25]:
+[Android]android:onclick 在TextView上没有反应
+[Solved]使用setOnclickListener,可能是在一个Layout里面焦点被覆盖
+[2015-04-01]:
+[Android]
+[Description]在ViewPage 滑动的时候，如何更新Activity的视图
+1,因为FragmentPagerAdapter的缓存机制,缓存完之后不在调用fragment的onCreateView,
+2,而OnPagerChange中，第一个页面时不会去调用onPageSelected。并且调用时fragment尚未Attach显示
+故，当fragment未缓存完是，onCreateView的调用可以知道正在切换Page，
+在OnCreateView中利用Handler通知更新
+当缓存完时，每一次的切换都会调用onPageSelected,
+在OnPageSelected中调用fragment中的数据更新视图
+[Java]
+[Description]带参数的构造函数---反射
+[Solved]http://blog.csdn.net/shenyunsese/article/details/11737179
+[Java]
+[Description]java.lang.NoClassDefFoundError: java.lang.ReflectiveOperationException
+[Solved]Class<?> types[]加上类型
+
+[Android]
+Description]页面数据不改变，因为使用了static的fragments,
+并且只在第一次生成时赋id值，退出后在新建一个Activity，fragments并没有被销毁，
+所以数据没有改变

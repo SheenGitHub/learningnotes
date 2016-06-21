@@ -1,0 +1,17 @@
+中文乱码
+<%@page import="java.util.Date" pageEncoding="UTF-8"%>
+<%@page import="java.text.DateFormat"%>
+JSP备注
+<%-- retrieve products to display-->
+不会被发送到浏览器，不能嵌套
+HTML/XHTML
+不是由容器进行处理，而是被发送到浏览器
+JSP 隐式对象
+request, response, out, session, application, config
+pageContext, page, exception
+保存范围
+page request session application
+url 以/开头，被解读为JSP的绝对路径
+不是以/开头，被解读为JSP的相对路径
+
+include动作 扩展名必须是jsp

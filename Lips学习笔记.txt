@@ -1,0 +1,11 @@
+﻿defparameter
+defun
+setf
+let 
+flet
+labels
+(and *file-modified* (ask-user-about-saving) (save-file))
+(if (and *file-modified*
+(ask-user-about-saving))
+(save-file)))
+member find-if

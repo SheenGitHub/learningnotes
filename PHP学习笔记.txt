@@ -1,0 +1,143 @@
+书籍《PHP Objects,Patterns,and Practice,ThirdEdition》
+
+开启短标签？
+
+注释
+#comment
+//comment
+/*comment*/
+
+php配置，
+修改Apache2.x.x\bin下的php.ini
+
+数组可省略索引
+
+错误在fgets函数前加了fgets引发错误undefined variable
+路径：存放在与php文件同目录下，因拼写users为user引发错误。
+
+ini_set("error_reporting","E_ALL & ~E_NOTICE");减小错误敏感
+@fopen 允许打开不存在的文件不报错
+
+namespace 前面要去掉所有的换行和空格
+
+("^(http://wwww)\.([[:alnum:]]+)\.([[:alnum:]]+)")
+
+cd $(CURRENT_DIRECTORY)
+C:\wamp\bin\php\php5.4.12\php.exe $(FULL_CURRENT_PATH)
+
+cmd /k cd "$(CURRENT_DIRECTORY)" &  python "$(FULL_CURRENT_PATH)" & ECHO. & PAUSE & EXIT
+对于东八区，可用的有Asia/Chongqing、Asia/Chungking、Asia/Hongkong、Asia/Shanghai、Asia/Taipei、PRC、Etc/GMT+8等，任选一个就可以了。
+ 
+解决方法如下：
+方法1、在代码中增加如下命令：
+
+<?php
+      date_default_timezone_set('Asia/Shanghai'); 
+?>
+ 
+方法2、配置php.ini文件，设置如下：
+<?php
+date.timezone=PRC;  //中国：PRC如果没有此项在任意位置添加即可,添加后别忘记重启APACHE服务器
+?>
+
+递归访问文件夹时@opendir @closedir，访问空文件价会死循环
+
+money_format() is undefined in Windows
+
+javascript:void(alert(Document.cookie))
+C:\wamp\bin\apache\Apache2.4.4\bin
+
+启动mysql
+F:\www\MySQLServer\bin>mysqld.exe -install
+
+F:\www\MySQLServer\bin>net start mysql
+
+2、也可以用命令行模式，在运行里输入：
+停止：net stop mysql
+
+（其中mysql为你安装的mysql服务名称）
+
+启动：net start mysql
+
+3、如果你没安装系统服务，也可在命令行模式定位到mysql下的bin目录里，输入：
+
+（关闭）mysqladmin shutdown
+
+（启动）mysqladmin start
+
+步骤:
+ 
+    1. KILL掉系统里的MySQL进程；
+    2. 用以下命令启动MySQL，以不检查权限的方式启动；
+    mysqld_safe -skip-grant-tables &
+    3. 然后用空密码方式使用root用户登录 MySQL；
+    mysql -u root
+    4. 修改root用户的密码；
+    mysql> update mysql.user set password=PASSWORD（'新密码'） where User='root'；
+    mysql> flush privileges；
+    mysql> quit
+    5. 重新启动MySQL，就可以使用新密码登录了
+	
+--safe-updates 会防止删除么有where的字句的delete和update
+--i-am-a-dummy
+cd $(CURRENT_DIRECTORY)
+C:\wamp\bin\php\php5.4.12\php.exe $(FULL_CURRENT_PATH)
+set sql_safe_updates=1;
+C:\Users\Administrator>mysql -u root --prompt="(\u@\h)[\d]" -p
+(root@localhost)[(none)]use mysql;
+Database changed
+(root@localhost)[mysql]
+
+mysql -X <showdb.sql> serverdatabases.xml
+mysql_convert_table_format -u root -p --type='MYISAM' client;
+
+grant select,insert on book.* to 'michele'@'192.168.1.103' indentified by 'secret';
+revoke all privileges on books.* from 'rita'@'192.168.0.102'; 但user表中user仍存在
+DROP USER 命令来删除该用户
+
+show grants for 'rita'@ '192.168.1.102';
+show grants for current_user();
+
+$mysql = new mysqli();
+$mysqli->connect('localhost','catalog_user','secret','corporate');
+or
+$mysqli = new mysqli('localhost','catalog_user','secret');
+$mysqli->select_db('corporate');
+or
+
+ALTER TABLE  `logins` ADD  `email` VARCHAR( 255 ) NOT NULL AFTER  `id` ;
+$mysqli->close()
+$query="INSERT INTO product(id,sku,title) VALUES(NULL,'SS873221','Surly Soap')";
+
+fetch_row() 每个结果的列储存在一个数组的单元中，偏移量从 0 开始。
+ 注意，这里是从0开始偏移，也就是说不能用字段名字来取值，只能用索引来取值
+ ->$name !! row[0]OK
+ fetch_array 都可以
+ fetch_assoc 只能字段名，
+ delete FROM `products` WHERE id>4;
+目录字符串中注意转义字符\t 
+employee_contact_info_view
+CREATE VIEW employee_contact_info_view('First Name','Last Name','Email Address','Telephone') AS SELECT first_name,last_name,email,phone 
+FROM employees ORDER BY last_name ASC;
+
+__construct(),,ClassName(){}也允许
+
+加载xml simplexml_load_file()
+
+静态方法可以用作工厂方法
+
+<meta http-equiv="refresh" content="5;url=http://www.dreamdu.com/"/>
+
+ThinkPHP 模型字段映射后愿字段不再可以使用，id=>id 后，id无法使用。
+
+set @@profiling =1
+select * frome ..
+show profiles;
+show global status 得到当前状态
+show variables like '%slow%';
+show global status like '%slow%';
+show variables like 'max_connections'
+SHOW GLOBAL STATUS LIKE  'key_read%'
+
+
+也就是 以 session name 为 键，session id 为值的HASH值存入COOKIE

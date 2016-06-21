@@ -1,0 +1,23 @@
+﻿Hanoi Tower
+T(n) = 2T(n-1)+1
+T(0)=0 T(1)=1 T(2)=3
+T(n) = 2^n-1
+
+Lines in the plane
+L(n)=L(n-1)+n
+L(0)=1 L(1)=2 L(2)=4 L(3)=7
+L(n)=1+S(n)
+S(n)=1+2+3+4+....+5
+锯齿
+Z(n)=L(2n)-2n
+Z(n) = 1+S(2n)-2n
+L(n)~n^2/2
+Z(n)~n^2*2
+
+The Josephus problem
+J(2n)=2J(n)-1
+J(2n+1)=2J(n)+1
+J(2n+1)-J(2n)=2
+J(2^m+l)=2l+1
+J((bmbm-1....b1b0)2)=(bm-1...b1b0bm)2
+n循环左移一位

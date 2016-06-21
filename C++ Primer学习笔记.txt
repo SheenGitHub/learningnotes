@@ -1,0 +1,432 @@
+===========================================================================================================================
+JUNE,20th
+===========================================================================================================================
+int &r =i; 引用即别名
+int *p; p指向的类型是int ，p是指针；
+int *&r = p; r是p的引用，* 表明是指针的引用，int表明指针指向的对象时int型
+int *p1 = nullptr; int *p1 = 0;等价；
+NULL 是预处理变量 ，z在cstdlib 中;
+
+const 仅在一个文件内有效，必须被定义 初始化
+entern const int buffSize = fcn(); 在多个文件中共享
+entern const int buffSize;在别的文件中声明使用，一致
+
+const int ci = 1024;
+const int &r1 = ci;//正确：引用及其对应的对象都是常量
+r1 = 24;//错误：r1 是对常量的引用
+int &r2 = ci;//错误：试图让一个非常量引用指向一个常量对象；若该初始化合法，可以通过r2改变它引用对象的值
+
+引用只能绑定在对象上，而不能与字面值或者某个表示式的计算结果绑定在一起
+Exception：允许为一个常量引用绑定非常量的对象，字面值，甚至是个一般表达式 
+
+临时量
+double dval = 3.14；
+const int &ri = dval;
+
+const int temp = dval;
+const int &ri = temp;
+
+对const的引用 引用一个非const对象
+int i =42;
+const int &r2 =i;//不允许通过r2修改i的值
+
+指向常量的指针 pointer to const
+不能用于改变其所指向对象的值
+const double pi = 3.14；
+double *ptr = &pi;//错误，ptr是一个普通指针
+const double *cptr = &pi;//
+*cptr = 42;//错误，不能给*cptr 赋值
+
+指向常量的指针没有规定其指向的对象必须是一个常量
+double dval = 3.14；
+cptr = &dval;//正确，但不能通过cptr改变dval
+
+常量指针*const *放在const前表示指针式一个常量
+int errNumb = 0;
+int *const curErr = &errNumb;//curErr将一直指向 errNumb；
+const double pi = 3.14159
+const double *const pip = &pi;//pip是一个指向常量对象的常量指针
+
+顶层const top-level const 表示指针本身是个常量
+底层const low-level const 表示所指的对象是一个常量
+
+函数体内定义的变量不能用constexpr。
+
+const int *p = nullptr;//p是一个指向整形常量的指针
+constexpr int *q = nullptr;//q是一个指向整数的常量指针 顶级const
+
+int null = 0,*p = null;//不合法
+
+===========================================================================================================================
+JUNE,21st
+===========================================================================================================================
+using SI = Sales_item; 别名声明
+typedef char *pstring; char * 的别名
+const pstring cstr =0;//cstr 是指向char的常量指针
+const pstring *ps; //ps 是一个指针，它的对象时指向char的常量指针
+
+const char *cstr = 0; //是对const pstring cstr 的错误理解
+auto sz = 0，pi = 3.14 //错误，一个声明语句只能有一个基本数据类型
+auto 一般会忽略顶层const
+
+decltype 
+decltype((i)) d;//d 是int& ,必须初始化
+
+函数内定义的变量没有默认初始化。
+类内的变量非显示地初始化，类内初始化 <c></c>
+<11></11>
+===========================================================================================================================
+JUNE,22nd
+===========================================================================================================================
+int *ptrs[10]; //ptrs是含有10个整形指针的数组
+int &refs[10] = /**/;错误：不存在引用的数组
+int (*Parray)[10] = &arr;//Parray指向一个含有10个整数的数组
+int (*arrRef)[10] = arr;// arrRef引用一个含有10个整数的数组
+int *(&array)[10] = ptrs;//array 是数组的引用，该数组含有10个指针
+
+int ia[] = {0,1,2,3,4,5,6,7,8,9,0}
+auto ia2(ia);
+auto ia2(&ia[0]);
+decltype(ia) ia3 = {0,1,2,3,4,5,6,7,8,9,0};//ia3 是一个含有十个整数的数组
+===========================================================================================================================
+JUNE,23rd
+===========================================================================================================================
+char *str = s;//错误，不能用string对象初始化char*
+const char *str = s.c_str();
+int (&row)[4] = ia[1];//把row绑定到ia的第二个4元素数组上
+
+   constexpr size_t rowCnt =3,colCnt =4;
+   int ia[rowCnt][colCnt];
+   for(auto row:ia)
+        for(auto col:row)
+D:\C++Primer\pointer.cpp|10|error: no matching function for call to 'begin(int*&)'|
+for范围循环式以begin 和 end 作为范围的。
+
+===========================================================================================================================
+JUNE,24th
+===========================================================================================================================
+小整形类型通常会被提升成较大的整数类型
+当一个对象被用作右值的时候，哦你给的是对象的值（内容），当对象呗当做左值的时候，用的是对象的身份
+
+p的类型是int*，因为解引用生成左值，所以 decltype(*p) 的结果是引用 int&
+取地址符生成右值，所以 decltype (&p) de 的结果是int**
+===========================================================================================================================
+JUNE,25th
+===========================================================================================================================
+ptr->mem 等价 (*ptr).mem
+
+bool       flag;    char               cval;
+short      sval;    unsignedshort      usval;
+int        ival;    unsigned int       uival;
+long       lval;    unsigned long      ulval;
+float      fval;    double             dval;
+
+3.14159L + 'a' //'a' 提升成 int ,该int值转换为 long double
+dval + ival;   //ival 转换成 double
+dval + fval;   //fval 转换成 double
+flag = dval;   //如果dval是0，则flag是false，否则 flag 是true
+cval + fval;   //cval 转换成int，然后int转换成 float
+sval + cval;   //sval 和 cval 都转换成 int
+cval + lval;   //cval 转换成 long
+ival + ulval;  //ival 转换成 unsigned long
+usval + ival;  //根据unsigned short 和 int 所占空间的大小进行提取
+uival + lval;  //根据unsigned int 和 long所占空间的大小进行转换
+
+数组转换成指针：自动转换
+int ia[10];
+int *ip = ia;
+
+void *p = &d;
+double *dip = static_cast<double*>(p);//
+
+const_cast;//只能改变对象的底层const；
+const char *pc;
+char *p = const_cast<char*>(pc);//如果对象本身不是一个变量，使用强制类型转换获得写权限是合法的行为，但是对象本身是一个常量，再使用const_cast 执行写操作就会产生未定义的后果；
+								//正确，但是通过p写值是未定义的行为
+===========================================================================================================================
+JULY,1st
+===========================================================================================================================
+//自动对象 只存在用快执行期间的对象 automatic object
+//局部静态对象 定义为static 在程序的执行路径第一次经过对象定义语句时初始化，直到程序终止才被销毁
+//引用传递 值传递
+//const形参和实参 实参初始化会忽略掉顶层const，传给它常量对象或者非常量对象都是可以的
+void fcn(const int i){/*fcn 能够读取i，但不能向i写值*/}
+void fcn(int i){/**/}//错误，重复定义了 fcn(int)
+//不能把普通引用绑定到const对象上
+//我们可以使用非常量初始化底层const对象，但是反过来不行
+//同时一个常量引用必须用同类型的对象初始化
+//不良设计，
+string::size_type find_char(string &s, char c, string::size_type &occurs);
+//只能将find_char函数作用于string对象，下面的调用是错误的
+find("Hello World", 'o', ctr);
+//其他函数将它们的形参定义成常量引用，find_char将无法使用
+bool is_sentence(const string &s){
+	string::size_type ctr = 0;
+	return find_char(s, '.', ctr) == s.size() - 1 && ctr == 1;
+}
+//数组特性：不允许拷贝数组以及使用数组时（通常）会将其转换成指针
+//因为数组会被转换成指针，所以当我们为函数传递一个数组时，实际传递的是指向数组首元素的指针
+//尽管不能以值传递的方式传递数组，但是我们可以把形参携程类似数组的形式
+//下面三个print函数等价
+void print(const int*);
+void print(const int[]);
+void print(const int[10]);
+
+//使用标记指定数组长度 C风格字符串
+void print(const char *cp){
+	if(cp)
+		while(*cp)
+			cout << *cp++;
+}
+//使用标准库规范
+void print(const int *beg, const int *end){
+	while(beg! = end)
+		cout << *beg++ << endl;
+}
+//显示传递一个表示数组大小的形参
+void print(const int ia[], size_t size){
+	for(size_t i =0 ;i != size; ++i){
+		cout << ia[i] << endl;
+	}
+}
+print(j,end(j) - begin(j))
+//只有函数确实需要该表元素值得时候，才把形参定义指向非常量的指针
+
+//C++ 语言允许将变量定义成数组的引用
+f(int &arr[10])//讲arr声明成了引用的数组
+f(int (&arr)[10])//arr是具有10个整数的整形数组的引用
+
+//传递多维数组
+void print(int (*matrix)[10],int rowSize){} //指向航油10个整数的数组的指针
+//等价定义
+void print(int matrix[][10],int rowSize){}
+int main(int argc,char *argv[]){}
+int main(int argc,char **argv){}
+prod -d -o ofile data0
+argv[0] = "prog"
+argv[1] = "-d"
+argv[2] = "-o"
+argv[3] = "ofile"
+argv[4] = "data0"
+argv[5] = 0
+===========================================================================================================================
+JULY,2nd
+===========================================================================================================================
+//initializer_list 形参
+//error: invalid initialization of reference of type 'int&' from expression of type 'const int'|
+//initializer_list 作为循环控制使用时不能设置为引用，它本身是const int，可以设置为 const int &
+const string &shorterString(const string &str1, const string &s2){
+	return s1.size() <= s2.size() ? s1 : s2;
+}
+//形参和返回类型都是const string的引用，不管是调用函数还是返回结果都不会真正拷贝string对象
+//不要返回局部引用对象
+//引用返回左值
+char & get_val(string &str,string::size_type ix){
+	return str[ix];
+}
+int main(){
+	string s("a value");
+	cout << s << endl;
+	get_val(s,0) = 'A';
+	cout << s << endl;
+	return 0;
+}
+shortString("hi","bye") = "X";//错误，返回值是常量
+vector<string> process();
+//main函数不能调用自己
+int (*func(int i)[10]); //声明一个返回数组指针的函数
+auto func(int i) -> int(*)[10]// 尾置返回类型
+//一个拥有顶层const的形参无法和一个没有顶层const的形参区别开来
+Record lookup(Phone);
+Record lookup(cosnt Phone);
+
+Record lookup(Phone*)
+Record lookup(Phone* const)
+
+//如果形参是魔种类型的指针或引用，则通过区分指向的是常量对象还是非常量对象可以实现函数重载，此时const是底层的
+Record lookup(Account&)
+Record lookup(const Account&)
+
+Record lookup(Account*);
+Record lookup(Account *const);
+
+//const_cast和重载
+string &shoterString(string &s1, string & s2){
+	auto &r = shoterString(const_cast<const string&>(s1), const_cast<const string &>(s2));
+	return const_cast<string &>(r);
+}
+//重载函数三种可能结果
+//1.最佳匹配
+//2.无匹配
+//3.二义性匹配，也将报错
+//重载与作用域
+//一旦在当前作用域找到了所需的名字，编译器就会忽略外层作用域中的同名实体。剩下的工作就是检查调用是否有效了
+//默认参数 只能省略尾部的参数
+//constexpr 隐式地被指定为内联函数
+bool lengthCompare(const string &, const string &);
+bool (*pf)(const string &, const string &);
+
+pf = lengthCompare;
+pf = &lengthCompare;
+
+bool b1 = pr("hello","goodbye");
+bool b2 = (*pr)("hello","goodbye");
+bool b3 = lengthCompare("hello","goodbye");
+//重载函数的指针
+void ff(int*);
+void ff(unsigned int);
+
+void (*pf1)(unsigned int) = ff;
+void (*pf2)(int) = ff;
+double (*pf3) = ff;//error; unmatched return type;
+
+typedef bool (*Func)(const string&, const string &);
+typedef decltype(lengthCompare) *FuncP2;
+
+//返回指向函数的指针
+using F = int(int*,int) ;//F是函数类型不是指针
+using PF = int(*)(int*,int);
+
+PF f1(int);//正确 ，f1 返回指向函数的指针；
+F f1(int);//错误，F是函数类型f1不能返回一个函数
+F *f1(int);//正确，显示地指定返回类型是指向函数的指针
+
+int (*f1(int))(int*,int);
+decltype 返回函数的类型而不是指针
+
+// this的理性是指向类类型非常量版本的常量指针，在Sales_data成员函数总 this的类型是Sales_data *const
+// 我们不能在把this绑定到一个常量对象上，这也意味着我们不能在一个常量对象上调用普通的成员函数
+// 相当于
+std::string Sales_data::isbn(const Sales_data *const this){return this->isbn;}
+// this 是指向常量的指针，所以常量成员函数不能改变调用它的对象的内容。这里isbn不能写入新值
+//使用class和struct定义类的唯一区别就是默认的访问权限
+//友元函数仅仅制订了访问的权限，而非一个通常意义上的函数声明。如果我们希望类的用户能够
+//调用某个友元函数，那么我们就必须在游园声明之外再专门对函数进行一次声明
+//定义类型的成员必须先定义后使用
+//非常量版本的函数对于常量函数对象时不可用的
+===========================================================================================================================
+JULY,6th
+===========================================================================================================================
+重载函数尽管名字相同，但是它们仍然是不同的函数
+友元函数的使用必须在类的外部提供相应的声明从而使得函数可见
+===========================================================================================================================
+JULY,10th
+===========================================================================================================================
+在类中，如果成员使用了外层作用域中的某个名字，而改名字代表一种类型，则类不能在之后重新定义改名字
+
+在成员函数内查找改名字的声明，只有在函数使用之前出现的声明才被考虑
+不能将explicit构造函数用于拷贝形式的初始化过程
+可以用一个花括号括起来的成员初始值列表，并用它初始化聚合类的数据成员
+静态成员可以使不完全类型；
+指针成员可以是不完全类型
+数据成员必须是完全类型
+===========================================================================================================================
+JULY,11st
+===========================================================================================================================
+badbit 表示系统级错误，一旦被置位，流无法再使用
+failbit 被置位，如期望读取的数值却读出一个字符的错误，可以修正，流可以继续使用
+达到文件结束位置，eofbit和failbit都会被置位。goodbit为0，表示流未发生错误。
+若果badbit、failbit、eofbit仁义一个被置位，则检测流状态的条件会失败
+
+good在所有错误未被置位的时候返回true，而bad、fail、eof则在对应错误位被置位时返回true。此外
+badbit被置位时，fail也会返回true。good和fail是确定流总体状态的正确方法
+
+复位cin.clear(cin.rdstate() & ~cin.failbit & cin.badbit);
+
+============================================================================================================================
+October 10th
+open 隐含输出并截断 ofstream::app|ofstream::trunc
+容器
+vector可变大小的数组，尾部插入快
+deque双端队列，数组实现，可以随机访问，在头尾可以插入
+list双向链表
+forward_list单项链表，只支持顺序访问，
+array固定大小的数组
+string和vector很像，专门保存字符
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

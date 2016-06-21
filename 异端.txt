@@ -1,0 +1,11 @@
+﻿——你喜欢函数式编程？
+——是啊。
+——太好了我也是，你喜欢 Erlang 、Lua 、Lisp 还是 Haskell ？
+—— Lisp 。
+——太好了我也是，你喜欢 Common Lisp 、Emacs Lisp 、Scheme 还是 Clojure ？
+—— Scheme 。
+——太好了我也是，你喜欢 MIT Scheme 、MzScheme 、DrScheme 还是 Guile ？
+—— MIT Scheme 。
+——太好了我也是，你喜欢 7.5 版还是 7.4 版？
+—— 7.5 。
+——滚！异端！

@@ -1,0 +1,26 @@
+﻿任何自定义的布局都必须包含一个ListView节点，该节点的ID格式为@android:id/list
+
+private ArrayAdapter<String> aa;
+private ArrayList<String> todoItems;
+aa= new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,todoItems);
+通过适配器将ListView和ArrayList连接在一起
+
+android:src="@drawable/icon" 指定ImageButton的图片
+ImageButton ImageButton1 = (ImageButton)findViewById(R.id.ImageButton01);
+ImageButton01.setImageResource(R.drawable/icon);
+
+数组outOfIndex 导致 数据库插入失败
+ListView高度不固定导致ListView不断重绘
+
+使用Intent来传播动作，而不是显示地加载类
+
+Intent.FLAG_ACTIVITY_CLEAR_TOP 
+如果已经启动了四个Activity：A，B，C和D。在D Activity里，我们要跳到B Activity，同时希望C finish掉
+这样启动B Activity，就会把D，C都finished掉，如果你的B Activity的启动模式是默认的（multiple） ，
+则B Activity会finished掉，再启动一个新的Activity B。
+如果不想重新再创建一个新的B Activity，则在上面的代码里再加上：
+ntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP); 
+
+Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+如果已经启动了四个Activity：A，B，C和D，在D Activity里，想再启动一个Actvity B，但不变成A,B,C,D,B，
+而是希望是A,C,D,B，则可以像下面写代码

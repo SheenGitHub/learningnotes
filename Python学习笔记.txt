@@ -1,0 +1,6 @@
+安装numpy64位~http://www.lfd.uci.edu/~gohlke/pythonlibs/ 
+下载numpy?MKL?1.8.1.win?amd64?py2.6.exe
+reload重新运行载入的模块 from imp import reload
+在文件末在input() 使窗口不消失
+/ //真除法 和 floor除法 向下舍入
+vars()查看所有的变量

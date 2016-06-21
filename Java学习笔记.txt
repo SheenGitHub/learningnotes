@@ -1,0 +1,79 @@
+File("C:\\Users\\Administrator\\Desktop\\CF_New_UI\\com.hdu.myshop\\workspace12(integration)\\MyShop\\src\\com\\hdu\\myshop\\activity");
+FilenameFilter
+filter() 返回一个内部匿名类；
+
+
+Q:    What if the main method is declared as private?
+
+A:     The program compiles properly but at run time it will give "Main method not public." message.
+
+
+Q: What if the static modifier is removed from the signature of the main method?
+
+A: Program compiles. But at run time throws an error "NoSuchMethodError".
+
+Q: What if I write static public void instead of public static void?
+
+A:  Program compiles and runs properly.
+
+
+Q: What if I do not provide the String array as the argument to the method?
+
+A:  Program compiles but throws a run time error "NoSuchMethodError".
+
+Q: What is the first argument of the String array in main method?
+
+A:  The String array is empty. It does not have any element. This is unlike C/C++（读作plus plus) where the first element by default is the program name.
+
+
+Q: If I do not provide any arguments on the command line, then the String array of Main method will be empty or null?
+
+A:  It is empty. But not null.
+
+Q: How can one prove that the array is notnull but empty using one line of code?
+
+A:  Print args.length. It will print 0. That means it is empty. But if it would have been null then it would have thrown a NullPointerException on attempting to print args.length.
+
+覆写equals方法
+
+1  使用instanceof操作符检查“实参是否为正确的类型”。
+
+2  对于类中的每一个“关键域”，检查实参中的域与当前对象中对应的域值。
+
+3. 对于非float和double类型的原语类型域，使用==比较；
+
+4  对于对象引用域，递归调用equals方法；
+
+5  对于float域，使用Float.floatToIntBits(afloat)转换为int，再使用==比较；
+
+6  对于double域，使用Double.doubleToLongBits(adouble)转换为int，再使用==比较；
+
+7  对于数组域，调用Arrays.equals方法。
+
+覆写hashcode
+
+1. 把某个非零常数值，例如17，保存在int变量result中；
+
+2. 对于对象中每一个关键域f（指equals方法中考虑的每一个域）：
+
+3, boolean型，计算(f? 0 : 1);
+
+4. byte,char,short型，计算(int);
+
+5. long型，计算(int)(f ^ (f>>>32));<!--  -->
+
+6. float型，计算Float.floatToIntBits(afloat);
+
+7. double型，计算Double.doubleToLongBits(adouble)得到一个long，再执行[2.3];
+
+8. 对象引用，递归调用它的hashCode方法;
+
+9. 数组域，对其中每个元素调用它的hashCode方法。
+
+10. 将上面计算得到的散列码保存到int变量c，然后执行result=37*result+c;
+
+11. 返回result。
+
+安装J2ee sdk C:\Program Files\Java\jre8
+
+java_ee_sdk7-windows.exe -j "C:\Program Files\Java\jre7"

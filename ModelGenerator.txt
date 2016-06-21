@@ -1,0 +1,406 @@
+﻿package test;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+
+public class ModelGenerator {
+	public static final String outputdirectory = "C:\\Users\\Administrator\\Desktop\\Test\\";
+	public static final String inputFile = "C:\\Users\\Administrator\\Desktop\\databaseInput.txt";//UTF-8 without BOM 编码
+	
+	private String filename;
+	private String table;
+	
+	/**
+	 * Constructor   
+	 * @param filename   File to update or the File to create
+	 */
+	public ModelGenerator(String filename) {
+		super();
+		this.filename = outputdirectory+filename;
+		this.table = filename.split("\\.")[0];
+	}
+	
+	/**
+	 * Automatically Generate Model Code for a parameter;
+	 * eg. String billid;
+	 * return result: 
+	 * @param column column in Table
+	 * @param type   type of the column
+	 * @return
+	 */
+	public static String genModelCode(String column, String type){
+		//eg. sales
+		String definition = genDefinition(column,type);
+		String assignment =  genAssignmentInCons(column);
+		String builderDef = genBuilderDef(column,type);
+		String builderFunc = genBuilderFun(column,type);
+		String fromJson = genFromJson(column,type);
+		String toJson = genToJson(column);
+		
+		return definition +"\n"+ assignment +"\n"+ builderDef +"\n"+ builderFunc +"\n"+ fromJson +"\n"+ toJson;
+		
+	}
+	/**
+	 * Generate definition line in Builder
+	 * eg. int year output as follows:
+	 * 			public int year = 0;
+	 * @param column
+	 * @param type
+	 * @return
+	 */
+	private static String genBuilderDef(String column, String type) {
+		String defaultValue="";
+		switch(type){
+		case "int":
+			defaultValue = "0";
+			break;
+		case "double":
+			defaultValue = "0.0";
+			break;
+		case "String":
+			defaultValue = "\"\"";
+			break;
+		default:
+			defaultValue = "null";
+			break;
+		}
+		
+		return "\t\tpublic "+ type + " "+ column +" = "+ defaultValue+";\n";
+	}
+	/**
+	 * generate To Json Line
+	 * eg. "int status" outputs as follows:
+	 * 		localItemObject.put("status", status);
+	 * @param column
+	 * @return
+	 */
+	private static String genToJson(String column) {
+		return "\t\tlocalItemObject.put(\""+column+"\", "+column+");\n";
+	}
+	
+	/**
+	 * generate From Json Line
+	 * eg. "int status" outputs as follows:
+	 * 	   localItem.status=jsonObject.optInt("status");
+	 * 
+	 * @param column
+	 * @param type
+	 * @return
+	 */
+	private static String genFromJson(String column, String type) {
+		String typeValue = "";
+		switch(type){
+		case "int":
+			typeValue = "Int";
+			break;
+		case "double":
+			typeValue = "Double";
+			break;
+		case "String":
+			typeValue = "String";
+			break;
+		default:
+			typeValue = "String";
+			break;
+		}
+		return "\t\tlocalItem."+column+" = jsonObject.opt"+typeValue+"(\""+column+"\");\n";
+	}
+	/**
+	 * generate assign Function in Builder
+	 * eg. "int year" outputs as follows:
+	 * 		public Builder year(int year) {
+	 *		this.year = year;
+	 *		return this;
+	 *	}
+	 * @param column
+	 * @param type
+	 * @return
+	 */
+	private static String genBuilderFun(String column, String type) {
+		
+		return "\t\tpublic Builder "+ column +"("+ type +" "+column+"){\n"
+			  +"\t\t    this."+column+" = "+column+";\n"
+			  +"\t\t    return this;\n"
+			  +"\t\t}\n";
+	}
+	
+
+	/**
+	 * Generate Assignment in Constructor
+	 * eg. "int year"  outputs as follows:
+	 * 			year = builder.year;
+	 * 		
+	 * @param column
+	 * @return
+	 */
+	private static String genAssignmentInCons(String column) {
+		return "\t\t"+column+" = builder."+column+";\n";
+	}
+	/**
+	 * Generate Definition Line in Model
+	 * eg "int year" outputs as follows: 
+	 * return  
+	 * 			/@Column(name = "year")
+    			public int year;	
+	 * @param column
+	 * @param type
+	 * @return
+	 */
+	private static String genDefinition(String column, String type) {
+		
+		return "\t@Column(name = \""+ column+"\")" +
+					"\n\tpublic "+ type +" "+ column +";\n\n";
+	}
+	/**
+	 * read the single Line of File into LinkedList
+	 * @param filename  name of File ,type String
+	 * @return LinkedList the item shows the lines in the File
+	 * @throws IOException
+	 */
+	private static LinkedList<String> read(String filename) throws IOException{
+		LinkedList<String> list = new LinkedList<>();
+		BufferedReader in = new BufferedReader(new FileReader(filename));
+		String s;
+		while((s = in.readLine())!=null)
+			list.add(s+"\n");
+		in.close();
+		return list;
+	}
+	/**
+	 * read the single Line of File into LinkedList
+	 * @param filename File file name
+	 * @return LinkedList the item shows the lines in the File
+	 * @throws IOException
+	 */
+	private static LinkedList<String> read(File filename) throws IOException{
+		LinkedList<String> list = new LinkedList<>();
+		BufferedReader in = new BufferedReader(new FileReader(filename));
+		String s;
+		while((s = in.readLine())!=null)
+			list.add(s);
+		in.close();
+		return list;
+	}
+	/**
+	 * insert the code into LinkedList
+	 * @param list the lines of the File
+	 * @return
+	 * @throws IOException 
+	 */
+	public void insertLine(LinkedList<String> list, String column, String type) throws IOException{
+		int position= 0;
+		position = locatePosition(list,"@Column\\(name");//@Column(name = "user_id")
+	    list.add(position, genDefinition(column, type)); //public String user_id;	 
+		
+		position = locatePosition(list,"(\\S)* = builder"); // user_id = builder.user_id;
+		list.add(position, genAssignmentInCons(column)); 
+		
+		position = locatePosition(list,"public (double|int|String) \\S* = \\S*");
+		list.add(position, genBuilderDef(column,type));//public double Issued_invoice = 0; 
+		
+		position = locatePosition(list,"public Builder \\S*\\(");
+		list.add(position, genBuilderFun(column, type));//public Builder shortbillid(String shortbillid) {
+		
+		position = locatePosition(list,"localItem\\.\\S* = jsonObject");//localItem.busy = jsonObject.optInt("busy");
+		list.add(position, genFromJson(column, type));
+		
+		position = locatePosition(list,"localItemObject\\.put\\(");//localItemObject.put("busy", busy);
+		list.add(position, genToJson(column));
+		
+		
+	}
+	/**
+	 * write the list back to File
+	 * @param list list of lines
+	 * @throws IOException
+	 */
+	private void write(LinkedList<String> list) throws IOException {
+		PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(filename)));
+		for(int i = 0; i < list.size(); i++)
+			out.print(list.get(i));
+		out.println();
+		
+		out.close();
+	}
+	/**
+	 * locate the position where to insert the generated Code
+	 * @param list 
+	 * @param string  beginning words of the line to locate
+	 * @return position
+	 */
+	private static int locatePosition(LinkedList<String> list, String string) {
+		Pattern pattern = Pattern.compile("^(\\s)*"+string);
+		Matcher matcher;
+		
+		int count = 0;
+		 for(int i = 0;i < list.size();++i){
+			  matcher = pattern.matcher(list.get(i));
+			  if(matcher.find())
+				  count = i;
+		 }
+		return count;
+	}
+	/**
+	 * update the Model file by the given data, map refers to the pair of given column and type
+	 * @param map pairs of given column and type
+	 * @param list  file lines list
+	 * @throws IOException
+	 */
+	private void updateModelFile(Map<String, String> map, LinkedList<String> list)
+			throws IOException {
+		
+		Iterator<Entry<String, String>> it = map.entrySet().iterator();
+		
+		while(it.hasNext()){
+			Entry<String,String> entry = it.next();
+			System.out.println(entry.getKey()+" => "+entry.getValue());
+			insertLine(list,entry.getKey(),entry.getValue());
+		}
+		
+		write(list);
+	}
+	/**
+	 * Generate Orignial LinkedList of file lines
+	 * @param pair first pairs of given column and type
+	 * @return
+	 */
+	private LinkedList<String> initializeOrignialFileList(Entry<String,String> pair){
+		LinkedList<String> list = new LinkedList<>();
+		
+		String firstColumn =pair.getKey();
+		String firstType = pair.getValue();
+		list.add("package test;\n");
+		list.add("    \n");
+		list.add("import org.json.JSONException;\n");
+		list.add("import org.json.JSONObject;\n");
+		list.add("import com.external.activeandroid.Model;\n");
+		list.add("import com.external.activeandroid.annotation.Column;\n");
+		list.add("import com.external.activeandroid.annotation.Table;\n");
+		list.add("    \n");
+		list.add("@Table(name = \""+table+"\")\n");
+		list.add("public class "+table+" extends Model{\n");
+		list.add("    \n");
+		list.add(genDefinition(firstColumn, firstType));
+		list.add("    \n");
+		list.add("    public "+table+"(){}\n");
+		list.add("    \n");
+		list.add("    public "+table+"(Builder builder){"+"\n");
+		list.add("    \n");
+		list.add(genAssignmentInCons(firstColumn));
+		list.add("    }\n");
+		list.add("    \n");
+		list.add("    public static class Builder{\n");
+		list.add("    \n");
+		list.add(genBuilderDef(firstColumn, firstType));
+		list.add("    \n");
+		list.add(genBuilderFun(firstColumn, firstType));
+		list.add("\t\tpublic "+table+" build(){"+"\n");
+		list.add("\t\t    return new "+table+"(this);\n");
+		list.add("\t\t}\n");
+		list.add("    }\n");
+		list.add("    \n");
+		list.add("    public static "+table+" fromJson(JSONObject jsonObject) throws JSONException{\n");
+		list.add("    \n");
+		list.add("\t\tif(jsonObject == null){ return null;}\n");
+		list.add("\t    \n");
+		list.add("\t\t"+table+" localItem = new "+table+"();\n");
+		list.add(genFromJson(firstColumn, firstType));
+		list.add("    \n");
+		list.add("\t\treturn localItem;\n");
+		list.add("    }\n");
+		list.add("    \n");
+		list.add("    public JSONObject toJson() throws JSONException{\n");
+		list.add("    \n");
+		list.add("\t\tJSONObject localItemObject = new JSONObject();\n");
+		list.add(genToJson(firstColumn));
+		list.add("    \n");
+		list.add("\t\treturn localItemObject;\n");
+		list.add("    }\n");
+		list.add("}\n");
+		return list;
+		
+	}
+	
+	/**
+	 * Update A given Model File by given pairs 
+	 * @param map pairs of given columns and types
+	 * @throws IOException
+	 */
+	public void updateFileByMap(Map<String,String> map) throws IOException{
+		updateModelFile(map, read(filename));
+	};
+	
+	/**
+	 * Create A Model File by given pairs
+	 * @param map pairs of given columns and types
+	 * @throws IOException
+	 */
+	public void createFileByMap(Map<String,String> map) throws IOException{
+		Iterator<Map.Entry<String,String>> it = map.entrySet().iterator();
+		
+		Entry<String,String> pair = it.next();
+		LinkedList<String> list = initializeOrignialFileList(pair);
+		
+		if(map.remove(pair.getKey(),pair.getValue()))
+			updateModelFile(map, list);
+	};
+	/**
+	 * Read Map from the file
+	 * @param inputfile input filename
+	 * @return
+	 * @throws IOException
+	 */
+	private static Map<String, String> readMapFromFile(String inputfile) throws IOException {
+		Pattern p = Pattern.compile("^\\s*(\\S*)\\s*(\\S*)");
+		Matcher m;
+		
+		BufferedReader in = new BufferedReader(new FileReader(inputfile));
+		Map<String,String> map = new HashMap<>();
+		String s,column, type;
+		System.out.println("Lines in File:");
+		while((s = in.readLine()) != null){
+			System.out.println(s);
+			m = p.matcher(s);
+			
+			if(m.find()){
+				column = m.group(1);
+				type = m.group(2);
+				map.put(column, type);
+			}
+			
+		}
+		return map;
+	}
+	
+	public static void main(String[] args) throws IOException {
+		
+		ModelGenerator mg = new ModelGenerator("AUTOINPUT.java");
+		
+		Map<String,String> map = new HashMap<>(); //直接输入键值对
+		map.put("testone", "int");
+		map.put("testtwo", "String");
+		map.put("testthree", "double");  
+		
+		Map<String,String> mapFromFile = readMapFromFile(inputFile);//从文件中输入键值对
+
+		mg.createFileByMap(mapFromFile);//用键值对新建文件
+		mg.updateFileByMap(map);//用键值对更新文件
+		
+	}
+
+	
+
+}

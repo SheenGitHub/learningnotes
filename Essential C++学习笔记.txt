@@ -1,0 +1,6 @@
+函数指针
+const vector<int>*(*seq_ptr)(int)
+函数指针数组
+const vector<int>*(*seq_ptr[])(int)={fib_seq,lucas_seq,pell_seq};
+枚举
+enum ns_type{ns_fib,ns_lucas,ns_pell}; seq_ptr = seq_array[ns_pell];

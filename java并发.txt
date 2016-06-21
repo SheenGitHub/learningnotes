@@ -1,0 +1,46 @@
+常见的并发危险：竞争条件（race condition）
+2.3 惰性初始化中存在竞争条件
+命中计数操作中存在“读改写”操作，要确保在更新的过程中，没有其他线程改变或使用计数器
+UnsafeSequence 用于持久性框架生成实体标识符，两个对象会由于相同的ID而消亡，因为它们破坏了标识符的完整性约束
+为了保护状态的一致性，要在单一的院子操作中更新相互关联的状态变量
+
+在单个线程中只要重排序不会对结果产生影响，那就不能保证其中的操作一定按照程序写定的顺序执行，
+即使重排序对其他线程来说会产生明显的影响。
+
+局部变量（Local variables） 方法定义参数（formal method parameters）和 异常处理参数（exception handler parameters）
+不会砸线程之间共享，它们不会有内存可见性问题，也不受内存模型的影响
+JMM定义了线程和主内存之间的抽象关系：线程之间的共享变量存储在主内存，每个线程都有一个私有的本地内存（Local memeory）,
+本地内存存储了该线程读写共享变量的副本
+
+重排序
+
+1.编译器优化的重排序
+编译器在不改变单线程程序语义的前提下，可以重新安排语句的执行顺序
+2指令级并行的重排序。现代处理器采用指令级并行技术(Instruction-Level Parallelism,ILP)，将多条指令重叠执行，
+如果不存在数据依赖性，处理器可以改变语句对应机器指令的执行顺序
+3.内存系统的重排序。由于处理器使用缓存和读写缓冲区，这使得加载和存储操作看上去可能是乱序执行的
+源代码---》1.---》2----》3---》最终执行的指令序列
+
+线程安全容器
+Hashtable , synchronizedMap, ConcurrentMap
+Vector, CopyOnWriteArrayList, CopyOnWriteArraySet, synchronizedList, synchronizedSet
+BlockingQueue, ConcurrentLinkedQueue
+Future, Exchanger
+最简单最安全的方式发布--静态初始化器
+public static Holder holder = new Holder(42);
+
+独占(Exclusion) 状态依赖(State dependence) 创建线程(Creating thread)
+
+synchronized加锁规则
+*永远只是在更新对象的成员变量时加锁
+*永远只是在访问有可能被更新的成员函数时才加锁
+*永远不要在调用其他对象的方法时加锁
+
+未经检查的异常RuntimeException,Error 导致线程的run方法结束，这个线程被终止。
+重复调用start方法，会得到一个InvalidThradStateException
+
+isAlive()
+isInterrupted() 被t.interrupt中断的interruption状态被置位false。
+新线程的优先级与创建它的那个线程的优先级一致
+t.join()会在t.isAlive()为false时返回，将当前线程挂起，知道目标线程t结束运行
+
