@@ -18,5 +18,126 @@ Java语言被设计成允许对一个类做的多种改动，这些改动不要求对
 
 任何时刻只能有一个Policy对象被安装
 
+Java堆
+
+Java栈
+
+局部变量表
+保存函数的参数以及局部变量
+每一次的函数调用会占用跟多的栈空间，最终导致函数嵌套调用次数减少
+
+操作数栈
+保存计算过程的中间过程
+
+帧数据区
+访问常量池的指针
+
+栈上分配
+逃逸分析
+
+方法区
+保存系统的类信息
 
 
+
+-XX:PermSize
+-Xms指定大小
+-Xmn新生代
+-Xmx32M
+-Xss256K
+-XX:PrintGC
+-XX:+DoEscapeAnalysis
+-XX:MaxMetaspaceSize
+-XX:PrintGCDetail
+-XX:PrintReferenceGC
+-verbose:class
+-XX:TraceClassLoading
+-XX:TraceClassUnloading
+-XX:PrintClassHistogram
+-XX:PrintClassVMOptions
+-XX:PrintCommandLineFlags
+-XX:PrintFlagsFinal
+-XX:SurvivorRatio
+-XX:NewRatio
+-XX:HeapDumpOnOutOfMemoryError
+-XX:HeapDumpPath
+-XX:MaxDirectMemorySize
+
+新生代串行回收器
+仅仅使用单线程进行垃圾回收
+独占式的垃圾回收：所有的线程都需要暂停，等待垃圾回收的完成
+成熟高效的收集器，使用复制算法
+
+Client模式下的默认收集器
+老生代串行回收器采用标记压缩算法
+使用-XX:UseSerialGC 指定新生代串行收集器和老年代串行手机器
+-XX:+UseParNewGC 新生代使用ParNew回收器，老年代使用串行收集器
+-XX:+UseParallelGC 新生代使用Parallel回收器，老年代使用串行收集器
+-XX:+UseConcMarkSweepGC 新生代使用Parallel回收器，老年代使用CMS
+-XX:+UseParallelOldGC 新生代使用Parallel回收器，老年代使用ParallelOldGC串行收集器
+
+ParNew回收器
+只是简单的将串行回收器多线程化
+独占式，收集过程中，应用程序全部暂停，
+停顿时间短于串行回收器
+回收器的线程数量使用-XX:ParallelGCThreads参数指定
+
+新生代ParallelGC
+和ParNew相似，但是，非常关注系统的吞吐量
+-XX:MaxGCPauseMillis：设置最大垃圾收集停顿时间
+-XX：GCTimeRatio系统使用垃圾收集的时间不超过1/(1+19)
+支持自适应gC调节策略，使用-XX:+UseAdaptiveSizePolicy打开自适应GC策略
+在此模式下，新生代的大小，eden和survivior的比例，晋升老年代的对象年龄等参数会被自动调整
+在手工调优比较困难的场合，可以直接使用这种自适应的方式，指定虚拟机的最大堆，目标吞吐量和停顿时间
+
+CMS回收器
+Concurrent Mark Sweep
+多线程，标记清除回收器
+主要关注于系统停顿时间
+CMS默认启动的并发线程数是 (ParallelGCThreads+3)/4 
+也可以手工设定 -XX:ConcGCThreads或者-XX:ParallelCMSThreads参数手工设定
+并发是指收集器和应用线程交替执行，并行是指应用程序停止，同时多个线程一起执行GC
+
+CMS不是独占式的，在堆内存使用率到达某一阈值时便开始进行回收
+阈值使用-XX:CMSInitiatingOccupancyFraction来指定默认是68
+如果CMS执行中内存增长过快出现内存不足，CMS回收就会失败虚拟机将启动老年代收集器进行垃圾回收，这样应用程序将会完全中断，知道垃圾回收完成
+如果内存增长缓慢，则可以设一个稍大的阈值，大的阈值可以降低CMS的触发频率，
+如果程序内存的使用率增长很快，则应该降低这个阈值，以避免频繁触发老年代串行收集器
+-XX：+UseCMSCompactAtFullCollection开关使CMS在垃圾回收完成后进行一次内存碎片整理
+-XX:CMSFullGCsBeforeCompaction参数可以用于设定进行多少次CMS回收后，进行一次内存压缩
+希望CMS回收Perm区
+打开-XX:+CMSClassUnloadingEnabled开关
+
+G1回收器 Garbage First Garbage Collector
+并行性：G1回收期间，可以多个GC线程同时工作，有效利用多核计算能力
+并发性：G1拥有与应用程序交替执行的能力，不会再整个回收期间完全阻塞应用程序
+分代GC:G1依然是一个粉黛收集器，它同时兼顾年轻代和老年代
+空间整理:G1 在回收过程中，会进行适当的对象移动，不像CMS只是简单的标记清理对象，而G1每次都会有效复制对象，减少空间碎片
+可以预见性：由于分区的原因G1可以只选取部分区域进行内存回收，减少了回收的范围，对全局停顿也能进行较好的控制
+G1新生代：一旦eden区被占满，就会启动
+
+G1收集过程
+新生代GC
+并发标记周期
+混合收集
+如需，FullGC
+
+G1并发标记周期
+初始标记：伴随一次新生代GC，Eden被清空
+根区域扫描：扫描由survivor区直接可达的老年代区域，并标记这些直接可达的对象。跟区域扫描不能喝新生代GC不能同时进行
+并发标记：扫描整个堆的存活对象，做好标记，这个过程可以被一个新生代GC打断
+重新标记：由于并发标记过程中应用程序依然在运行，标记结果可能需要修正，所以对上一次的标记过程进行补充。使用SATB(Snap-At-The-Beginning)算法完成，在标记之初为存活对象创建一个快照，加速重新办标记的速度
+独占清理：引起停顿，将计算各个区域的存货对象和GC回收比例并警醒排序，识别可供混合回收的区域，更新记忆集（Remebered Set），给出了需要被混合回收的区域并进行标记
+并发清理阶段:识别并清理完全空闲的区域
+
+G1回收垃圾比例较高的区域
+既会执行正常的年轻代GC，又会选取一些被标记的老年代区域回收
+
+可以使用-XX:+UseG1GC打开G1收集器
+-XX:InitiatingHeapOccupancyPercent 当堆使用率到达多少时，触发并发标记周期的执行
+-XX:-+DisableExplicitGC 是System.gc无效
+-XX:+UseConcMarkSweepGC 
+
+打开参数
+-XX:+ExplicitGCInvokeeConcurrent 开启CMS或G1的并行执行
+-XX:-ScavengeBeforeFullGC去除发生在FullGC前的新生代GC
