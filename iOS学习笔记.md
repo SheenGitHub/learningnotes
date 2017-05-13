@@ -1,6 +1,6 @@
 # Swift - iOS 笔记 #
 
-##swift常识##
+## swift常识 ##
 > Swift里不会自动给变量赋初始值，也就是说变量不会有默认值，所以要求使用变量之前必须要对其初始化。如果在使用变量之前不进行初始化就会报错
 
 Optional其实是个enum，里面有None和Some两种类型。其实所谓的nil就是Optional.None, 非nil就是Optional.Some, 然后会通过Some(T)包装（wrap）原始值，这也是为什么在使用Optional的时候要拆包（从enum里取出来原始值）的原因, 也是PlayGround会把Optional值显示为类似{Some "hello world"}的原因
@@ -19,7 +19,7 @@ Optional其实是个enum，里面有None和Some两种类型。其实所谓的nil
 	    func getMirror() -> Mirror 
     } 
 
-###? 使用的两种场景###
+### ? 使用的两种场景 ###
 
 - 1.声明Optional值变量
 - 2.用在对Optional值操作中，用来判断是否能响应后面的操作
@@ -95,7 +95,7 @@ LogMessage
 > 
 %B会打印断点的名字，%H会打印断点的调用次数，@@中间可以输入表达式。
 
-###函数###
+### 函数 ###
 > 每个函数有个函数名，用来描述函数执行的任务。要使用一个函数时，你用函数名“调用”，并传给它匹配的输入值（称
 > 作实参，arguments）。一个函数的实参必须与函数参数表里参数的顺序一致。
 
@@ -152,10 +152,10 @@ Values）
 > 函数调用结束后仍然存在，那么就应该把这个参数定义为输入输出参数（In-Out Parameters）。
 > 输入输出参数是函数对函数体外产生影响的另一种方式。
 
-####函数类型（Function Types）####
+#### 函数类型（Function Types） ####
 每个函数都有种特定的函数类型，由函数的参数类型和返回类型组成。
 
-####嵌套函数（Nested Functions）####
+#### 嵌套函数（Nested Functions） ####
 可以把函数定义在别的函数
 体中，称作嵌套函数（nested functions）。
 
@@ -181,7 +181,7 @@ Values）
     // -1...
     // zero!
     
-###闭包（Closures）###
+### 闭包（Closures） ###
 > 闭包是自包含的函数代码块，可以在代码中被传递和使用
 
 闭包采取如下三种形式之一：
@@ -197,7 +197,7 @@ Swift 的闭包表达式拥有简洁的风格，并鼓励在常见场景中进�
 - 参数名称缩写
 - 尾随（Trailing）闭包语法
 
-####闭包表达式####
+#### 闭包表达式 ####
 闭包表达式是一种利用简洁语法构建内联闭包的方式。 闭包表达式提供了一些语法优化，使得撰写闭包变得简单明了。
 
     { (parameters) -> returnType in
@@ -235,7 +235,7 @@ Swift 的闭包表达式拥有简洁的风格，并鼓励在常见场景中进�
     	// 闭包主体部分
     }
 
-####捕获值（Capturing Values）####
+#### 捕获值（Capturing Values） ####
 > 注意： Swift 会决定捕获引用还是拷贝值。 您不需要标注 amount 或者 runningTotal 来声明在嵌入的 incrementor 函
 > 数中的使用方式。 Swift 同时也处理 runingTotal 变量的内存管理操作，如果不再被 incrementor 函数使用，则会被
 > 清除。
@@ -258,13 +258,13 @@ Swift 的闭包表达式拥有简洁的风格，并鼓励在常见场景中进�
 
 
 
-####逃逸闭包（Escaping Closure）####
+#### 逃逸闭包（Escaping Closure） ####
 
 首先你需要理解什么是逃逸闭包。它的定义非常简单而且易于理解。
 
 > 如果一个闭包被作为一个参数传递给一个函数，并且在函数return之后才被唤起执行，那么这个闭包是逃逸闭包。并且这个闭包的参数是可以“逃出”这个函数体外的。
 
-####@escaping的含义####
+#### @escaping的含义 ####
 
 这个提醒我们去理解@escaping属性的含义。因为在swift3中闭包默认是不可逃逸的，逃逸闭包需要像这样被标记。@escaping属性让我们可以那样做。
 
@@ -284,7 +284,7 @@ TableView顶部的TextField被NavigationItem遮挡住
 > //json返回的null值 EduExper = "<null>";if JSON["EduExper"] is NSNull{    print("yes")}else{    print("no")}
 
 
-###枚举###
+### 枚举 ###
 > 原始值和相关值是不相同的。当你开始在你的代码中定义枚举的时候原始值是被预先填充的值，像上述三个
 > ASCII 码。对于一个特定的枚举成员，它的原始值始终是相同的。相关值是当你在创建一个基于枚举成员的新常量或变
 > 量时才会被设置，并且每次当你这么做得时候，它的值可以是不同的。
@@ -306,14 +306,14 @@ TableView顶部的TextField被NavigationItem遮挡住
     }
     // 输出 "QR code with value of ABCDEFGHIJKLMNOP.”
 
-###swift 访问权限###
+### swift 访问权限 ###
 
-####fileprivate####
+#### fileprivate ####
 在swift 3中，新增加了一个 fileprivate来显式的表明，这个元素的访问权限为文件内私有。过去的private对应现在的fileprivate。现在的private则是真正的私有，离开了这个类或者结构体的作用域外面就无法访问。
 
 > 在原有的swift中的 private其实并不是真正的私有，如果一个变量定义为private，在同一个文件中的其他类依然是可以访问到的。这个场景在使用extension的时候很明显。
 
-####open####
+#### open ####
 open则是弥补public语义上的不足。<br>
 现在的pubic有两层含义：
 
@@ -327,7 +327,7 @@ open则是弥补public语义上的不足。<br>
 
 open > public > interal > fileprivate > private
 
-###dynamic 关键字###
+### dynamic 关键字 ###
 
 Swift中也有dynamic关键字，它可以用于修饰变量或函数，它的意思也与OC完全不同。它告诉编译器使用动态分发而不是静态分发。OC区别于其他语言的一个特点在于它的动态性，任何方法调用实际上都是消息分发，而Swift则尽可能做到__静态分发__。
 
@@ -354,7 +354,7 @@ Objective-C 的消息发送是完全动态的，动态特性对于构建UI库很
 另一个方法是在 Swift 中直接或间接继承 NSObject，比如class AnimationDelegate : NSObject
 当继承 NSObject 时，就认为是 Objective-C 的类，就按照 Objective-C 的方式处理。注意就算是继承 NSObject，但将方法标记成私有 private，也是不能动态找到方法地址的。
 
-###特殊的字面量###
+### 特殊的字面量 ###
 
 在开发或调试过程中如果能用好下面这四个字面量，将会起到事半功倍的效果：
 
@@ -363,12 +363,12 @@ Objective-C 的消息发送是完全动态的，动态特性对于构建UI库很
 - __LINE__：当前代码在该文件的第多少行
 - __COLUMN__：当前代码在改行的多少列
 
-###OC 和 Swift兼容###
+### OC 和 Swift 兼容###
 Apple采取的做法是允许我们在同一个项目中同时使用Swift和Objective-C来进行开发。其实一个项目中的Objective-C文件和Swift文件是处于两个不同世界中的，为了让它们能相互联通，我们需要添加一些桥梁。
 
 首先通过添加{product-module-name}-Bridging-Header.h文件，并在其中填写想要使用的头文件名称，我们就可以很容易地在Swift中使用Objective-C代码了。Xcode为了简化这个设定，甚至在Swift项目中第一次导入Objective-C文件时会主动弹框进行询问是否要自动创建这个文件，可以说是非常方便。
 
-###guard###
+### guard ###
 
 [使用guard的正确姿势](http://www.open-open.com/lib/view/open1455424030323.html)
 
@@ -395,7 +395,7 @@ Code Example
     
     	return Task(id: id, name: name, userId: userId, position: position)
     }
-##网络##
+## 网络 ##
 
 [网络-NSURL](http://blog.csdn.net/abcd2686529828/article/details/51332484)
 
@@ -458,7 +458,7 @@ JSONSerialization能将JSON转换成Foundation对象，也能将Foundation对象
 
 *注意：尽量使用JSONSerialization.isValidJSONObject先判断能否转换成功。*
 
-##iOS中的多线程技术###
+## iOS中的多线程技术 ###
 - pthread
 - NSThread
 - GCD
@@ -514,7 +514,7 @@ Swift3.0 中的 Thread 类
 > 如果队列具 有开启线程的能力 (队列任务异步执行) 且队列是 并发队列 ，那么将会 开启 多 条线程 。开启线程的条数由 GCD 决定。
 > ( 串行和并发决定的是开几条线程 )
 
-###全局队列###
+### 全局队列 ###
 
 - **全局 ( 并发 ) 队列异步执行 ：**
 
@@ -597,7 +597,7 @@ Swift3.0 中的 Thread 类
 > 
 > CALayer不能响应事件
 
-##UIImageJPEGRepresentation###
+## UIImageJPEGRepresentation ###
 UIImageJPEGRepresentation方法在耗时上比较少 <br>而UIImagePNGRepresentation耗时操作时间比较长<br>
 通过调用UIImageJPEGRepresentation(UIImage* image, 0.5)读取数据时,返回的数据大小只有11KB多,大大压缩了图片的数据量 ,而且从视角角度看,图片的质量并没有明显的降低.因此,在读取图片数据内容时,建议优先使用UIImageJPEGRepresentation
 
@@ -728,7 +728,7 @@ Optional.Some(2).map { $0 + 3 }<br/>
       case .None: return .None
     }
 
-##高级运算符##
+## 高级运算符 ##
 
 > Swift 中算术运算符默认是不会溢出的。溢出行为都会作为错误被捕获。为了允许溢出行为，可以使用 Swift 中另一套默认支持的溢出运算符，比如溢出加法运算符（&+）。所有这些溢出运算符都是以 & 符号开始的。
 
@@ -780,7 +780,7 @@ Optional.Some(2).map { $0 + 3 }<br/>
 	    return vector
     }
 
-####自定义中缀运算符的优先级和结合性####
+#### 自定义中缀运算符的优先级和结合性 ####
 自定义的中缀(infix)运算符也可以指定优先级(precedence)和结合性(associativity)。优先级和结合性中详细阐述了这两个特性是如何对中缀运算符的运算产生影响的。
 
 - 结合性（associativity）可取的值有 left，right 和 none。当左结合运算符跟其他相同优先级的左结合运算符写在一起时，会跟左边的操作数进行结合。同理，当右结合运算符跟其他相同优先级的右结合运算符写在一起时，会跟右边的操作数进行结合。而非结合运算符不能跟其他相同优先级的运算符写在一起。
@@ -824,7 +824,7 @@ Swift将一个函数应用到另外一个函数的代码如下：
     foo(10)
     // => 15
 
-####自定义操作符####
+#### 自定义操作符  ####
 
 **swift2**
 
@@ -943,7 +943,7 @@ B代码
 
 **小于5行的并且不重用的函数直接用内联的方式写在代码块中**
 
-###Print("Hello World!")###
+### Print("Hello World!") ###
 [你真的不懂 print（"Hellow World!"）](http://www.jianshu.com/p/abb55919c453)
 
 
@@ -986,7 +986,7 @@ print code
       output.write(terminator)// 终止符，通常是"\n"
     }
 
-###TopLayoutGuide###
+### TopLayoutGuide ###
 [TopLayoutGuide](https://blog.kyleduo.com/2014/10/22/ios_learning_autolayout_toplayoutguide/)
 
 > topLayoutGuide属性表示不希望被透明的状态栏或导航栏遮挡的内容范围的最高位置。这个属性的值是它的length属性的值（topLayoutGuide.length），这个值可能由当前的ViewController或这个ViewController所属的NavigationController或TabBarController决定，有如下情况：
@@ -999,7 +999,7 @@ print code
 >     - 如果都不可见，表示ViewController的上边缘。
 > 这部分还比较好理解，总之是屏幕上方任何遮挡内容的栏的最底部。
 
-###Swift指针###
+### Swift指针 ###
 [Swift 中的指针使用](https://onevcat.com/2015/01/swift-pointer/)
 
 在 Swift 中，指针都使用一个特殊的类型来表示，那就是 UnsafePointer<T>。遵循了 Cocoa 的一贯不可变原则，UnsafePointer<T> 也是不可变的。当然对应地，它还有一个可变变体，UnsafeMutablePointer<T>。绝大部分时间里，C 中的指针都会被以这两种类型引入到 Swift 中：C 中 const 修饰的指针对应 UnsafePointer (最常见的应该就是 C 字符串的 const char * 了)，而其他可变的指针则对应 UnsafeMutablePointer。除此之外，Swift 中存在表示一组连续数据指针的 UnsafeBufferPointer<T>，表示非完整结构的不透明指针 COpaquePointer 等等。另外你可能已经注意到了，能够确定指向内容的指针类型都是泛型的 struct，我们可以通过这个泛型来对指针指向的类型进行约束以提供一定安全性。
