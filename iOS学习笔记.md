@@ -395,6 +395,44 @@ Code Example
     
     	return Task(id: id, name: name, userId: userId, position: position)
     }
+
+
+### Error Handling ###
+- Propagating Errors Using Throwing Functions
+- Handling Errors Using Do-Catch
+- Converting Errors to Optional Values
+- Disabling Error Propagation
+
+Convert 
+
+    func fetchData() -> Data? {
+	    if let data = try? fetchDataFromDisk() { return data }
+	    if let data = try? fetchDataFromServer() { return data }
+	    return nil
+    }
+
+#### Specify Cleanup Action ####
+
+    func processFile(filename: String) throws {
+	    if exists(filename) {
+		    let file = open(filename)
+		    defer {
+		    close(file)
+	    }
+	    while let line = try file.readline() {
+	    	
+	    }
+	    	// close(file) is called here, at the end of the scope.
+	    }
+    }
+
+### Type Casting ###
+#### Type Casting for Any and AnyObject ####
+
+Swift provides two special types for working with nonspecific types:
+
+- Any can represent an instance of any type at all, including function types.
+- AnyObject can represent an instance of any class type.
 ## 网络 ##
 
 [网络-NSURL](http://blog.csdn.net/abcd2686529828/article/details/51332484)
@@ -524,7 +562,7 @@ Swift3.0 中的 Thread 类
 
 并发队列同步（阻塞当前线程）执行（队列就不具有开启线程的能力）， 队列不会开启线程（代码都在主线程中执行）。
 
-###主队列###
+### 主队列 ###
 
 - **主队列(串行)异步执行**
 
@@ -536,7 +574,7 @@ Swift3.0 中的 Thread 类
 
 主线程同步，在 Swift 中，编译阶段就报错，在 oc 中是在运行的时候才能发现。体现的主要是界面的 “假死”。
 
-###自定义队列###
+### 自定义队列 ###
 
 - **自定义（串行）队列异步执行**
 
@@ -552,7 +590,7 @@ Swift3.0 中的 Thread 类
 
 - **自定义（并发）队列同步执行**
 
-###NSOperation###
+### NSOperation ###
 
 [原文](http://www.cocoachina.com/ios/20160201/15179.html)
 
@@ -579,7 +617,7 @@ Swift3.0 中的 Thread 类
 	    case VeryHigh
     }
 
-##图片##
+## 图片 ##
 
 ### UIViewContentMode ###
 
@@ -718,7 +756,7 @@ UIImageJPEGRepresentation方法在耗时上比较少 <br>而UIImagePNGRepresenta
 
 ## 函数式编程 ##
 [Functor，Applicative 和 Monad](http://www.jdon.com/idea/functor-monad.html)
-###Functor函子###
+### Functor函子 ###
 Optional.Some(2).map { $0 + 3 }<br/>
 // => .Some(5)
 
@@ -1015,6 +1053,7 @@ print code
     
     a  // 11
 
+**以上代码在swift3中无法运行，swift3中memory已经重命名为pointee， += 号不可以使用**
 
 与这种做法类似的是使用 Swift 的 inout 关键字。我们在将变量传入 inout 参数的函数时，同样也使用 & 符号表示地址。不过区别是在函数体内部我们不需要处理指针类型，而是可以对参数直接进行操作。
 
@@ -1029,3 +1068,67 @@ print code
 
 
 **虽然 & 在参数传递时表示的意义和 C 中一样，是某个“变量的地址”，但是在 Swift 中我们没有办法直接通过这个符号获取一个 UnsafePointer 的实例。**
+
+### 指针初始化和内存管理 ###
+在 Swift 中不能直接取到现有对象的地址，我们还是可以创建新的 UnsafeMutablePointer 对象。与 Swift 中其他对象的自动内存管理不同，对于指针的管理，是需要我们手动进行内存的申请和释放的。一个 UnsafeMutablePointer 的内存有三种可能状态：
+
+- 内存没有被分配，这意味着这是一个 null 指针，或者是之前已经释放过
+- 内存进行了分配，但是值还没有被初始化
+- 内存进行了分配，并且值已经被初始化
+
+UnsafeMutablePointer 的初始化方法 (init) 完成的都是从其他类型转换到 UnsafeMutablePointer 的工作。我们如果想要新建一个指针，需要做的是使用 alloc: 这个类方法。
+
+    var intPtr = UnsafeMutablePointer<Int>.alloc(1)
+    intPtr.initialize(10)
+    intPtr.destroy()
+    intPtr.dealloc(1)
+    intPtr = nil
+
+
+> 注意其实在这里对于 Int 这样的在 C 中映射为 int 的 “平凡值” 来说，destroy 并不是必要的，因为这些值被分配在常量段上。但是对于像类的对象或者结构体实例来说，如果不保证初始化和摧毁配对的话，是会出现内存泄露的。所以没有特殊考虑的话，不论内存中到底是什么，保证 initialize: 和 destroy 配对会是一个好习惯。
+
+对于一般的接受 const 数组的 C API，其要求的类型为 UnsafePointer，而非 const 的数组则对应 UnsafeMutablePointer
+
+## UIApplication ##
+[UIApplication 介绍](http://www.jianshu.com/p/f23bda05ca8e)
+
+> iOS程序启动后创建的第一个对象就是UIApplication对象,一个UIApplication对象就代表一个应用程序.
+> 
+> 每个应用都有自己的UIApplication对象,且是单例.如果试图在程序中新建一个UIApplication对象,那么将提示报错
+> 
+> 通过[UIApplication sharedApplication]可以获得这个单例对象.利用UIApplication对象，能进行一些应用级别的操作.
+
+**UIApplication的一个主要工作是处理用户事件,它会起一个队列,把所有用户事件都放入队列,逐个处理,在处理的时候,它会发送当前事件到一个合适的处理事件的目标控件**
+
+- UIApplication对象是应用程序的象征;
+- 每一个应用都有自己的UIApplication对象，而且是单例的;
+- 通过[UIApplication sharedApplication]可以获得这个单例对象;
+- 一个iOS程序启动后创建的第一个对象就是UIApplication对象;
+- 利用UIApplication对象，能进行一些应用级别的操作.
+
+### 程序启动UIApplicationMain ###
+
+UIApplication的基类是UIResponder，和4.2以前生成的工程是不同的，以前是继承自NSObject。
+
+main函数中执行了一个UIApplicationMain这个函数
+
+    int UIApplicationMain(int argc, char argv[], NSString principalClassName, NSString *delegateClassName);
+
+argc、argv:
+
+直接传递给UIApplicationMain进行相关处理即可
+
+**principalClassName：**
+
+指定应用程序类名（app的象征），该类必须是UIApplication(或子类)。如果为nil,则用UIApplication类作为默认值
+
+**delegateClassName：**
+
+指定应用程序的代理类，该类必须遵守UIApplicationDelegate协议
+
+- 1.UIApplicationMain函数会根据principalClassName创建UIApplication对象
+- 2.根据delegateClassName创建一个delegate对象 ，并将该delegate对象赋值给UIApplication对象中的delegate属性.
+- 3.接着会建立应用程序的Main Runloop（事件循环）,进行事件的处理(首先会在程序完毕后调用delegate对象的application:didFinishLaunchingWithOptions:方法)
+- 4.程序正常退出时UIApplicationMain函数才返回
+
+![Application生命周期](http://ww1.sinaimg.cn/mw690/48ceb85dgy1ffm60yrd47j20yx14ktdd.jpg)
