@@ -1132,3 +1132,45 @@ argc、argv:
 - 4.程序正常退出时UIApplicationMain函数才返回
 
 ![Application生命周期](http://ww1.sinaimg.cn/mw690/48ceb85dgy1ffm60yrd47j20yx14ktdd.jpg)
+
+**关于Xcode7后.dylib库不见了而变更为.tbd**
+
+> For those who are curious, the .tbd files are new "text-based stub libraries", that provide a much more compact version of the stub libraries for use in the SDK, and help to significantly reduce its download size.
+
+## OC ##
+**oc中几种属性特质:**
+
+- 1、nonatomic：非原子性访问，可以多线程并发访问，oc中大多数都申明nonatomic属性。
+- 2、atomic：默认值，原子性访问，单线程访问，表示如果有多个线程同时调用setter的话，不会出现某一个线程执行setter全部语句之前，另一个线程开始执行setter情况，安全性高于nonatomic，性能低于nonatomic，但atomic 并不代表线程安全，只是说对同一对象的set和get的操作是顺序执行的。
+- 3、assign：默认值，直接赋值，主要是对基本数据类型使用：NSInteger，CGFloat 和C语言的 int double float char …
+- 4、retain：先release旧的对象，新对象的计数加1，并返回地址给引用者，主要对NSObject与其子类中使用。
+- 5、copy： 创建一个新对象，将旧对象的值赋值给新对象，release旧对象。copy与retain的区别为：retain是指针拷贝，copy是内容拷贝，其主要对字符串NSString使用。
+- 6、readonly：不能修改，只能读取，不生成setter方法。
+- 7、readwrite：默认值，可读写。
+- 8、strong：强引用，ARC模式下与retain同作用。
+- 9、week：弱引用，ARC模式下与assign同作用。
+
+**loadView 和 viewDidLoad**
+
+- loadView和viewDidLoad的区别就是，调用loadView时view还没有生成，调用viewDidLoad时，view已经生成了.
+- 当调用loadview时,view为空, -> 调用viewdidload控制器仍然没有自己的view,此时再次调用loadview方法让控制器生成一个黑色的view.
+- 注意点: 此时如果调用了loadview当时没有给viewController指定一个view的话,不能在viewdidload方法中用self.view = 某个view,此时如果调用view的set或者get方法都会使程序进入无限死循环中.看代码
+
+## SuperMap ##
+### 组件 ###
+#### RMMapContents ####
+> The cartographic and data components of a map.  Do not retain.
+> 
+> There is exactly one RMMapContents instance for each RMMapView instance.
+
+使用
+> contents:RMMapContents = (RMMapView)mapView.contents
+> 
+
+# Using Swift with Cocoa and Objective-C #
+
+## Understanding the Swift Import Process ##
+
+- Remap certain Objective-C types to their equivalents in Swift, like id to Any
+- Remap certain Objective-C core types to their alternatives in Swift, like NSString to String
+- Remap certain Objective-C concepts to matching concepts in Swift, like pointers to optionals
