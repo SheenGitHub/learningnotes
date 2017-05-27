@@ -527,6 +527,7 @@ Swift3.0 中的 Thread 类
 
 [原文](http://www.jianshu.com/p/f042432e2d7d)
 
+>
 >Grand Central Dispatch (GCD)是Apple开发的一个多核编程的较新的解决方法。它主要用于优化应用程序以支持多核处理器以及其他对称多处理系统。它是一个在线程池模式的基础上执行的并行任务。在Mac OS X 10.6雪豹中首次推出，也可在IOS 4及以上版本使用。
 
 
@@ -683,7 +684,7 @@ UIImageJPEGRepresentation方法在耗时上比较少 <br>而UIImagePNGRepresenta
 > .aiff Audio Interchange File Format
 
 
-## 动画 ##
+## 动画 Animation ##
 **CATransition 用法**
 
     1.#define定义的常量   
@@ -742,6 +743,12 @@ UIImageJPEGRepresentation方法在耗时上比较少 <br>而UIImagePNGRepresenta
     defaultValueForKey
     + (id)defaultValueForKey:(NSString *)key
     根据属性key，返回相应的属性值。
+
+CABasicAnimation:CAPropertyAnimation
+
+open var fromValue:Any?
+open var toValue:Any?
+open var byValue:Any?
 
 ## Json解析重构 ##
 
@@ -1137,6 +1144,46 @@ argc、argv:
 
 > For those who are curious, the .tbd files are new "text-based stub libraries", that provide a much more compact version of the stub libraries for use in the SDK, and help to significantly reduce its download size.
 
+## CoreLocation ##
+获取locations位置，**异步**
+
+    - (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray *)locations
+    {
+	    CLLocation *currLocation = [locations lastObject];
+	    NSLog(@"经度=%f 纬度=%f 高度=%f", currLocation.coordinate.latitude, currLocation.coordinate.longitude, currLocation.altitude);
+    }
+
+**代理方法返回的 locations 信息**
+
+当位置管理器，获取到位置后，调用 locationManager:didUpdateLocations:方法，返回的类型为 CLLocation 的位置信息数组，以下为数组包含的属性
+
+- 1.coordinate : 当前位置的坐标
+- latitude : 纬度
+- longitude : 经度
+- 2.altitude : 海拔，高度
+- 3.horizontalAccuracy : 纬度和经度的精度
+- 4.verticalAccuracy : 垂直精度(获取不到海拔时为负数)
+- 5.course : 行进方向(真北)
+- 6.speed : 以米/秒为单位的速度
+- 7.description : 位置描述信息
+
+**定位授权**
+
+开启locationmanager
+  
+[_locationManager startUpdatingLocation];
+
+关闭locationmanager
+
+[_locationManager stopUpdatingLocation];
+
+（1）始终允许访问位置信息
+
+- (void)requestAlwaysAuthorization;
+
+（2）使用应用程序期间允许访问位置数据
+
+- (void)requestWhenInUseAuthorization;
 ## OC ##
 **oc中几种属性特质:**
 
@@ -1156,8 +1203,90 @@ argc、argv:
 - 当调用loadview时,view为空, -> 调用viewdidload控制器仍然没有自己的view,此时再次调用loadview方法让控制器生成一个黑色的view.
 - 注意点: 此时如果调用了loadview当时没有给viewController指定一个view的话,不能在viewdidload方法中用self.view = 某个view,此时如果调用view的set或者get方法都会使程序进入无限死循环中.看代码
 
+
+### GradientLayer ###
+View 自带 bounds layer属性<br>
+layer中加入gradient
+
+addSublayer() 将layer加在最上层，index是在 layer.count-1，会遮盖整个屏幕
+
+insertSubLayer(,at:0)将layer加在最底层
+
+UIColor，CGColor，CIColor三者的区别和联系
+
+[UIColor，CGColor，CIColor三者的区别和联系](http://www.cnblogs.com/smileEvday/archive/2012/06/05/UIColor_CIColor_CGColor.html)
+
+Animated gradient layers in Swift
+
+[ColorGradient动态变化](https://oktapodi.github.io/2017/04/26/working-with-gradient-layers-in-swift.html)
+
+CALayer.drawAsynchronously
+
+> drawsAsynchronously. This is a property on CALayer that specifies whether or not the CPU work necessary to draw the layer should be performed on a background thread. If this is set to true, the layer will look exactly the same as usual, but the CPU computation necessary to draw it will be performed on a background thread. You should set this to true if you have a view in your app that’s redrawn a lot, such as a map view or a table view.
+
+CALayer.shouldRasterize
+> This is a property on CALayer that specifies whether or not the layer should be rasterized. When this property is true, the layer is drawn once. Whenever it is animated, it isn’t redrawn and the bitmap information from the first draw is recycled. This should be set to true if you have a view in your app that doesn’t need to be redrawn frequently. Note that when setting shouldRasterize, a layer’s appearance may change on Retina devices. This is because layers have what’s called a rasterization scale, which is the scale to rasterize the layer with. To prevent this from happening, set the layer’s rasterizationScale to UIScreen.mainScreen().scale, so that the layer is rasterized on the same scale that the screen is drawn.
+
+### 各种CALayer ###
+[各种Layer](https://www.raywenderlich.com/90488/calayer-in-ios-with-swift-10-examples)
+
+CALayer
+CAScrollLayer
+CATextLayer
+AVPlayerLayer
+CAGradientLayer
+CAReplicatorLayer
+CATiledLayer
+CAShapeLayer
+CATransformLayer
+CAEmitterLayer
+
+[Bezier Paths](https://www.appcoda.com/bezier-paths-introduction/)
+
+
+### Core Animation in the iOS drawing hierarchy ###
+
+
+![Core Animation](http://ww1.sinaimg.cn/mw690/48ceb85dgy1ffxgy9wt7ij20sg0i7gmc.jpg)
+
+UIColor
+
+UIColor(hue:,saturation:,brightness:,alpha)
+
+Layer的阴影倒转
+
+> layer.geometryFlipped = false
+
+**initwithFrame 不调用**
+
+> Cocoa controls implement the NSCoding protocol for unarchiving from a nib. Instead of initializing the object using initWithFrame: and then setting the attributes, the initWithCoder: method takes responsibility for setting up the control when it's loaded using the serialized attributes configured by Interface Builder. This works pretty much the same way any object is serialized using NSCoding.
+> 
+> It's a little bit different if you stick a custom NSView subclass in a nib that doesn't implement NSCoding, in that case initWithFrame: will be called. In both cases awakeFromNib will be called after the object is loaded, and is usually a pretty good place to perform additional initialization in your subclasses.
+
+awakeFromNib 从storyboard中启动的时候会被调用，storyboard中数据被序列化在配置文件中，storyboard直接从配置中加载数据
+
+**drawLayer inContext 不调用**
+
+在外部的someView.layer.setNeedDisplay()<br>
+若View中重写display方法，drawlayerincontext方法将不被调用
+
+**动画在viewdidLoad中无效果，在viewWillAppear和viewdidappear中有效果**
+
+#### Animation文章 ####
+[iOS - CALayer 绘图层](http://www.cnblogs.com/QianChia/p/6348043.html)
+
+[Beizer Path](https://www.appcoda.com/bezier-paths-introduction/)
+
+[使用案例](http://www.cocoachina.com/ios/20160711/17007.html)
+
+[动画的角色](http://www.jianshu.com/p/88ab3415a3fe)
+
+Animation 继承结构
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1ffyv4kwkuhj20fr08n78p.jpg)
+
 ## SuperMap ##
 ### 组件 ###
+
 #### RMMapContents ####
 > The cartographic and data components of a map.  Do not retain.
 > 
@@ -1174,3 +1303,18 @@ argc、argv:
 - Remap certain Objective-C types to their equivalents in Swift, like id to Any
 - Remap certain Objective-C core types to their alternatives in Swift, like NSString to String
 - Remap certain Objective-C concepts to matching concepts in Swift, like pointers to optionals
+
+# 问题 #
+## iOS中 Debug 和 Release 的区别和使用 ##
+- Debug : 调试版本,主要是让程序员使用,在调试的过程中调用 Debug 会启动更多的服务来监控错误,运行速度相对较慢,而且比较耗能.
+- Release : 发布版本,主要是让用户使用, 在使用的过程中会去掉那些繁琐的监控服务,运行速度相对较快,而且比较节约内存.
+
+在程序调试的过程中, Xcode 默认的情况是 Debug ,如果想修改成 Release 情景下测试.
+
+> edit Scheme ---info --->Build Configuration 选择 Release 进行测试;
+
+# Android #
+## Fragment ##
+生命周期
+
+![生命周期](http://ww1.sinaimg.cn/mw690/48ceb85dgy1ffvebor5wkj20ad0j0ac4.jpg)
