@@ -44,6 +44,9 @@ Fix-it Replace "as!" with "! as"!!
 - ! as 拆包 再转换类型
 - as! 强制类型转换
 
+- as! 强行拆包，若类型不对，系统直接崩溃
+- as？ 拆包，拆包结果为Optional，若类型不对，返回nil
+
 [AppDelegate作用](http://stackoverflow.com/questions/652460/what-is-the-appdelegate-for-and-how-do-i-know-when-to-use-it)
 > A delegate object is an object that gets notified when the object to which it is connected reaches certain events or states. In this case, the Application Delegate is an object which receives notifications when the UIApplication object reaches certain states. In many respects, it is a specialized one-to-one Observer pattern.
 
@@ -618,27 +621,6 @@ Swift3.0 中的 Thread 类
 	    case VeryHigh
     }
 
-## 图片 ##
-
-### UIViewContentMode ###
-
-![Mode](http://ww1.sinaimg.cn/mw690/48ceb85dgy1ff9ckw0vkyj20c90jpn4q.jpg)
-
-
-### UIView的CALayer ###
-> UIView之所以能显示在屏幕上，完全是因为它内部的一个图层，在创建UIView对象时，UIView内部会自动创建一个图层(即CALayer对象)，通过UIView的layer属性可以访问这个层
-> 当UIView需要显示到屏幕上时，会调用drawRect:方法进行绘图，并且会将所有内容绘制在自己的图层上，绘图完毕后，系统会将图层拷贝到屏幕上，于是就完成了UIView的显示。因此，通过操作这个CALayer对象，可以很方便地调整UIView的一些界面属性，比如：阴影、圆角大小、边框宽度和颜色等。
-
-
-**总结：UIView本身不具备显示的功能，拥有显示功能的是它内部的图层。**
-
-> UIView实现了UIResponder 可以响应事件
-> 
-> CALayer不能响应事件
-
-## UIImageJPEGRepresentation ###
-UIImageJPEGRepresentation方法在耗时上比较少 <br>而UIImagePNGRepresentation耗时操作时间比较长<br>
-通过调用UIImageJPEGRepresentation(UIImage* image, 0.5)读取数据时,返回的数据大小只有11KB多,大大压缩了图片的数据量 ,而且从视角角度看,图片的质量并没有明显的降低.因此,在读取图片数据内容时,建议优先使用UIImageJPEGRepresentation
 
 
 ## 数据存储 ##
@@ -684,7 +666,7 @@ UIImageJPEGRepresentation方法在耗时上比较少 <br>而UIImagePNGRepresenta
 > .aiff Audio Interchange File Format
 
 
-## 动画 Animation ##
+## 图层 CAAnimation ##
 **CATransition 用法**
 
     1.#define定义的常量   
@@ -719,7 +701,8 @@ UIImageJPEGRepresentation方法在耗时上比较少 <br>而UIImagePNGRepresenta
 - CABasicAnimation 提供了对单一动画的实现。
 - CAKeyframeAnimation 关键桢动画,可以定义行动路线。
 - CAConstraint 约束类,在布局管理器类中用它来设置属性。
-- CAConstraintLayoutManager 约束布局管理器,是用来将多个CALayer进行布局的.各个CALayer是通过名称来区分,而布局属性是通过CAConstraint来设置的。
+- CAConstraintLayoutManager 约束布局管理器,是用来将多个CA
+- 进行布局的.各个CALayer是通过名称来区分,而布局属性是通过CAConstraint来设置的。
 - CATransaction 事务类,可以对多个layer的属性同时进行修改.它分隐式事务,和显式事务。
       
 **CAAnimation属性**
@@ -749,6 +732,161 @@ CABasicAnimation:CAPropertyAnimation
 open var fromValue:Any?
 open var toValue:Any?
 open var byValue:Any?
+
+**contentsScale**
+
+如果contentsScale设置为1.0，将会以每个点1个像素绘制图片，如果设置为2.0，则会以每个点2个像素绘制图片，这就是我们熟知的Retina屏幕。
+
+**maskToBounds**
+
+UIView有一个叫做clipsToBounds的属性可以用来决定是否显示超出边界的内容，CALayer对应的属性叫做masksToBounds
+
+**contentsRect**
+
+默认的contentsRect是{0, 0, 1, 1}，这意味着整个寄宿图默认都是可见的，如果我们指定一个小一点的矩形，图片就会被裁剪
+
+涉及到图片是如何显示和拉伸的,layer和view的大小不会改变，但是内部内容的区域得以选择
+
+> 事实上给contentsRect设置一个负数的原点或是大于{1, 1}的尺寸也是可以的。这种情况下，最外面的像素会被拉伸以填充剩下的区域。
+
+**contentsCenter**
+被拉伸的区域
+
+### Frame 和 bounds 的区别 ###
+
+[frame和bounds](http://blog.csdn.net/mad1989/article/details/8711697)
+
+**bounds影响了子视图的坐标系**
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgblvcxlrmj20dc0ejmyj.jpg)
+
+### GradientLayer ###
+View 自带 bounds layer属性<br>
+layer中加入gradient
+
+addSublayer() 将layer加在最上层，index是在 layer.count-1，会遮盖整个屏幕
+
+insertSubLayer(,at:0)将layer加在最底层
+
+UIColor，CGColor，CIColor三者的区别和联系
+
+[UIColor，CGColor，CIColor三者的区别和联系](http://www.cnblogs.com/smileEvday/archive/2012/06/05/UIColor_CIColor_CGColor.html)
+
+Animated gradient layers in Swift
+
+[ColorGradient动态变化](https://oktapodi.github.io/2017/04/26/working-with-gradient-layers-in-swift.html)
+
+CALayer.drawAsynchronously
+
+> drawsAsynchronously. This is a property on CALayer that specifies whether or not the CPU work necessary to draw the layer should be performed on a background thread. If this is set to true, the layer will look exactly the same as usual, but the CPU computation necessary to draw it will be performed on a background thread. You should set this to true if you have a view in your app that’s redrawn a lot, such as a map view or a table view.
+
+CALayer.shouldRasterize
+> This is a property on CALayer that specifies whether or not the layer should be rasterized. When this property is true, the layer is drawn once. Whenever it is animated, it isn’t redrawn and the bitmap information from the first draw is recycled. This should be set to true if you have a view in your app that doesn’t need to be redrawn frequently. Note that when setting shouldRasterize, a layer’s appearance may change on Retina devices. This is because layers have what’s called a rasterization scale, which is the scale to rasterize the layer with. To prevent this from happening, set the layer’s rasterizationScale to UIScreen.mainScreen().scale, so that the layer is rasterized on the same scale that the screen is drawn.
+
+### 各种CALayer ###
+[各种Layer](https://www.raywenderlich.com/90488/calayer-in-ios-with-swift-10-examples)
+
+CALayer
+CAScrollLayer
+CATextLayer
+AVPlayerLayer
+CAGradientLayer
+CAReplicatorLayer
+CATiledLayer
+CAShapeLayer
+CATransformLayer
+CAEmitterLayer
+
+[Bezier Paths](https://www.appcoda.com/bezier-paths-introduction/)
+
+
+### Core Animation in the iOS drawing hierarchy ###
+
+
+![Core Animation](http://ww1.sinaimg.cn/mw690/48ceb85dgy1ffxgy9wt7ij20sg0i7gmc.jpg)
+
+UIColor
+
+UIColor(hue:,saturation:,brightness:,alpha)
+
+Layer的阴影倒转
+
+> layer.geometryFlipped = false
+
+**initwithFrame 不调用**
+
+> Cocoa controls implement the NSCoding protocol for unarchiving from a nib. Instead of initializing the object using initWithFrame: and then setting the attributes, the initWithCoder: method takes responsibility for setting up the control when it's loaded using the serialized attributes configured by Interface Builder. This works pretty much the same way any object is serialized using NSCoding.
+> 
+> It's a little bit different if you stick a custom NSView subclass in a nib that doesn't implement NSCoding, in that case initWithFrame: will be called. In both cases awakeFromNib will be called after the object is loaded, and is usually a pretty good place to perform additional initialization in your subclasses.
+
+awakeFromNib 从storyboard中启动的时候会被调用，storyboard中数据被序列化在配置文件中，storyboard直接从配置中加载数据
+
+**drawLayer inContext 不调用**
+
+在外部的someView.layer.setNeedDisplay()<br>
+
+若View中重写display方法，drawlayerincontext方法将不被调用
+
+实现CALayerDelegate时，需要调用 CALayer.setNeedDisplay
+
+Layer的bounds决定它在父视图中的定位
+
+
+**动画在viewdidLoad中无效果，在viewWillAppear和viewdidappear中有效果**
+
+#### Animation文章 ####
+[iOS - CALayer 绘图层](http://www.cnblogs.com/QianChia/p/6348043.html)
+
+[Beizer Path](https://www.appcoda.com/bezier-paths-introduction/)
+
+[使用案例](http://www.cocoachina.com/ios/20160711/17007.html)
+
+[动画的角色](http://www.jianshu.com/p/88ab3415a3fe)
+
+Animation 继承结构
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1ffyv4kwkuhj20fr08n78p.jpg)
+
+### 手势 ###
+[UITouch 和 UIEvent](http://www.jianshu.com/p/25b3467f1554)
+
+一次完整的触摸过程，会经历3个状态：
+
+- 触摸开始：(void)touchesBegan:(NSSet*)touches withEvent:(UIEvent*)event
+- 触摸移动：(void)touchesMoved:(NSSet*)touches withEvent:(UIEvent*)event
+- 触摸结束：(void)touchesEnded:(NSSet*)touches withEvent:(UIEvent*)event
+- 触摸取消（可能会经历）：(void)touchesCancelled:(NSSet*)touches withEvent:(UIEvent*)event
+
+### 图片 ###
+
+#### UIViewContentMode ####
+
+![Mode](http://ww1.sinaimg.cn/mw690/48ceb85dgy1ff9ckw0vkyj20c90jpn4q.jpg)
+
+Aspect 保持图片比例尺不变，Fit保持图片在View范围内,Fill尽可能的扩充
+
+**View.contentMode 和 view.layer.contentsGravity 相当**
+
+**UIViewContentMode.scaleAspectFit 和 kCAGravityResizeAspect 相当** 
+
+**UIView.contentScaleFactor 和 layer.contetnScale相当**
+
+> contentsScale属性其实属于支持高分辨率（又称Hi-DPI或Retina）屏幕机制的一部分。它用来判断在绘制图层的时候应该为寄宿图创建的空间大小，和需要显示的图片的拉伸度（假设并没有设置contentsGravity属性）
+
+### UIView的CALayer ###
+> UIView之所以能显示在屏幕上，完全是因为它内部的一个图层，在创建UIView对象时，UIView内部会自动创建一个图层(即CALayer对象)，通过UIView的layer属性可以访问这个层
+> 当UIView需要显示到屏幕上时，会调用drawRect:方法进行绘图，并且会将所有内容绘制在自己的图层上，绘图完毕后，系统会将图层拷贝到屏幕上，于是就完成了UIView的显示。因此，通过操作这个CALayer对象，可以很方便地调整UIView的一些界面属性，比如：阴影、圆角大小、边框宽度和颜色等。
+
+
+**总结：UIView本身不具备显示的功能，拥有显示功能的是它内部的图层。**
+
+> UIView实现了UIResponder 可以响应事件
+> 
+> CALayer不能响应事件
+
+## UIImageJPEGRepresentation ###
+UIImageJPEGRepresentation方法在耗时上比较少 <br>而UIImagePNGRepresentation耗时操作时间比较长<br>
+通过调用UIImageJPEGRepresentation(UIImage* image, 0.5)读取数据时,返回的数据大小只有11KB多,大大压缩了图片的数据量 ,而且从视角角度看,图片的质量并没有明显的降低.因此,在读取图片数据内容时,建议优先使用UIImageJPEGRepresentation
+
 
 ## Json解析重构 ##
 
@@ -1188,7 +1326,8 @@ argc、argv:
 **oc中几种属性特质:**
 
 - 1、nonatomic：非原子性访问，可以多线程并发访问，oc中大多数都申明nonatomic属性。
-- 2、atomic：默认值，原子性访问，单线程访问，表示如果有多个线程同时调用setter的话，不会出现某一个线程执行setter全部语句之前，另一个线程开始执行setter情况，安全性高于nonatomic，性能低于nonatomic，但atomic 并不代表线程安全，只是说对同一对象的set和get的操作是顺序执行的。
+- 2、atomic：默认值，原子性访问，单线程访问，表示如果有多个线程同时调用
+- ter的话，不会出现某一个线程执行setter全部语句之前，另一个线程开始执行setter情况，安全性高于nonatomic，性能低于nonatomic，但atomic 并不代表线程安全，只是说对同一对象的set和get的操作是顺序执行的。
 - 3、assign：默认值，直接赋值，主要是对基本数据类型使用：NSInteger，CGFloat 和C语言的 int double float char …
 - 4、retain：先release旧的对象，新对象的计数加1，并返回地址给引用者，主要对NSObject与其子类中使用。
 - 5、copy： 创建一个新对象，将旧对象的值赋值给新对象，release旧对象。copy与retain的区别为：retain是指针拷贝，copy是内容拷贝，其主要对字符串NSString使用。
@@ -1204,85 +1343,6 @@ argc、argv:
 - 注意点: 此时如果调用了loadview当时没有给viewController指定一个view的话,不能在viewdidload方法中用self.view = 某个view,此时如果调用view的set或者get方法都会使程序进入无限死循环中.看代码
 
 
-### GradientLayer ###
-View 自带 bounds layer属性<br>
-layer中加入gradient
-
-addSublayer() 将layer加在最上层，index是在 layer.count-1，会遮盖整个屏幕
-
-insertSubLayer(,at:0)将layer加在最底层
-
-UIColor，CGColor，CIColor三者的区别和联系
-
-[UIColor，CGColor，CIColor三者的区别和联系](http://www.cnblogs.com/smileEvday/archive/2012/06/05/UIColor_CIColor_CGColor.html)
-
-Animated gradient layers in Swift
-
-[ColorGradient动态变化](https://oktapodi.github.io/2017/04/26/working-with-gradient-layers-in-swift.html)
-
-CALayer.drawAsynchronously
-
-> drawsAsynchronously. This is a property on CALayer that specifies whether or not the CPU work necessary to draw the layer should be performed on a background thread. If this is set to true, the layer will look exactly the same as usual, but the CPU computation necessary to draw it will be performed on a background thread. You should set this to true if you have a view in your app that’s redrawn a lot, such as a map view or a table view.
-
-CALayer.shouldRasterize
-> This is a property on CALayer that specifies whether or not the layer should be rasterized. When this property is true, the layer is drawn once. Whenever it is animated, it isn’t redrawn and the bitmap information from the first draw is recycled. This should be set to true if you have a view in your app that doesn’t need to be redrawn frequently. Note that when setting shouldRasterize, a layer’s appearance may change on Retina devices. This is because layers have what’s called a rasterization scale, which is the scale to rasterize the layer with. To prevent this from happening, set the layer’s rasterizationScale to UIScreen.mainScreen().scale, so that the layer is rasterized on the same scale that the screen is drawn.
-
-### 各种CALayer ###
-[各种Layer](https://www.raywenderlich.com/90488/calayer-in-ios-with-swift-10-examples)
-
-CALayer
-CAScrollLayer
-CATextLayer
-AVPlayerLayer
-CAGradientLayer
-CAReplicatorLayer
-CATiledLayer
-CAShapeLayer
-CATransformLayer
-CAEmitterLayer
-
-[Bezier Paths](https://www.appcoda.com/bezier-paths-introduction/)
-
-
-### Core Animation in the iOS drawing hierarchy ###
-
-
-![Core Animation](http://ww1.sinaimg.cn/mw690/48ceb85dgy1ffxgy9wt7ij20sg0i7gmc.jpg)
-
-UIColor
-
-UIColor(hue:,saturation:,brightness:,alpha)
-
-Layer的阴影倒转
-
-> layer.geometryFlipped = false
-
-**initwithFrame 不调用**
-
-> Cocoa controls implement the NSCoding protocol for unarchiving from a nib. Instead of initializing the object using initWithFrame: and then setting the attributes, the initWithCoder: method takes responsibility for setting up the control when it's loaded using the serialized attributes configured by Interface Builder. This works pretty much the same way any object is serialized using NSCoding.
-> 
-> It's a little bit different if you stick a custom NSView subclass in a nib that doesn't implement NSCoding, in that case initWithFrame: will be called. In both cases awakeFromNib will be called after the object is loaded, and is usually a pretty good place to perform additional initialization in your subclasses.
-
-awakeFromNib 从storyboard中启动的时候会被调用，storyboard中数据被序列化在配置文件中，storyboard直接从配置中加载数据
-
-**drawLayer inContext 不调用**
-
-在外部的someView.layer.setNeedDisplay()<br>
-若View中重写display方法，drawlayerincontext方法将不被调用
-
-**动画在viewdidLoad中无效果，在viewWillAppear和viewdidappear中有效果**
-
-#### Animation文章 ####
-[iOS - CALayer 绘图层](http://www.cnblogs.com/QianChia/p/6348043.html)
-
-[Beizer Path](https://www.appcoda.com/bezier-paths-introduction/)
-
-[使用案例](http://www.cocoachina.com/ios/20160711/17007.html)
-
-[动画的角色](http://www.jianshu.com/p/88ab3415a3fe)
-
-Animation 继承结构
-![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1ffyv4kwkuhj20fr08n78p.jpg)
 
 ## SuperMap ##
 ### 组件 ###
@@ -1304,6 +1364,31 @@ Animation 继承结构
 - Remap certain Objective-C core types to their alternatives in Swift, like NSString to String
 - Remap certain Objective-C concepts to matching concepts in Swift, like pointers to optionals
 
+### Key-Value Observing Implementation Details ###
+
+Automatic key-value observing is implemented using a technique called isa-swizzling.
+
+The isa pointer, as the name suggests, points to the object's class which maintains a dispatch table. This dispatch table essentially contains pointers to the methods the class implements, among other data.
+
+When an observer is registered for an attribute of an object the isa pointer of the observed object is modified, pointing to an intermediate class rather than at the true class. As a result the value of the isa pointer does not necessarily reflect the actual class of the instance.
+
+You should never rely on the isa pointer to determine class membership. Instead, you should use the class method to determine the class of an object instance.
+
+#### 变量声明 ####
+
+[IOS OC声明变量在@interface括号中与使用@property的区别](http://blog.csdn.net/shenjie12345678/article/details/39052659)
+
+
+[java 堆栈的区别](http://blog.csdn.net/chengyingzhilian/article/details/7781858)
+
+#### 存在栈中的数据可以共享 ####
+    int a = 3; 　
+    
+    int b = 3; 
+
+
+> 编译器先处理int a = 3;首先它会在栈中创建一个变量为a的引用，然后查找栈中是否有3这个值，如果没找到，就将3存放进来，然后将a指向3。接着处理int b = 3;在创建完b的引用变量后，因为在栈中已经有3这个值，便将b直接指向3。这样，就出现了a与b同时均指向3的情况。这时，如果再令a=4;那么编译器会重新搜索栈中是否有4值，如果没有，则将4存放进来，并令a指向4;如果已经有了，则直接将a指向这个地址。因此a值的改变不会影响到b的值。要注意这种数据的共享与两个对象的引用同时指向一个对象的这种共享是不同的，因为这种情况a的修改并不会影响到b, 它是由编译器完成的，它有利于节省空间。而一个对象引用变量修改了这个对象的内部状态，会影响到另一个对象引用变量 
+
 # 问题 #
 ## iOS中 Debug 和 Release 的区别和使用 ##
 - Debug : 调试版本,主要是让程序员使用,在调试的过程中调用 Debug 会启动更多的服务来监控错误,运行速度相对较慢,而且比较耗能.
@@ -1318,3 +1403,23 @@ Animation 继承结构
 生命周期
 
 ![生命周期](http://ww1.sinaimg.cn/mw690/48ceb85dgy1ffvebor5wkj20ad0j0ac4.jpg)
+
+#iPhone 屏幕尺寸#
+[dpi-ppi-designer-need-know](http://www.uisdc.com/dpi-ppi-designer-need-know)
+
+- px就是表示pixel，像素，是屏幕上显示数据的最基本的点；
+- pt就是point，是印刷行业常用单位，等于1/72英寸。
+
+iphone 6  2.3* 4.1(4.7) 750* 1334  ppi 326
+
+- 设备	屏幕尺寸	分辨率（pt）	Reader	分辨率（px）	渲染后	PPI
+- iPhone 3GS	3.5吋	320x480	@1x	320x480		163
+- iPhone 4/4s	3.5吋	320x480	@2x	640x960		330
+- iPhone 5/5s/5c	4.0吋	320x568	@2x	640x1136		326
+- iPhone 6	4.7吋	375x667	@2x	750x1334		326
+- iPhone 6Plus	5.5吋	414x736	@3x	1242x2208	1080x1920	401
+- iPhone 6s	4.7吋	375x667	@2x	750x1334		326
+- iPhone 6sPlus	5.5吋	414x736	@3x	1242x2208	1080x1920	401
+- iPhone 7	4.7吋	375x667	@2x	750x1334		326
+- iPhone 7Plus	5.5吋	414x736	@3x	1242x2208	1080x1920	401
+> 所以光看屏幕的分辨率对于设计师来说是不具备多少实际意义的，通过分辨率计算得出的像素密度（PPI）才是设计师要关心的问题，我们通过屏幕分辨率和屏幕尺寸就能计算出屏幕的像素密度的。
