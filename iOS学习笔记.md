@@ -782,6 +782,8 @@ UIView有一个叫做clipsToBounds的属性可以用来决定是否显示超出�
 ### 圆角 ###
 > CALayer有一个叫做conrnerRadius的属性控制着图层角的曲率，默认情况下，这个曲率值只影响背景颜色而不影响背景图片或是子图层。不过，如果把masksToBounds设置成YES的话，图层里面的所有东西都会被截取
 
+### ScrollView ###
+[ScrollView Guide](https://www.appcoda.com/uiscrollview-introduction/)
 ### GradientLayer ###
 View 自带 bounds layer属性<br>
 layer中加入gradient
@@ -1105,6 +1107,21 @@ hitTest的底层实现:
     	[super touchesBegan:touches withEvent:event];
     }
 
+### First Responder ###
+当编辑框获得焦点时，会自动设置其自身为first Responder，反之亦然
+
+**第一响应对象**
+
+> 在应用的响应对象里，会有一个成为第一响应对象。
+> 
+> 第一响应对象和其他响应对象之间有什么区别？对于普通的触摸事件没什么区别。就算我把一个按钮设置成第一响应对象，当我点击其他按钮时，还是会响应其他按钮，而不会优先响应第一响应对象。
+> 
+> 第一响应对象的区别在于负责处理那些和屏幕位置无关的事件，例如摇动。
+> 
+> 苹果官方文档的说法是：第一响应对象是窗口中，应用程序认为最适合处理事件的对象。
+> 
+> 一个班只能有一个班长，应用的响应对象中，只能有一个响应对象成为第一响应对象。
+
 **总结：UIView本身不具备显示的功能，拥有显示功能的是它内部的图层。**
 
 > UIView实现了UIResponder 可以响应事件
@@ -1115,6 +1132,24 @@ hitTest的底层实现:
 UIImageJPEGRepresentation方法在耗时上比较少 <br>而UIImagePNGRepresentation耗时操作时间比较长<br>
 通过调用UIImageJPEGRepresentation(UIImage* image, 0.5)读取数据时,返回的数据大小只有11KB多,大大压缩了图片的数据量 ,而且从视角角度看,图片的质量并没有明显的降低.因此,在读取图片数据内容时,建议优先使用UIImageJPEGRepresentation
 
+## ViewController生命周期 ##
+[UIViewController 生命周期](http://www.jianshu.com/p/9d3d95e1ef5a)
+
+Xcode 提供了纯代码和 Storyboard（Xib 同理）两种布局 UI 的方式
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgdwwiml7hj21ii150n2v.jpg)
+
+> 若 loadView() 没有加载 view，viewDidLoad() 会一直调用 loadView() 加载 view，因此构成了死循环，程序即卡死。
+
+#### viewWillLayoutSubviews和layoutSubviews的区别 ####
+[viewWillLayoutSubviews和layoutSubviews的区别](https://stackoverflow.com/questions/39606077/difference-between-layoutsubviews-and-viewwilllayoutsubviews)
+
+> viewWillLayoutSubviews is called when view controller's view's bounds changed (usually happens when view loaded, or rotation changed, or if it's a child view controller, and its view was changed by the parent view controoler), but before it's subview's bounds or position changes. You can override this method to make some changes to subview's bounds or position before the view layouts them.
+> 
+> layoutSubviews, from Apple's documentation:
+> 
+> You should override this method only if the autoresizing and constraint-based behaviors of the subviews do not offer the behavior you want
+> This method gets called when a layout update happens, either by changing the view's bounds explicitly or call setNeedsLayout or layoutIfNeeded on the view to force a layout update. Please remember that it will be called automatically by the OS, and you should never call it directly. It's quite rare that you need to override this method, cause usually the autoresizing or constraint will do the job for you.
 
 ## Json解析重构 ##
 
