@@ -667,6 +667,25 @@ Swift3.0 中的 Thread 类
 
 
 ## 图层 CAAnimation ##
+
+View 和Layer 
+
+> view的bounds 和 layer的bounds是不同的，
+> 默认view的bounds的origin是{0,0}，layer的bounds是layer的frame的origin在上层view当中的相对坐标
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgcdetpgeuj212w0qrdli.jpg)
+
+**视图的frame，bounds和center属性仅仅是存取方法，当操纵视图的frame，实际上是在改变位于视图下方CALayer的frame，不能够独立于图层之外改变视图的frame**
+
+**记住当对图层做变换的时候，比如旋转或者缩放，frame实际上代表了覆盖在图层旋转之后的整个轴对齐的矩形区域，也就是说frame的宽高可能和bounds的宽高不再一致了**
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgcdqrrt3yj214j0s4wmh.jpg)
+
+### 锚点 ###
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgcdzkqu6ij215219h7dv.jpg)
+
+
 **CATransition 用法**
 
     1.#define定义的常量   
@@ -759,6 +778,9 @@ UIView有一个叫做clipsToBounds的属性可以用来决定是否显示超出�
 **bounds影响了子视图的坐标系**
 
 ![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgblvcxlrmj20dc0ejmyj.jpg)
+
+### 圆角 ###
+> CALayer有一个叫做conrnerRadius的属性控制着图层角的曲率，默认情况下，这个曲率值只影响背景颜色而不影响背景图片或是子图层。不过，如果把masksToBounds设置成YES的话，图层里面的所有东西都会被截取
 
 ### GradientLayer ###
 View 自带 bounds layer属性<br>
@@ -858,6 +880,108 @@ Animation 继承结构
 
 ### 图片 ###
 
+**图片放缩**
+
+[图像缩放的双线性内插值算法的原理解析](http://blog.sina.com.cn/s/blog_ab584cac0101h0xy.html)
+
+对应的三种模式
+
+- kCAFilterLinear
+- kCAFilterNearest
+- kCAFilterTrilinear
+
+对于一个目的像素，设置坐标通过反向变换得到的浮点坐标为(i+u,j+v) (其中i、j均为浮点坐标的整数部分，u、v为浮点坐标的小数部分，是取值[0,1)区间的浮点数)，则这个像素得值 f(i+u,j+v) 可由原图像中坐标为 (i,j)、(i+1,j)、(i,j+1)、(i+1,j+1)所对应的周围四个像素的值决定，即：
+
+　　`f(i+u,j+v) = (1-u)(1-v)f(i,j) + (1-u)vf(i,j+1) + u(1-v)f(i+1,j) + uvf(i+1,j+1) `                         
+
+其中f(i,j)表示源图像(i,j)处的的像素值，以此类推。
+
+#### 组透明 ####
+
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgcmjt51sfj20xy0gcwin.jpg)
+
+这是由透明度的混合叠加造成的，当你显示一个50%透明度的图层时，图层的每个像素都会一半显示自己的颜色，另一半显示图层下面的颜色。这是正常的透明度的表现。但是如果图层包含一个同样显示50%透明的子图层时，你所看到的视图，50%来自子视图，25%来了图层本身的颜色，另外的25%则来自背景色
+
+你可以设置CALayer的一个叫做shouldRasterize属性来实现组透明的效果，如果它被设置为YES，在应用透明度之前，图层及其子图层都会被整合成一个整体的图片，这样就没有透明度混合的问题了
+
+    //enable rasterization for the translucent button
+      button2.layer.shouldRasterize = YES;
+      button2.layer.rasterizationScale = [UIScreen mainScreen].scale;
+
+#### 仿射转换 ####
+
+    CGAffineTransform.identity
+    
+    CGAffineTransform.scale
+    
+    self.layerView.layer.affineTransform = transform
+
+#### 坐标转换 ####
+
+[二维三维矩阵变换](http://blog.csdn.net/csxiaoshui/article/details/65446125)
+
+     #define DEGREES_TO_RADIANS(x) ((x)/180.0*M_PI)
+
+**以下变换矩阵都是右乘矩阵，针对行变换，针对列变换需要转置**
+
+#### 平移矩阵 ####
+
+ 1     0    0 <br>
+ 0     1    0   即平移变换矩阵。 <br>
+ dx   dy    1 <br>
+
+#### 放缩矩阵 ####
+
+sx    0    0 <br>
+ 0    sy    0  即为缩放矩阵。 <br>
+ 0     0     1 <br>
+#### 旋转矩阵 ####
+cosa   sina  0<br>
+ -sina  cosa  0  为旋转变换矩阵。<br>
+   0       0     1 <br>
+
+#### 三维变换 ####
+**绕任意轴的三维旋转可以使用类似于绕任意点的二维旋转一样，将旋转分解为一些列基本的旋转**
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgcp0kil87j20br0ak0ug.jpg)
+
+#### P点绕向量u旋转θ角，得到点Q，已知P点的坐标和向量u，如何求Q点的坐标。 ####
+ 
+我们可以把向量u进行一些旋转，让它与z轴重合，之后旋转P到Q就作了一次绕Z轴的三维基本旋转，之后我们再执行反向的旋转，将向量u变回到它原来的方向，也就是说需要进行的操作如下： 
+
+- 1. 将旋转轴u绕x轴旋转至xoz平面 
+- 2. 将旋转轴u绕y轴旋转至于z轴重合 
+- 3. 绕z轴旋转θ角 
+- 4. 执行步骤2的逆过程 
+- 5. 执行步骤1的逆过程 
+
+
+(u,v,w)对应向量(a,b,c)
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgcouuebdsj20jl04xq31.jpg)
+
+如果向量是经过单位化的（单位向量），那么有a^2+b^2+c^2=1
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgcovf2yagj20fp0443yj.jpg)
+
+### 透视投影 ###
+CATransform3D.m34 默认为0
+
+### 灭点 ###
+
+> 当在透视角度绘图的时候，远离相机视角的物体将会变小变远，当远离到一个极限距离，它们可能就缩成了一个点，于是所有的物体最后都汇聚消失在同一个点。
+
+Core Animation定义了这个点位于变换图层的anchorPoint（通常位于图层中心，但也有例外，见第三章）。这就是说，当图层发生变换时，这个点永远位于图层变换之前anchorPoint的位置。
+
+#### 使用CATransform3DRotate之后，view消失一半 ####
+	
+Indeed this seems to mess with the z-index. This UIImageView is part of a UIView that is partially "behind" another UIView, but after rotation, the myUIImageView is always drawn on top
+
+The solution to this was to set the zPosition property of all my layers appropriately. Thanks is due to @Brad Larson, who suggested this solution in a comment here. It seems that, when you start using CATransform3D, the normal zindex view hierarchy established by addsubview is thrown out the window.
+
+**是因为灭点的原因**
+
 #### UIViewContentMode ####
 
 ![Mode](http://ww1.sinaimg.cn/mw690/48ceb85dgy1ff9ckw0vkyj20c90jpn4q.jpg)
@@ -876,6 +1000,110 @@ Aspect 保持图片比例尺不变，Fit保持图片在View范围内,Fill尽可�
 > UIView之所以能显示在屏幕上，完全是因为它内部的一个图层，在创建UIView对象时，UIView内部会自动创建一个图层(即CALayer对象)，通过UIView的layer属性可以访问这个层
 > 当UIView需要显示到屏幕上时，会调用drawRect:方法进行绘图，并且会将所有内容绘制在自己的图层上，绘图完毕后，系统会将图层拷贝到屏幕上，于是就完成了UIView的显示。因此，通过操作这个CALayer对象，可以很方便地调整UIView的一些界面属性，比如：阴影、圆角大小、边框宽度和颜色等。
 
+### 事件响应 ###
+
+#### 响应者对象UIResponder ####
+
+[touchesBegan 触摸事件](http://www.jianshu.com/p/b615df568d0e)
+
+[触摸事件处理](http://www.cnblogs.com/spiritstudio/archive/2011/05/26/2059352.html)
+
+在iOS中不是任何对象都能处理事件，只有继承了UIResponder的对象才能接收并处理事件。我们称之为“响应者对象”
+UIApplication、UIViewController、UIView都继承自UIResponder，因此它们都是响应者对象，都能够接收并处理事件
+
+在屏幕中移动View代码：
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+    	let touch = touches.first
+    	moveOrigin = touch?.location(in: self.view)
+    }
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+    	let touch = touches.first
+    	let moveCurrent = touch?.location(in: self.view)
+    	var frame = self.cutView.frame
+    	frame.origin.x += (moveCurrent?.x)! - (moveOrigin?.x)!
+    	frame.origin.y += (moveCurrent?.y)! - (moveOrigin?.y)!
+    	self.cutView.frame = frame
+    	moveOrigin = moveCurrent //更新moveOrigin的点，避免重复增加
+    }
+
+### 事件传递 ###
+[iOS事件传递和响应](http://www.jianshu.com/p/437728c73660)
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgdkrz0nhzj20jh0angny.jpg)
+
+#### UIView不接收触摸事件的三种情况 ####
+
+> 1. 不接收用户交互
+> userInteractionEnabled = NO
+> 
+> 2. 隐藏
+> hidden = YES
+> 
+> 3. 透明
+> alpha = 0.0 ~ 0.01 , 设置父控件的alpha值,则子控件的alpha也响应的改变
+> 
+> 提示：UIImageView的userInteractionEnabled默认就是NO，
+> 因此UIImageView以及它的子控件默认是不能接收触摸事件的
+
+hitTest的底层实现:
+
+    // 因为所有的视图类都是继承BaseView
+    - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
+    {
+    	//NSLog(@"%@--hitTest",[self class]);
+    	//return [super hitTest:point withEvent:event];
+    
+    
+    	// 1.判断当前控件能否接收事件
+    	if (self.userInteractionEnabled == NO || self.hidden == YES || self.alpha <= 0.01) return nil;
+    
+    	// 2. 判断点在不在当前控件
+    	if ([self pointInside:point withEvent:event] == NO) return nil;
+    
+    	// 3.从后往前遍历自己的子控件
+    	NSInteger count = self.subviews.count;
+    
+    	for (NSInteger i = count - 1; i >= 0; i--) {
+    	UIView *childView = self.subviews[i];
+    
+    	// 把当前控件上的坐标系转换成子控件上的坐标系
+     	CGPoint childP = [self convertPoint:point toView:childView];
+    
+       	UIView *fitView = [childView hitTest:childP withEvent:event];
+    
+    
+    	if (fitView) { // 寻找到最合适的view
+    		return fitView;
+    	}
+    
+    
+    }
+    
+    // 循环结束,表示没有比自己更合适的view
+    return self;
+    
+    }
+
+
+**那么事件是怎么响应(处理)的呢?**
+
+- 1.用户点击屏幕产生的一个触摸事件,经过一系列的传递过程后,会找到最合适的视图控件来处理这个事件
+- 2.找到最合适的视图控件后,就会调用控件的touches方法来做具体的事件处理
+  	- a. touchesBegin..
+  	- b. touchesMoved..等等
+- 3.如果我们不重写上面的touches方法,那么这些touches方法的默认****做法是将事件顺着响应者链条向上传递,将事件交给上一个响应者进行处理
+
+**要求父视图继续处理事件**
+
+    - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
+    {
+    	// 处理事件
+    	NSLog(@"%s", __func__);
+    
+    	// 继续传递向上传递  super->父类
+    	[super touchesBegan:touches withEvent:event];
+    }
 
 **总结：UIView本身不具备显示的功能，拥有显示功能的是它内部的图层。**
 
@@ -1397,6 +1625,8 @@ You should never rely on the isa pointer to determine class membership. Instead,
 在程序调试的过程中, Xcode 默认的情况是 Debug ,如果想修改成 Release 情景下测试.
 
 > edit Scheme ---info --->Build Configuration 选择 Release 进行测试;
+
+
 
 # Android #
 ## Fragment ##
