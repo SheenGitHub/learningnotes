@@ -1,5 +1,8 @@
 # Swift - iOS 笔记 #
 
+## 加载文件的方式 ##
+led path = Bundle.main.path(forResource:"PROJECT_NAME.plist",ofType:nil)
+let config = NSArray(contentsOfFile:path)
 ## swift常识 ##
 > Swift里不会自动给变量赋初始值，也就是说变量不会有默认值，所以要求使用变量之前必须要对其初始化。如果在使用变量之前不进行初始化就会报错
 
@@ -46,6 +49,106 @@ Fix-it Replace "as!" with "! as"!!
 
 - as! 强行拆包，若类型不对，系统直接崩溃
 - as？ 拆包，拆包结果为Optional，若类型不对，返回nil
+
+## 构造器 ##
+### Memberwise Initializers for Structure Types ###
+> Structure types automatically receive a memberwise initializer if they do not define any of their own custom initializers. 
+
+### Initializer Delegation for Value Types ###
+> Initializers can call other initializers to perform part of an instance’s initialization. This process, known as initializer delegation, avoids duplicating code across multiple initializers.
+
+**Value types (structures and enumerations) do not support inheritance**
+
+### Designated Initializers and Convenience Initializers ###
+#### Designated initializers ####
+> Designated initializers are the primary initializers for a class. A designated initializer fully initializes all properties introduced by that class and calls an appropriate superclass initializer to continue the initialization process up the superclass chain.
+
+
+#### Convenience initializers ####
+> Convenience initializers are secondary, supporting initializers for a class. You can define a convenience initializer to call a designated initializer from the same class as the convenience initializer with some of the designated initializer’s parameters set to default values. 
+
+### Initializer Delegation for Class Types ###
+
+To simplify the relationships between designated and convenience initializers, Swift applies the following three rules for delegation calls between initializers:
+
+- Rule 1
+	-  A designated initializer must call a designated initializer from its immediate superclass.
+- Rule 2
+	- A convenience initializer must call another initializer from the same class. 
+- Rule 3
+	- A convenience initializer must ultimately call a designated initializer.
+
+A simple way to remember this is:
+
+- Designated initializers must always delegate up.
+- Convenience initializers must always delegate across.
+
+These rules are illustrated in the figure below:
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgkkh442mcj20ow0bx74k.jpg)
+
+Swift’s compiler performs four helpful safety-checks to make sure that two-phase initialization is completed without error:
+
+- Safety check 1
+	- A designated initializer must ensure that all of the properties introduced by its class are initialized before it delegates up to a superclass initializer.
+
+	- As mentioned above, the memory for an object is only considered fully initialized once the initial state of all of its stored properties is known. In order for this rule to be satisfied, a designated initializer must make sure that all of its own properties are initialized before it hands off up the chain.
+
+- Safety check 2
+	- A designated initializer must delegate up to a superclass initializer before assigning a value to an inherited property. If it doesn’t, the new value the designated initializer assigns will be overwritten by the superclass as part of its own initialization.
+
+- Safety check 3
+	- A convenience initializer must delegate to another initializer before assigning a value to any property (including properties defined by the same class). If it doesn’t, the new value the convenience initializer assigns will be overwritten by its own class’s designated initializer.
+
+- Safety check 4
+	- An initializer cannot call any instance methods, read the values of any instance properties, or refer to self as a value until after the first phase of initialization is complete.
+
+The class instance is not fully valid until the first phase ends. Properties can only be accessed, and methods can only be called, once the class instance is known to be valid at the end of the first phase.
+
+Here’s how two-phase initialization plays out, based on the four safety checks above:
+
+**Phase 1**
+
+- A designated or convenience initializer is called on a class.
+- Memory for a new instance of that class is allocated. The memory is not yet initialized.
+- A designated initializer for that class confirms that all stored properties introduced by that class have a value. The memory for these stored properties is now initialized.
+- The designated initializer hands off to a superclass initializer to perform the same task for its own stored properties.
+- This continues up the class inheritance chain until the top of the chain is reached.
+- Once the top of the chain is reached, and the final class in the chain has ensured that all of its stored properties have a value, the instance’s memory is considered to be fully initialized, and phase 1 is complete.
+
+
+**Phase 2**
+
+- Working back down from the top of the chain, each designated initializer in the chain has the option to customize the instance further. Initializers are now able to access self and can modify its properties, call its instance methods, and so on.
+- Finally, any convenience initializers in the chain have the option to customize the instance and to work with self.
+
+Here’s how phase 1 looks for an initialization call for a hypothetical subclass and superclass:
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgklcem51aj20ox0bx0su.jpg)
+
+Here’s how phase 2 looks for the same initialization call:
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgkld1891cj20ow0bxq31.jpg)
+
+### Two-Phase Initialization ###
+> Class initialization in Swift is a two-phase process. In the first phase, each stored property is assigned an initial value by the class that introduced it. Once the initial state for every stored property has been determined, the second phase begins, and each class is given the opportunity to customize its stored properties further before the new instance is considered ready for use.
+
+**Swift subclasses do not inherit their superclass initializers by default**
+
+
+> When you write a subclass initializer that matches a superclass designated initializer, you are effectively providing an override of that designated initializer. Therefore, you must write the override modifier before the subclass’s initializer definition. 
+
+Conversely, if you write a subclass initializer that matches a superclass convenience initializer, **that superclass convenience initializer can never be called directly by your subclass**
+
+### Automatic Initializer Inheritance ###
+- Rule 1
+	- If your subclass doesn’t define any designated initializers, it automatically inherits all of its superclass designated initializers.
+
+- Rule 2
+	- If your subclass provides an implementation of all of its superclass designated initializers—either by inheriting them as per rule 1, or by providing a custom implementation as part of its definition—then it automatically inherits all of the superclass convenience initializers.
+
+### Failable Initializer ###
+ Alternatively, you can define a failable initializer that creates an implicitly unwrapped optional instance of the appropriate type
 
 [AppDelegate作用](http://stackoverflow.com/questions/652460/what-is-the-appdelegate-for-and-how-do-i-know-when-to-use-it)
 > A delegate object is an object that gets notified when the object to which it is connected reaches certain events or states. In this case, the Application Delegate is an object which receives notifications when the UIApplication object reaches certain states. In many respects, it is a specialized one-to-one Observer pattern.
@@ -998,9 +1101,60 @@ Aspect 保持图片比例尺不变，Fit保持图片在View范围内,Fill尽可�
 
 > contentsScale属性其实属于支持高分辨率（又称Hi-DPI或Retina）屏幕机制的一部分。它用来判断在绘制图层的时候应该为寄宿图创建的空间大小，和需要显示的图片的拉伸度（假设并没有设置contentsGravity属性）
 
+
+## 隐式动画 ##
+
+### 事务 ###
+> 事务实际上是Core Animation用来包含一系列属性动画集合的机制，任何用指定事务去改变可以做动画的图层属性都不会立刻发生变化，而是当事务一旦提交的时候开始用一个动画过渡到新值。
+
+**任何可以做动画的图层属性都会被添加到栈顶的事务**
+
+> Core Animation在每个run loop周期中自动开始一次新的事务（run loop是iOS负责收集用户输入，处理定时器或者网络事件并且重新绘制屏幕的东西），即使你不显式的用[CATransaction begin]开始一次事务，任何在一次run loop循环中属性的改变都会被集中起来，然后做一次0.25秒的动画。
+
+
+我们把改变属性时CALayer自动应用的动画称作行为，当CALayer的属性被修改时候，它会调用-actionForKey:方法，传递属性的名称。剩下的操作都在CALayer的头文件中有详细的说明，实质上是如下几步：
+
+- 图层首先检测它**是否有委托**，并且是否实现CALayerDelegate协议指定的-actionForLayer:forKey方法。如果有，直接调用并返回结果。
+- 如果没有委托，或者委托没有实现-actionForLayer:forKey方法，图层接着检查包含属性名称对应行为**映射的actions字典**。
+- 如果actions字典没有包含对应的属性，那么图层接着在它的**style字典**接着搜索属性名。
+- 最后，如果在style里面也找不到对应的行为，那么图层将会直接调用定义了每个属性的**标准行为**的-defaultActionForKey:方法。
+
+所以一轮完整的搜索结束之后，-actionForKey:要么返回空（这种情况下将不会有动画发生），要么是CAAction协议对应的对象，最后CALayer拿这个结果去对先前和当前的值做动画。
+
+于是这就解释了UIKit是如何禁用隐式动画的：每个UIView对它关联的图层都扮演了一个委托，并且提供了-actionForLayer:forKey的实现方法。当不在一个动画块的实现中，UIView对所有图层行为返回nil，但是在动画block范围之内，它就返回了一个非空值。
+
+- UIView关联的图层禁用了隐式动画，对这种图层做动画的唯一办法就是使用UIView的动画函数（而不是依赖CATransaction），或者继承UIView，并覆盖-actionForLayer:forKey:方法，或者直接创建一个显式动画（具体细节见第八章）。
+- 对于单独存在的图层，我们可以通过实现图层的-actionForLayer:forKey:委托方法，或者提供一个actions字典来控制隐式动画。
+
+### 模型与呈现 ###
+
+每个图层属性的显示值都被存储在一个叫做**呈现图层**的独立图层当中，他可以通过-presentationLayer方法来访问。这个呈现图层实际上是模型图层的复制，但是**它的属性值代表了在任何指定时刻当前外观效果**。换句话说，你可以通过呈现图层的值来获取当前屏幕上真正显示出来的值。
+
+呈现树通过图层树中所有图层的呈现图层所形成。注意呈现图层仅仅当图层首次被提交（就是首次第一次在屏幕上显示）的时候创建，所以在那之前调用-presentationLayer将会返回nil。
+你可能注意到有一个叫做–modelLayer的方法。在呈现图层上调用–modelLayer将会返回它正在呈现所依赖的CALayer。通常在一个图层上调用-modelLayer会返回–self（实际上我们已经创建的原始图层就是一种数据模型）。
+
+**Swift中分别是 CALayer.presentation() 和 CALayer.model() **
+
 ### UIView的CALayer ###
 > UIView之所以能显示在屏幕上，完全是因为它内部的一个图层，在创建UIView对象时，UIView内部会自动创建一个图层(即CALayer对象)，通过UIView的layer属性可以访问这个层
 > 当UIView需要显示到屏幕上时，会调用drawRect:方法进行绘图，并且会将所有内容绘制在自己的图层上，绘图完毕后，系统会将图层拷贝到屏幕上，于是就完成了UIView的显示。因此，通过操作这个CALayer对象，可以很方便地调整UIView的一些界面属性，比如：阴影、圆角大小、边框宽度和颜色等。
+
+### 过渡 ###
+
+CATransition有一个type和subtype来标识变换效果。type属性是一个NSString类型，可以被设置成如下类型：
+
+- kCATransitionFade 
+- kCATransitionMoveIn 
+- kCATransitionPush 
+- kCATransitionReveal
+
+后面三种过渡类型都有一个默认的动画方向，它们都从左侧滑入，但是你可以通过subtype来控制它们的方向，提供了如下四种类型：
+
+- kCATransitionFromRight 
+- kCATransitionFromLeft 
+- kCATransitionFromTop 
+- kCATransitionFromBottom
+
 
 ### 事件响应 ###
 
@@ -1139,6 +1293,37 @@ Xcode 提供了纯代码和 Storyboard（Xib 同理）两种布局 UI 的方式
 
 ![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgdwwiml7hj21ii150n2v.jpg)
 
+### loadView() ###
+
+- loadView() 即加载控制器管理的 view。
+- **不能直接手动调用该方法；当 view 被请求却为 nil 时，该方法加载并创建 view。**
+- 若控制器有关联的 Nib 文件，该方法会从 Nib 文件中加载 view；如果没有，则创建空白 UIView 对象。
+- **如果使用 Interface Builder 创建 view，则务必不要重写该方法。**
+- **可以使用该方法手动创建视图，且需要将根视图分配为 view；自定义实现不应该再调用父类的该方法。**
+- 执行其他初始化操作，建议放在 viewDidLoad() 中。
+
+### viewDidLoad() ###
+- view 被加载到内存后调用 viewDidLoad()。
+- **重写该方法需要首先调用父类该方法。**
+- 该方法中可以额外初始化控件，例如添加子控件，添加约束。
+- **该方法被调用意味着控制器有可能（并非一定）在未来会显示。**
+- 在控制器生命周期中，该方法只会被调用一次。
+
+### viewWillAppear(_:) ###
+- **该方法在控制器 view 即将添加到视图层次时以及展示 view 时所有动画配置前被调用。**
+- **重写该方法需要首先调用父类该方法。**
+- 该方法中可以进行操作即将显示的 view，例如改变状态栏的取向，类型。
+- 该方法被调用意味着控制器将一定会显示。
+- 在控制器生命周期中，该方法可能会被多次调用。
+
+### viewWillLayoutSubviews() ###
+- 该方法在通知控制器将要布局 view 的子控件时调用。
+- **每当视图的 bounds 改变，view 将调整其子控件位置。**
+- 该方法可重写以在 view 布局子控件前做出改变。
+- 该方法的默认实现为空。
+- **该方法调用时，AutoLayout 未起作用。**
+- 在控制器生命周期中，该方法可能会被多次调用。
+- 
 > 若 loadView() 没有加载 view，viewDidLoad() 会一直调用 loadView() 加载 view，因此构成了死循环，程序即卡死。
 
 #### viewWillLayoutSubviews和layoutSubviews的区别 ####
@@ -1605,6 +1790,25 @@ argc、argv:
 - 当调用loadview时,view为空, -> 调用viewdidload控制器仍然没有自己的view,此时再次调用loadview方法让控制器生成一个黑色的view.
 - 注意点: 此时如果调用了loadview当时没有给viewController指定一个view的话,不能在viewdidload方法中用self.view = 某个view,此时如果调用view的set或者get方法都会使程序进入无限死循环中.看代码
 
+
+## 随机数 ##
+arc4random() 产生 UInt32 范围的数值，产生 0~1 随机数可使用 CGFloat(arc4random())/CGFloat(UInt32.max)
+
+### CGFloat ###
+
+    #if defined(__LP64__) && __LP64__
+    # define CGFLOAT_TYPE double
+    # define CGFLOAT_IS_DOUBLE 1
+    # define CGFLOAT_MIN DBL_MIN
+    # define CGFLOAT_MAX DBL_MAX
+    #else
+    # define CGFLOAT_TYPE float
+    # define CGFLOAT_IS_DOUBLE 0
+    # define CGFLOAT_MIN FLT_MIN
+    # define CGFLOAT_MAX FLT_MAX
+    #endif
+
+这段话的意思就是,64位系统下,CGFLOAT是double类型,32位系统下是float类型.CGFloat能够保证你的代码在64位系统下也不容易出错,所以你的代码应该尽量使用CGFloat.尽管他可能造成一些多余的消耗.不过能保证安全
 
 
 ## SuperMap ##
