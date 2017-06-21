@@ -57,6 +57,8 @@ Fix-it Replace "as!" with "! as"!!
 ### Initializer Delegation for Value Types ###
 > Initializers can call other initializers to perform part of an instance’s initialization. This process, known as initializer delegation, avoids duplicating code across multiple initializers.
 
+**Classes do not have a default memberwise initializer**
+
 **Value types (structures and enumerations) do not support inheritance**
 
 ### Designated Initializers and Convenience Initializers ###
@@ -1155,6 +1157,36 @@ CATransition有一个type和subtype来标识变换效果。type属性是一个NS
 - kCATransitionFromTop 
 - kCATransitionFromBottom
 
+### CAMediaTiming ###
+duration和repeatCount默认都是0
+
+autoreverses的属性 autoreverses的属性
+
+#### 相对时间 ####
+beginTime指定了动画开始之前的的延迟时间
+
+speed是一个时间的倍数，默认1.0，减少它会减慢图层/动画的时间
+
+timeOffset和beginTime类似，增加timeOffset只是让动画快进到某一点
+
+#### 层级关系时间 ####
+每个动画和图层在时间上都有它自己的层级概念，相对于它的父亲来测量
+
+对CALayer或者CAGroupAnimation调整duration和repeatCount/repeatDuration属性并不会影响到子动画。但是beginTime，timeOffset和speed属性将会影响到子动画。
+
+### 动画速度 ###
+#### 线性步调 ####
+    velocity = change / time
+
+上面的等式假设了速度在整个动画过程中都是恒定不变的（就如同第八章“显式动画”的情况），对于这种恒定速度的动画我们称之为“线性步调”，而且从技术的角度而言这也是实现动画最简单的方式，**但也是完全不真实的一种效果。**
+
+- kCAMediaTimingFunctionLinear 
+- kCAMediaTimingFunctionEaseIn 
+- kCAMediaTimingFunctionEaseOut 
+- kCAMediaTimingFunctionEaseInEaseOut
+- kCAMediaTimingFunctionDefault
+
+#### 缓冲函数 ####
 
 ### 事件响应 ###
 
@@ -1335,6 +1367,25 @@ Xcode 提供了纯代码和 Storyboard（Xib 同理）两种布局 UI 的方式
 > 
 > You should override this method only if the autoresizing and constraint-based behaviors of the subviews do not offer the behavior you want
 > This method gets called when a layout update happens, either by changing the view's bounds explicitly or call setNeedsLayout or layoutIfNeeded on the view to force a layout update. Please remember that it will be called automatically by the OS, and you should never call it directly. It's quite rare that you need to override this method, cause usually the autoresizing or constraint will do the job for you.
+
+## 贝塞尔曲线 ##
+理论基础
+
+[Bernstein polynomial](https://en.wikipedia.org/wiki/Bernstein_polynomial)
+
+[贝塞尔曲线](http://blog.csdn.net/cdnight/article/details/48468653)
+### 三控制点贝塞尔曲线 ###
+DF:DE = AD:AB = BE:BC
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgq8swlhh6j20go0b4t8l.jpg)
+
+让选取的点 D 在第一条线段上从起点 A 移动到终点 B，找出所有的贝塞尔曲线上的点 F
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fgq8szhllnj20go0b4jr9.jpg)
+
+### 贝塞尔曲线Demo ###
+[动态展示 - from github](http://myst729.github.io/bezier-curve/)
+
 
 ## Json解析重构 ##
 
@@ -1892,3 +1943,6 @@ iphone 6  2.3* 4.1(4.7) 750* 1334  ppi 326
 - iPhone 7	4.7吋	375x667	@2x	750x1334		326
 - iPhone 7Plus	5.5吋	414x736	@3x	1242x2208	1080x1920	401
 > 所以光看屏幕的分辨率对于设计师来说是不具备多少实际意义的，通过分辨率计算得出的像素密度（PPI）才是设计师要关心的问题，我们通过屏幕分辨率和屏幕尺寸就能计算出屏幕的像素密度的。
+
+## 控件默认尺寸 ##
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fglpsmb6vkj20c80efmyh.jpg)
