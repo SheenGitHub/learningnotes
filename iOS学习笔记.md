@@ -1,5 +1,7 @@
 # Swift - iOS 笔记 #
 
+### Self ###
+[指向自身的方法](https://cnbin.github.io/blog/2016/02/24/swift-jie-kou-he-lei-fang-fa-zhong-de-self/)
 ## 加载文件的方式 ##
 led path = Bundle.main.path(forResource:"PROJECT_NAME.plist",ofType:nil)
 let config = NSArray(contentsOfFile:path)
@@ -1916,7 +1918,26 @@ You should never rely on the isa pointer to determine class membership. Instead,
 
 > edit Scheme ---info --->Build Configuration 选择 Release 进行测试;
 
+### 模态视图跳转 ###
 
+> 需求：A视图控制器中presentB视图控制器，B视图控制器再presentC视图控制器。最后从C视图控制器直接返回到A视图控制器。
+
+[模态视图跳转](http://www.jianshu.com/p/e2572e83071e)
+
+> 谁污染，谁治理！
+
+    // C视图控制器触发dismiss方法前添加这么一段代码
+    	UIViewController *rootVC = self.presentingViewController;
+    	// rootVC.view.alpha = 0; 
+    	while (rootVC.presentingViewController) {
+    		rootVC = rootVC.presentingViewController;
+    	}
+    	[rootVC dismissViewControllerAnimated:YES completion:nil];
+
+[模态试图(presentViewController)显示UINavigationBar](http://www.cnblogs.com/mohe/archive/2013/05/02/3054681.html)
+
+### NavigationBar ###
+> 使用UINavigationController來控制push/popover時，所有view controllers上的navigationBar都是同一個，但navigationItem則是每個view controller個別擁有。除了rootViewController以外，控制器會自動在navigationBar的左側顯示一個< Back的按鍵。
 
 # Android #
 ## Fragment ##
@@ -1946,3 +1967,129 @@ iphone 6  2.3* 4.1(4.7) 750* 1334  ppi 326
 
 ## 控件默认尺寸 ##
 ![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fglpsmb6vkj20c80efmyh.jpg)
+
+## 输入键盘控制 ##
+设置 UITextFieldDelegate代理
+
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        UIView.animate(withDuration: 0.4){
+            self.view.frame.origin.y = 0.0
+        }
+        return true
+    }
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        UIView.animate(withDuration: 0.4){
+            self.view.frame.origin.y = -165.0
+        }
+    }
+
+消息通知
+
+    NotificationCenter.default.addObserver(self, selector: #selector(self.keyboardWillHiden), name: .UIKeyboardWillHide, object: nil
+    NotificationCenter.default.addObserver(self, selector: #selector(self.keyboardDidAppear), name: .UIKeyboardDidShow, object: nil)
+
+## touchesBegan中区分单击和双击 ##
+    
+	-(void)singleTap{
+    	NSLog(@"Tap 1 time");
+    }
+    -(void)doubleTap{
+    	NSLog(@"Tap 2 time");
+    }
+    - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
+    	UITouch *touch = [touches anyObject];
+    	NSTimeInterval delaytime = 0.4;//自己根据需要调整
+    	switch (touch.tapCount) {
+    	case 1:
+    	[self performSelector:@selector(singleTap) withObject:nil afterDelay:delaytime];
+    	break;
+    	case 2:{
+    	[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(singleTap) object:nil];
+    	[self performSelector:@selector(doubleTap) withObject:nil afterDelay:delaytime];
+    }
+    	break;
+    	default:
+    	break;
+    	}
+    }
+
+## Associated Objects ##
+[Associated Objects](http://nshipster.com/associated-objects/)
+
+### 为一个类extension一个属性 ###
+> extensions may not contain stored properties
+
+[Swift extensions *can* add stored properties](https://medium.com/@ttikitu/swift-extensions-can-add-stored-properties-92db66bce6cd)
+
+# iOS架构模式 #
+[iOS架构模式](http://www.jianshu.com/p/87ac2f075a5b)
+
+我们来看一下一个好的框架应该有的特征：
+
+- 平衡并且严格的划分实体之间的角色和责任（Balanced distribution of responsibilities among entities with strict roles）
+- 可测试通常作为第一优先级
+- 便于使用并且维护成本低
+
+## MVC ##
+> **对于 iOS 开发者来说，给控制器减轻负担已经成为一个重要的话题**
+### Expectation ###
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fh1v0arqg3j20m8074t9j.jpg)
+### Reality ###
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fh1v1k3owlj20go06fjrv.jpg)
+> MVC 架构可以在视图控制器中进行（各层次的）拼接组装
+> 
+> View 和 Controller 之间的交互在单元测试中是无法被真正测试的。
+> 
+> 就开发速度而言，Cocoa MVC 是最好的架构模式。
+
+## MVP ##
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fh1v3uuoa5j20yg0aj0uz.jpg)
+
+我们来看一下 MVP 的特点：
+
+- 划分（distribution）--大部分的任务都被划分到 Presenter 和 Model 中，而 View不太灵活（例子中的 Model 也不太灵活）
+- 可测试性--非常出色，我们可以通过 View 来测试大部分的业务逻辑
+- 易用性--在我们那个不切实际的小例子里，MVP 的理念是非常清晰的，但是代码量是 MVC 模式的两倍
+
+> MVP 在 iOS 中使用意味着非常好的可测试和非常多的代码
+## MVVP ##
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fh1vwsolu1j212u0bsab7.jpg)
+
+它和 MVP 非常像：
+
+- MVVM 把 View Controller 作为 View
+- View 和 Model 之间没有紧耦合
+
+我们再对 MVVM 的几个特征进行一下评估：
+
+- 划分（distribution）--也许在我们的小例子中表现得不是太清楚，但是实际上 MVVM 的 View 比 MVP 的 View 要做的时期要多一些，因为，通过设置绑定，第一个 View 由 ViewModel 来更新状态，然而第二个只需要将所有事件传递到 Presenter 就行了，不需要更新它的状态
+- 可测试性-ViewModel 并不持有 View，这让我们可以轻松的对它进行测试，View 也可以进行测试，但是它是依赖于 UIKit 的，你可能会忽略它
+- 易用性--在我们的例子里，MVVM 的代码量跟 MVP 差不多，但是在实际的 app 中，需要把事件从 View 传递到 Presenter ，并且要手动的更新 View，如果使用绑定的话，MVVM 将会瘦身不少
+
+
+> MVVM 非常具有吸引力，因为它结合了上述几种框架方法的好
+
+## VIPER ##
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fh1worgovaj218e0jm40b.jpg)
+
+在 VIPER 中对于职责的划分提出了另一种方式，这次我们有五层：
+
+- Interactor--包括和数据相关的业务逻辑（Entities）或者网络请求，比如创建entities 类的对象或者把它们从服务器中抓取出来。为了达到这些目的你会用到通常会被看做外部依赖而不被看做 VIPER 单元的一些服务（Services）和管理者（Managers）
+- Presenter--包括 UI 相关（UIKit 之外）的一些业务逻辑，调用 Interactor 中的一些方法
+- Entities--纯粹的数据对象，并非是数据访问层，数据访问是 Interactor 层的任务
+- Router--负责 VIPER 模块之间的切换
+
+## UITableView MVC ##
+[整洁的 Table View 代码](https://objccn.io/issue-1-2/)
+
+**然而，这两个 delegate 方法的实现又基于了 view controller 知晓 cell 实现的具体细节**
+
+## View Controller 容器 ##
+[View Controller 容器](https://objccn.io/issue-1-4/)
+
+[更轻量的 View Controllers](https://objccn.io/issue-1-1/)  
+
+**延伸阅读**
+
+> UIWindow 作为一个应用程序的根视图（root view），是旋转和初始布局消息等事件产生的来源。
