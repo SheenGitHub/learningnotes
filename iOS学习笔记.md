@@ -1389,6 +1389,10 @@ DF:DE = AD:AB = BE:BC
 [动态展示 - from github](http://myst729.github.io/bezier-curve/)
 
 
+### Animation 坐标系 ###
+transform.rotation.y 的坐标系是以手机平面为xOy面，z轴方向垂直屏幕向外
+
+
 ## Json解析重构 ##
 
 **Either<A, B>类型**
@@ -1939,11 +1943,58 @@ You should never rely on the isa pointer to determine class membership. Instead,
 ### NavigationBar ###
 > 使用UINavigationController來控制push/popover時，所有view controllers上的navigationBar都是同一個，但navigationItem則是每個view controller個別擁有。除了rootViewController以外，控制器會自動在navigationBar的左側顯示一個< Back的按鍵。
 
+Swift 手势检测
+
+- 滑动 UISwipeGestureRecognizer
+- 边缘滑动 UIScreenEdgePanGestureRecognizer
+- 轻点手势 UITapGestureRecognizer 
+- 捏合手势 UIPinchGestureRecognizer
+- 旋转手势 UIRotationGestureRecognizer
+- 拖动手势 UIPanGestureRecognizer
+- 长按 UILongPressGestureRecognizer
+
+
+UICollectionView中长按会触发 collectionViewdisSelectItemAtindexPath,需要对此做处理
+
+## CharacterSet ##
+
+CharacterSet是一个结构体，CharacterSet.urlHostAllowed等预制类型包含了所有不需要被转码的字符，反过来说就是指明了需要被转码的字符。
+
+CharacterSet类中提供了一些常用的URL转码的类型:
+
+* CharacterSet.urlHostAllowed: 被转义的字符有  "#%/<>?@\^`\{\|\}
+* CharacterSet.urlPathAllowed: 被转义的字符有  "#%;<>?[\]^`\{\|\}
+* CharacterSet.urlUserAllowed: 被转义的字符有   #%/<>?@\^`\{\|\}
+* CharacterSet.urlQueryAllowed: 被转义的字符有  "#%<>[\]^`\{\|\}
+* CharacterSet.urlPasswordAllowed 被转义的字符有 "#%/:<>?@[\]^`\{\|\}
+
 # Android #
 ## Fragment ##
 生命周期
 
 ![生命周期](http://ww1.sinaimg.cn/mw690/48ceb85dgy1ffvebor5wkj20ad0j0ac4.jpg)
+
+**字体大小**
+- A14:(9.283203125, 16.70703125)
+- A15:(9.873046875, 17.900390625)
+- A16:(10.46875, 19.09375)
+- A17:(11.06494140625, 20.287109375)
+- A18:(11.6982421875, 21.48046875)
+- A19:(12.3203125, 22.673828125)
+- a14:(7.57421875, 16.70703125)
+- a15:(8.0419921875, 17.900390625)
+- a16:(8.515625, 19.09375)
+- a17:(8.98974609375, 20.287109375)
+- a18:(9.5009765625, 21.48046875)
+- a19:(10.0009765625, 22.673828125)
+- 你14:(14.28, 16.70703125)
+- 你15:(15.3, 17.900390625)
+- 你16:(16.32, 19.09375)
+- 你17:(17.323, 20.287109375)
+- 你18:(18.342, 21.48046875)
+- 你19:(19.361, 22.673828125)
+
+
 
 #iPhone 屏幕尺寸#
 [dpi-ppi-designer-need-know](http://www.uisdc.com/dpi-ppi-designer-need-know)
@@ -1968,6 +2019,12 @@ iphone 6  2.3* 4.1(4.7) 750* 1334  ppi 326
 ## 控件默认尺寸 ##
 ![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fglpsmb6vkj20c80efmyh.jpg)
 
+
+约束可以理解为，两个界面元素之间必须满足的基于约束布局系统的关系。每个约束都是以下方式的线性表达式:
+
+### NSLayoutConstraint ###
+
+item1.attribute1 = multiplier × item2.attribute2 + constant
 ## 输入键盘控制 ##
 设置 UITextFieldDelegate代理
 
@@ -2093,3 +2150,9 @@ iphone 6  2.3* 4.1(4.7) 750* 1334  ppi 326
 **延伸阅读**
 
 > UIWindow 作为一个应用程序的根视图（root view），是旋转和初始布局消息等事件产生的来源。
+
+# OC #
+
+#### 对象操作 ####
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1flaqkiypydj20h105kq52.jpg)
