@@ -543,6 +543,58 @@ Swift provides two special types for working with nonspecific types:
 
 - Any can represent an instance of any type at all, including function types.
 - AnyObject can represent an instance of any class type.
+
+### Swift中的指针 ###
+#### UnsafeMutablePointer ####
+    let ptr: UnsafeMutablePointer<Int> = ...
+    // ptr.pointee == 23
+    // ptr[0] == 23
+
+
+#### 类型转换 ####
+
+    // Imported from C
+    func strlen(_ __s: UnsafePointer<Int8>!) -> UInt
+    
+    let length = uint8Pointer.withMemoryRebound(to: Int8.self, capacity: 8) {
+    return strlen($0)
+    }
+    // length == 7
+
+
+    let uint64Pointer = UnsafeMutableRawPointer(uint64Pointer)
+      .bindMemory(to: UInt64.self, capacity: 1)
+
+
+#### 内存管理带来的危害 ####
+
+    var collectionPtr: UnsafeMutableBufferPointer<Int>?
+    
+    func duplicateElements(inArray: UnsafeMutableBufferPointer<Int>) {
+    for i in 0..<inArray.count {
+    inArray[i] *= 2
+    }
+    }
+    
+    repeat {
+    var collection = [1, 2, 3]
+    collection.withUnsafeMutableBufferPointer({ collectionPtr = $0 })
+    } while false
+    
+    duplicateElements(inArray: collectionPtr!) // Crash due to EXC_BAD_ACCESS
+
+在这里， collection 在一个 block 中被创建，同时在 block 结束后引用被释放。我们有意的在调用 collection 后将引用保存在了 collectoinPtr 中，然后在原始的 collection 不在存在后继续调用，所以程序在调用 duplicateElements(inArray:) 后崩溃了，如果我们想要使用指针来快速创建变量，我们需要确定这些变量能够在我们需要使用它们的时候可用。注意ARC将在每个变量离开他的作用于的时候为每个变量添加 release 方法，如果这个变量没有被强引用的话，他就会被释放。
+
+
+### Int、Int8、Int16、Int32和 Int64介绍 ###
+
+
+- Int16, 等于short, 占2个字节. -32768 32767
+- Int32, 等于int, 占4个字节. -2147483648 2147483647
+- Int64, 等于long, 占8个字节. -9223372036854775808 9223372036854775807
+- Int8 ，占用1个字节
+
+**还有需要特别说明的是在 Xcode 中Int的默认值是64bit 的，而 Int64也是64bit** 
 ## 网络 ##
 
 [网络-NSURL](http://blog.csdn.net/abcd2686529828/article/details/51332484)
@@ -1956,6 +2008,34 @@ Swift 手势检测
 
 UICollectionView中长按会触发 collectionViewdisSelectItemAtindexPath,需要对此做处理
 
+
+### NSArray ###
+
+有一个不可变的NSArray引用并不意味着数组就不能在你眼皮子底下被改变
+
+    let a = NSMutableArray(array: [1,2,3])
+    
+    // 我不想让b能被改变
+    let b: NSArray = a
+    
+    // 但其实b还是可以被改变 —— 通过a
+    a.insertObject(4, atIndex:3)
+    
+    // 现在b也含有4了
+    print(b)
+
+正确的做法是在创建b的时候把a拷贝一份：
+
+    let a = NSMutableArray(array: [1,2,3])
+    
+    // 我不想让b能被改变
+    let b: NSArray = a.copy() as! NSArray
+    
+    a.insertObject(4, atIndex:3)
+    print(b)  // b现在依然还是[1,2,3]
+
+**Swift中，数组的可变性由var和let关键字来决定**
+
 ## CharacterSet ##
 
 CharacterSet是一个结构体，CharacterSet.urlHostAllowed等预制类型包含了所有不需要被转码的字符，反过来说就是指明了需要被转码的字符。
@@ -2156,3 +2236,64 @@ item1.attribute1 = multiplier × item2.attribute2 + constant
 #### 对象操作 ####
 
 ![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1flaqkiypydj20h105kq52.jpg)
+
+# C++ #
+
+### 虚函数表 ###
+
+[虚函数表](https://www.cnblogs.com/hushpa/p/5707475.html)
+
+    #include <iostream>
+    
+    using namespace std;
+    
+    class Base {
+    public:
+    	virtual void f() {cout<<"base::f"<<endl;}
+    	virtual void g() {cout<<"base::g"<<endl;}
+    	virtual void h() {cout<<"base::h"<<endl;}
+    };
+    
+    class Derive : public Base{
+    public:
+    	void g() {cout<<"derive::g"<<endl;}
+    };
+    
+    //可以稍后再看
+    int main () {
+    	cout<<"size of Base: "<<sizeof(Base)<<endl;
+    
+    	typedef void(*Func)(void);
+    	Base b;
+    	Base *d = new Derive();
+    
+    	long* pvptr = (long*)d;
+    	long* vptr = (long*)*pvptr;
+    	Func f = (Func)vptr[0];
+    	Func g = (Func)vptr[1];
+    	Func h = (Func)vptr[2];
+    
+    	f();
+    	g();
+    	h();
+    
+    	return 0;
+    }
+
+
+包含虚函数的类才会有虚函数表， 同属于一个类的对象共享虚函数表， 但是有各自的_vptr.
+    
+虚函数表实质是一个指针数组，里面存的是虚函数的函数指针。
+
+Base中虚函数表结构：
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fmdu2iecp0j20cm05zjra.jpg)
+
+Derive中虚函数表结构：
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fmdu2zpdcaj20cz067wee.jpg)
+
+#### 多继承 ####
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fmdu4m8mqyj207u05cmyf.jpg)
+
+![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fmdu4yp6gyj20bo04t3zw.jpg)
