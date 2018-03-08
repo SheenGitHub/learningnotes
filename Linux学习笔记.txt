@@ -64,5 +64,4 @@ set shiftwidth = 2
 set tabstop = 2
 set number 
 
-http://pan.baidu.com/s/1dDgXB1j
 
