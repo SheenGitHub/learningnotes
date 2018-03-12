@@ -276,3 +276,8 @@ div默认占满一行
 ### 总结 ###
 
 > 因为BFC内部的元素和外部的元素绝对不会互相影响，因此， 当BFC外部存在浮动时，它不应该影响BFC内部Box的布局，BFC会通过变窄，而不与浮动有重叠。同样的，当BFC内部有浮动时，为了不影响外部元素的布局，BFC计算高度时会包括浮动的高度。避免margin重叠也是这样的一个道理。
+
+## 移动端显示 ##
+在移动端显示太小，需要添加以下元数据，使页面适应设备
+
+    <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
