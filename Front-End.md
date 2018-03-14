@@ -1,5 +1,63 @@
 # HTML #
 # JavaScript #
+
+#### 执行js文件没有输出，可能是函数定义未被执行 ####
+
+## Promise ##
+> Promise 对象新建，函数内容就会立刻执行
+> 
+> Promise 中的return将会传递给 Promise链下一个then中函数的参数
+> 
+> Promise(function(resolve,reject){/**/}) 中
+> 
+> resolve函数的调用将会使状态转为完成，并注册了函数调用
+> 
+> reject函数的调用将会使状态转为拒绝，并注册函数调用，触发后续的catch处理事件
+> 
+> 注册的函数将会异步调用
+
+## Generator ##
+
+> 生成器函数不立刻执行，直到next()方法被调用
+> 
+> yield 将会中断函数调用，使函数分段执行
+> 
+> 返回的生成器内部属性 {value:**,done:true/false}
+> 
+> next()的参数作为**上一个**yield的返回值，yield默认返回undefined
+
+> Generator 函数可以暂停执行和恢复执行，它还有两个特性，使它可以作为异步编程的完整解决方案：函数体内外的数据交换和错误处理机制
+
+#### 异步封装Case ####
+
+    var fetch = require('node-fetch');
+    
+    function* gen(){
+      var url = 'https://api.github.com/users/github';
+      var result = yield fetch(url);
+      console.log(result.bio);
+    }
+
+
+#### 调用过程 ####
+
+    var g = gen();
+    var result = g.next();
+    
+    result.value.then(function(data){
+      return data.json();
+    }).then(function(data){
+      g.next(data);
+    });
+
+
+## CPS（Continuation Programming Style） ##
+> 我们在学习函数时只了解了一半事实，因为我们基于一个错误的假定：函数只能将结果返回到它的调用端
+
+## Async函数 ##
+> async函数的返回值包装成Promise
+> 
+> await 的返回值是Promise的对象，resolve(data)的data
 # CSS #
 ## 前缀 ##
 > - -webkit-*   safari 

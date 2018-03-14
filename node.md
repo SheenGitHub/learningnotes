@@ -78,3 +78,14 @@ npm cache verify 清理cache
 
 #### Cannot enqueue Handshake after invoking quit ####
 mysql 关闭的connection不能再重新connect；
+
+# 问题 #
+#### TypeError: First argument must be a string or buffer ####
+
+    response.write(200,{"Content-Type":"text/plain"});
+    
+    修改为 response.writeHead(*,*);
+
+#### Most middleware (like bodyParser) is no longer bundled with Express ####
+
+    新版express不包含bodyparser,需要单独安装
