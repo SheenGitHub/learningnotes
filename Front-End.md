@@ -1,5 +1,36 @@
 # HTML #
+
+## 标签 ##
+
+### href使用 ###
+[a标签中href=""的几种用法](http://blog.csdn.net/u010297791/article/details/52784879)
+
+
 # JavaScript #
+## this ##
+### 为什么会有this ###
+> person.sayHi(person)
+> 
+> 开发者最想要的调用方式是 person.sayHi()，那么问题来了，如果 person.sayHi() 没有实参，person.sayHi 函数是如何接收到 person 的呢？
+
+#### 自身作为参数 ####
+> 方法1：依然把第一个参数 self 当做 person，这样形参就会永远比实参多出一个 self
+> 
+> 方法2：隐藏 self，然后用关键字 this 来访问 self。
+> 
+> JS 之父选择了方法2，用 this 访问 self。Python 之父选择了方法1，留下 self 作为第一个参数。
+
+JS 之父给高手们准备了无糖的 .call 方法。
+
+person.sayHi.call(person) 就等价于 person.sayHi()，
+高手一般用 obj.fn.call(null,1,2,3) 来手动禁用 this。
+
+也就是说 person.sayHi 虽然是 person 的方法，但是是可以调用在任何对象上的。
+
+## let ##
+- 1.let生命会提升到块顶部
+- 2.从块顶部到变量初始化语句，这块区域叫TDZ(临时死区)
+- 3.如果在TDZ内使用该变量，JS就会报错
 
 #### 执行js文件没有输出，可能是函数定义未被执行 ####
 
@@ -58,6 +89,7 @@
 > async函数的返回值包装成Promise
 > 
 > await 的返回值是Promise的对象，resolve(data)的data
+
 # CSS #
 ## 前缀 ##
 > - -webkit-*   safari 
@@ -241,6 +273,17 @@ filter:grayscale(100%)图片滤镜
 ## 动画例子 ##
 [modal动画](http://www.runoob.com/try/try.php?filename=trycss_image_modal_js)
 
+### transform-origin ###
+旋转的锚点
+
+## 过渡 ##
+- transition-property;
+- transition-duration;
+- transition-timing-function;
+- transition-delay;
+
+## CSS3 动画 ##
+
 ## CSS规则执行顺序 ##
 > 样式表中最后出现的规则优先
 
@@ -339,3 +382,140 @@ div默认占满一行
 在移动端显示太小，需要添加以下元数据，使页面适应设备
 
     <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
+
+## Grid 布局 ##
+> 设计师通过在网格容器（grid container）上定义网格定义行（grid definition rows）和网格定义列（grid definition columns）属性各在网格项目（grid item）上定义网格行（grid row）和网格列（grid columns）为每一个网格项目（grid item）定义位置和空间著作权归作者所有。
+
+[Grid](https://segmentfault.com/a/1190000012889793)
+
+**grid-definition-x 更正为 grid-template-x**
+
+**端线命名 [column-line-name] 引用 grid-column-start:column-line-name;**
+
+### 父容器(Grid Container)的属性 ###
+#### display:grid|inline-grid|subgrid; ####
+column,float,clear,vertical-align对 grid container没有影响
+#### grid-template-columns/grid-template-grid ####
+行列的网格宽度定义
+#### grid-template-areas ####
+定义网格模板
+#### grid-template ####
+grid-template-rows,grid-template-columns,grid-template-areas的简写
+
+grid-template:none|subgrid|<grid-template-rows>/<grid-template-columns>
+
+#### grid-column-gap/grid-row-gap ####
+网格间距的距离
+#### justify-items ####
+justify-items:start|end|center|stretch(default);
+
+沿着行轴对齐的网格内的内容，适用于容器内所有的grid items
+#### align-items ####
+justify-items:start|end|center|stretch(default);
+
+沿着列轴对齐grid item里的内容，同上
+#### justify-content ####
+网格总大小小于其网格容器的大小，如果grid items使用px这样非弹性单位设置大小可能遇到此种情况
+
+justify-content:start|end|center|stretch|space-around|space-between|space-evenly
+#### align-content ####
+列轴方向，同上
+#### grid-auto-columns/grid-auto-rows ####
+隐式轨道大小，超出布局范围的计算
+#### grid-auto-flow ####
+grid-auto-flow:row|column|dense;
+
+没有指明放置位置的项目的摆放方式
+### 孩子(Grid Items)的属性 ###
+grid-column-start|grid-column-end|grid-row-start|grid-row-end
+
+确定grid item在网格内的位置
+
+span<number> 越过指定数量的网格轨道
+
+span<name> 越过知道遇到特定的名字的网格线
+
+默认越过1个
+
+#### grid-area ####
+给grid item以命名的方式使用确定位置
+
+<name>
+
+<row-start>/<column-start>/<row-end>/<column-end>
+#### justify-self ####
+justify-self:start|end|center|stretch;
+
+沿行轴对戏网格项的内容，对单个网格内容生效
+#### align-self ####
+沿列轴方向对齐内容，同上
+### 按网格线布局 ###
+    #grid{
+      display: grid;
+      background: orange;
+    
+      grid-template-columns: auto minmax(min-content, 1fr);
+      grid-template-rows: auto minmax(min-content, 1fr) auto;
+    }
+    
+    #title{
+      grid-column: 1;
+      grid-row: 1;
+      background-color: red;
+    }
+    
+    #score{
+      grid-column: 1;
+      grid-row: 3;
+      background-color: green;
+    }
+    
+    #stats{
+      grid-column: 1;
+      grid-row: 2;
+      justify-self:start;
+      background-color: #e9f;
+    }
+    
+    #board{
+      grid-column: 2;
+      grid-row: 1/span 2;
+      background-color: #ccc;
+    }
+    
+    #controls{
+      grid-column: 2;
+      grid-row: 3;
+      align-self: center;
+      background-color: yellow;
+    }
+
+### 按区域布局 ###
+    @media(orientation:portrait){
+    #grid{
+    display: grid;
+    grid-template: "title stats"
+       			   "score stats"
+                   "board board"
+                   "ctrls ctrls";
+    grid-template-columns: auto minmax(min-content,1fr);
+    grid-template-rows: auto auto minmax(min-content,1fr) auto;
+      }
+    }
+    
+    @media (orientation:landscape) {
+    #grid{
+    display: grid;
+    grid-template: "title board"
+                   "stats board"
+                   "score ctrls";
+    grid-template-columns: auto minmax(min-content,1fr);
+    grid-template-rows: auto minmax(min-content,1fr) auto;
+      }
+    }
+    
+    #title{grid-area: title;background-color: red;}
+    #score{grid-area: score;background-color: green;}
+    #stats{grid-area: stats;background-color: #e9f;}
+    #board{grid-area: board;background-color: #ccc;}
+    #controls{grid-area: ctrls;background-color: yellow;}

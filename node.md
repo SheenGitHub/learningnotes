@@ -89,3 +89,16 @@ mysql 关闭的connection不能再重新connect；
 #### Most middleware (like bodyParser) is no longer bundled with Express ####
 
     新版express不包含bodyparser,需要单独安装
+
+## 微信公众号开发 ##
+> {"errcode":"40016","errmsg":"invalid button size hint:[xxxxx]"}
+
+将post的对象从json对象转为string， JSON.stringigfy(jsonObject)
+
+> {"errcode":"40054","errmsg":"invalid button url domain hint:[xxxxx]"}
+
+url地址前缺少http:// 协议名称
+
+> {"errcode":"40016","errmsg":"invalid button key size hint:[xxxxx]"}
+
+在button中添加key
