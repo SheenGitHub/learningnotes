@@ -65,6 +65,10 @@ linux平台的非root用户要让node运行在80端口下，可以这样：
     connection.end()
 # xml2js #
 
+[xml2js builder.coffee](https://github.com/Leonidas-from-XIV/node-xml2js/blob/master/src/builder.coffee)
+
+requiresCDATA 认为字符串中必需存在 &,>,< 等会被解析的符号时才使用CDATA对这段代码进行保护
+
 xml2js/lib/builder.js
 
     54,40 删除 requiresCDATA(obj) 

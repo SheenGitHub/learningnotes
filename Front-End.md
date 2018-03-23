@@ -1,12 +1,320 @@
 # HTML #
+## DOM ##
+### Node ###
+#### nodeType ####
+
+document Node.DOCUMENT_NODE(9)
+
+div Node.ELEMENT_NODE(1)
+
+nodeName是标签名 "DIV", nodeValue始终为null
+
+childNodes  NodeList类数组对象
+
+ownerDocument === document
+
+#### 操作节点 ####
+*appendChild*
+
+*insertChild*
+
+*replaceChild*
+
+*removeChild*
+
+*cloneNode(boolean)* 
+
+- true 深拷贝，拷贝子节点和子节点树
+- false 浅拷贝，只复制节点本身，不包含子节点
+
+复制后节点副本属于文档所有，并没有为它指定父节点
+
+*normalize*
+
+处理文本节点，删除空白文本，合并连续文本
+
+### Document ###
+HTMLDocument的一个实例
+
+documentElement 和 childNodes 属性访问子节点
+
+    document.documentElement === childNodes[0] //对html的引用
+
+*DocumentType* 
+
+- document.doctype 指向 <!DOCTYPE>
+- document.title 修改标题
+- document.URL
+- document.domain **可修改，子域只能改父域，如此可通信**
+- document.referrer
+
+#### 查找元素 ####
+getElementsByTag 返回的是动态的集合 HTMLCollection,不区分大小写
+
+*HTMLCollection类型* 
+
+都是动态集合
+
+    images.namedItem("myImage") === images["myImage"]
+
+- document.anchors 带name特性的< a>元素
+- document.forms 文档中所有的<form/>元素
+- document.images 文档中所有的<image>元素
+- document.links 文档中所有带href的< a>元素
+
+*getElementsByName* 仅HTMLDocument支持
+
 
 ## 标签 ##
+标签的<之后不能跟空格
+
+### body ###
+浏览器在遇到body标签才开始呈现内容，head中的js加载会延迟页面加载 
+## 页面加载 ##
+
 
 ### href使用 ###
 [a标签中href=""的几种用法](http://blog.csdn.net/u010297791/article/details/52784879)
 
 
 # JavaScript #
+## 严格模式 ##
+ES6的模块自动采用严格模式
+
+## 数据类型 ##
+### 7种数据类型 ###
+Undefined Null Boolean Number String Object Symbol
+
+数据类型      typeof
+
+- Undefined    undefined
+- Null         object
+- Number       number
+- String       string
+- Object       object
+- Boolean      boolean
+- Function     function
+- Symbol       symbol 
+
+### Object ###
+对象的属性名现在可以有两种类型，一种是原来就有的字符串，另一种就是新增的 Symbol 类型。
+
+定义属性
+
+    let mySymbol = Symbol();
+    
+    // 第一种写法
+    let a = {};
+    a[mySymbol] = 'Hello!';
+    
+    // 第二种写法
+    let a = {
+      [mySymbol]: 'Hello!'
+    };
+    
+    // 第三种写法
+    let a = {};
+    Object.defineProperty(a, mySymbol, { value: 'Hello!' });
+    
+    // 以上写法都得到同样结果
+    a[mySymbol] // "Hello!"
+
+> 使用Object.getOwnPropertyNames方法得不到Symbol属性名，需要使用Object.getOwnPropertySymbols方法。
+> 
+> 另一个新的 API，Reflect.ownKeys方法可以返回所有类型的键名，包括常规键名和 Symbol 键名。
+
+### Symbol ###
+Symbol() 唯一生成 
+
+Symbol.for() 查询生成，
+
+#### 内置的Symbol ####
+**Symbol.hasInstance**
+
+foo instanceof Foo在语言内部，实际调用的是Foo[Symbol.hasInstance] (foo)。
+
+static [Symbol.hasInstance] (obj) 相当于重写判断instanceof 
+
+**Symbol.isConcatSpreadable**
+
+默认值是undefined，该对象用于Array.prototype.concat时是否可以展开，数组默认可以展开，数组对象默认不展开
+
+**Symbol.species**
+
+指向一个构造函数
+
+默认等同于
+
+    static get [Symbol.species] (){
+        return this;
+    }
+
+**Symbol.match**
+
+指向一个函数，同上，当执行str.match(myObject)时，改属性存在，就会调用它
+
+等同于
+
+    searchValue[Symbol.replace] (this,replaceValue)
+
+*一下两个函数同上*
+
+**Symbol.species**
+
+**Symbol.search**
+
+**Symbol.iterator**
+
+指向该对象的默认遍历器
+
+**Symbol.toPrimitive**
+
+指向一个方法，当对象被转为原始类型的值时，会调用这个方法，返回对应原始类型值
+
+被调用时接受一个字符串参数，标识当前的运算模式
+
+- Number:转成数字
+- String:转成字符串
+- Default:都可以
+
+**Symbol.toStringTag**
+
+指向一个对象，当该对象上调用 Object.prototype.toString时，它的返回值标表示对象的类型
+
+ES6 新增内置对象的Symbol.toStringTag属性值如下。
+
+- JSON[Symbol.toStringTag]：'JSON'
+- Math[Symbol.toStringTag]：'Math'
+- Module 对象M[Symbol.toStringTag]：'Module'
+- ArrayBuffer.prototype[Symbol.toStringTag]：'ArrayBuffer'
+- DataView.prototype[Symbol.toStringTag]：'DataView'
+- Map.prototype[Symbol.toStringTag]：'Map'
+- Promise.prototype[Symbol.toStringTag]：'Promise'
+- Set.prototype[Symbol.toStringTag]：'Set'
+- %TypedArray%.prototype[Symbol.toStringTag]：'Uint8Array'等
+- WeakMap.prototype[Symbol.toStringTag]：'WeakMap'
+- WeakSet.prototype[Symbol.toStringTag]：'WeakSet'
+- %MapIteratorPrototype%[Symbol.toStringTag]：'Map Iterator'
+- %SetIteratorPrototype%[Symbol.toStringTag]：'Set Iterator'
+- %StringIteratorPrototype%[Symbol.toStringTag]：'String Iterator'
+- Symbol.prototype[Symbol.toStringTag]：'Symbol'
+- Generator.prototype[Symbol.toStringTag]：'Generator'
+- GeneratorFunction.prototype[Symbol.toStringTag]：'GeneratorFunction'
+
+**Symbol.unscopables**
+
+指向一个对象，当使用with关键字时，哪些属性会被with排除
+
+### Null ###
+null标识空指针，undefined派生自null
+
+    undefined == null true
+
+### Boolean ###
+Bollean()  函数
+
+String 非空为true
+
+Number 非零为true  NaN为false
+
+Object 非null 为true
+
+Undefined n/a 为true   undefined为false
+
+### 未声明变量 ###
+对于未声明的变量，只能执行一项操作，即typeof 检测数据类型
+
+### Number ###
+浮点数的内存空间是整形的两倍
+
+浮点数值的最高精度是17位小数
+
+> 浮点数值会产生误差的问题，这是基于IEEE754 数值的浮点计算的通病
+
+#### NaN ####
+任何数值除以非数值返回NaN，任何NaN的操作返回NaN，NaN与任何值都不相等
+
+    isNaN("blue") true
+
+> isNaN也是用于对象，首先调用的对象的valueOf()方法，如果不能再调用toString()方法，再测试返回值
+
+#### 数制转换 ####
+- Number(null) = 0;
+- Number(undefined) = NaN;
+- Number("") = 0;
+- parseInt("") = NaN
+- parseFloat("0xA) = 0 只解析十进制
+> 一元操作符的操作与Number相同
+
+**Number.isFinite() Number.isNaN(0)只对数值有效**
+
+- Number.isInteger(3.0000000000000002) // true
+- Number.isInteger(5E-324) //false Number.MIN_VALUE
+- Number.isInteger(5E-325) //true
+- Number.EPSILON === Math.pow(2,-52)
+- JavaScript数值范围 -2^53-2^53
+- Math.clz32 32位二进制形式的前导0个数
+- Math.hypot 距离
+
+JavaScript数值存储为64位双精度格式,数值精度做多达53个二进制位(1个隐藏位和52个有效位)，超过这个限度就会被放弃
+
+### String ###
+#### Unicode表示法 ####
+- \uxxxx
+- \u{xxxx} 超过\uffff
+- '\u{1F680}' === '\uD82D\uDE80' 大括号表示法与UTF-16编码等价
+
+**codePointAt()**
+
+var s = "𠮷"；
+
+判断字符是两个字节还是四个字节
+
+    function is32Bit(c) {
+      return c.codePointAt(0) > 0xFFFF;
+    }
+*repeat*
+
+'x'.repeat(3) //'xxx'
+
+*padStart/padEnd* 
+
+补全字符串
+
+'abc'.padStart(10,'01234567890') // 01234567abc
+## 变量 ##
+### var ###
+var 操作符定义的变量将成为该变量的作用域中的局部变量
+
+未经声明的变量赋值在严格模式下会抛出ReferenceError错误
+
+### let ###
+let只在命令坐在的代码块内有效
+
+let声明的i在每个for循环轮次都是一个新的变量，
+
+- 1.let生命会提升到块顶部
+- 2.从块顶部到变量初始化语句，这块区域叫TDZ(临时死区)
+- 3.如果在TDZ内使用该变量，JS就会报错
+
+#### for循环特别之处，设置变量的那部分是一个父作用域，而循环体内是个单独的子作用域 ####
+
+### 变量提升 ###
+var命令会发生**变量提升**现象，在声明之前使用值为undfined，
+
+let命令变量一定要在声明之后使用，否则报错
+
+#### Temporal dead zone ####
+y作为默认值赋给x前尚未声明，ReferenceError
+
+    function bar(x = y, y = 2) {
+      return [x, y];
+    }
+    
+    bar();
+
+    let x = x; //声明x还没有完成，ReferenceError
+
 ## this ##
 ### 为什么会有this ###
 > person.sayHi(person)
@@ -27,12 +335,94 @@ person.sayHi.call(person) 就等价于 person.sayHi()，
 
 也就是说 person.sayHi 虽然是 person 的方法，但是是可以调用在任何对象上的。
 
-## let ##
-- 1.let生命会提升到块顶部
-- 2.从块顶部到变量初始化语句，这块区域叫TDZ(临时死区)
-- 3.如果在TDZ内使用该变量，JS就会报错
+
 
 #### 执行js文件没有输出，可能是函数定义未被执行 ####
+
+## 作用域 ##
+ES5 规定，函数只能在顶层作用域和函数作用域之中声明，不能在块级作用域声明。
+
+ES6 引入了块级作用域，明确允许在块级作用域之中声明函数。ES6 规定，块级作用域之中，函数声明语句的行为类似于let，在块级作用域之外不可引用。
+
+在浏览器的 ES6 环境中，块级作用域内声明的函数，行为类似于var声明的变量。
+
+ES6 的块级作用域允许声明函数的规则，只在使用大括号的情况下成立，如果没有使用大括号，就会报错。
+
+- 允许在块级作用域内声明函数
+- 函数声明相当于var会提升到全局作用域或函数作用域的头部
+- 函数声明还会提升到所在块级作用域的头部
+
+## 解构赋值 ##
+> ES6 允许按照一定模式，从**数组**和**对象**中提取值，对变量进行赋值，这被称为解构（Destructuring）
+
+### 数组解构赋值 ###
+具有interator接口的可以使用数组的解构赋值
+
+    function* fibs() {
+      let a = 0;
+      let b = 1;
+      while (true) {
+	    yield a;
+	    [a, b] = [b, a + b];
+	      }
+	    }
+    
+    let [first, second, third, fourth, fifth, sixth] = fibs();
+    sixth
+
+### 对象的解构赋值 ###
+    let { foo: foo, bar: bar } = { foo: "aaa", bar: "bbb" };
+
+let {p:v} p 模式，v变量
+
+多次解构赋值
+
+    let { loc, loc: { start }, loc: { start: { line }} } = node;
+
+null与undefined不严格相等
+
+    var {x = 3} = {x: null}; 解构有效
+
+避免将{ 放在行首，JS将其解释为代码块
+
+    let x;
+    ({x} = {x: 1});
+
+let { log, sin, cos } = Math;
+
+### 字符串的解构赋值 ###
+字符串被转换成类似数组的对象
+
+每个数组的对象都有一个length属性
+
+    let {length : len} = 'hello';
+
+### 数值和布尔值的解构赋值 ###
+先转为对象
+
+#### 解构赋值的规则是，只要等号右边的值不是对象或数组，就先将其转为对象。由于undefined和null无法转为对象，所以对它们进行解构赋值，都会报错。 ####
+
+### 函数参数的解构赋值 ###
+*为函数参数的复制，而不是为x,y赋值*
+
+    function move({x, y} = { x: 0, y: 0 }) {
+      return [x, y];
+    }
+
+#### 赋值语句的非模式部分才可以使用圆括号 ####
+
+### 解构的用途 ###
+- 交换变量的值
+- 从函数返回多个值
+- 函数参数的定义
+- 提取JSON数据
+- 函数参数的默认值
+- 遍历Map结构
+- 输入模块的指定方法
+## 顶层对象 ##
+**顶层对象的属性与全局变量挂钩，被认为是 JavaScript 语言最大的设计败笔之一**
+
+
 
 ## Promise ##
 > Promise 对象新建，函数内容就会立刻执行
@@ -89,6 +479,12 @@ person.sayHi.call(person) 就等价于 person.sayHi()，
 > async函数的返回值包装成Promise
 > 
 > await 的返回值是Promise的对象，resolve(data)的data
+
+## Chrome调试 ##
+
+> Snippets：Identifier 'obj' has already been declared
+
+每次当前页面js运行都在给页面的js环境中，故每次定义变量，都会添加到全局js环境中，刷新页面即可
 
 # CSS #
 ## 前缀 ##
