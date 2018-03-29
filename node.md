@@ -106,3 +106,7 @@ url地址前缺少http:// 协议名称
 > {"errcode":"40016","errmsg":"invalid button key size hint:[xxxxx]"}
 
 在button中添加key
+
+> {"errcode":"45015","errmsg":"response out of time limit or subscription is canceled hint:[rnk_TA0921ge21]"}
+
+当用户微信不活跃时间超过24小时（此时间当前是多少由腾讯定），微信公众号不会将信息推送到用户。

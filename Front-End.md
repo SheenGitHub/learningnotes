@@ -486,7 +486,20 @@ let { log, sin, cos } = Math;
 
 每次当前页面js运行都在给页面的js环境中，故每次定义变量，都会添加到全局js环境中，刷新页面即可
 
+## class ##
+> 类不存在变量提升（hoist）
+
+hasOwnProperty() 查看对象的属性，而不是prototype上的
+
+> __proto__
+
 # CSS #
+
+## width ##
+100% 只与父元素有关，与屏幕无关
+
+position:absolute 的元素的 width x%，与父元素的父元素有关，脱离了父元素的计算，使用relative可以限制absolute是的width的比例相对于父元素
+
 ## 前缀 ##
 > - -webkit-*   safari 
 > - -o-*        Opera
@@ -516,8 +529,28 @@ left,right
 > 若父元素不是relative定位，将相对于整个页面定位，默认位置是其在文档流中的定位
 > 若父元素是relative定位，将相对于父元素定位
 
+
+    .cover {
+	    position: absolute;
+	    left: 0;right: 0;top: 0;bottom: 0;
+	    background-color: #fff;
+	    opacity: .5;filter: alpha(opacity=50);
+    }
+
+> 用absolute的left: 0;right: 0;top: 0;bottom: 0;来实现全屏拉伸
+
+> 不设top/right/top/bottom的话absolute会从正常文档流应处的位置开始定位，因此做不到全屏
+
+使用relative显示cover只在父元素部分，而非全屏
+
+*以下情况根本不需要设z-index：*
+
+- 让absolute元素覆盖正常文档流内元素（不用设z-index，自然覆盖）
+- 让后一个absolute元素覆盖前一个absolute元素（不用设z-index，只要在HTML端正确设置元素顺序即可）
+
 ### relative ###
 相对于原来在文档中的位置布局
+
 
 ### fix ###
 固定在页面中的位置
@@ -915,3 +948,97 @@ justify-self:start|end|center|stretch;
     #stats{grid-area: stats;background-color: #e9f;}
     #board{grid-area: board;background-color: #ccc;}
     #controls{grid-area: ctrls;background-color: yellow;}
+
+## 内联元素 ##
+内联元素的宽度由内容计算，不能设置width
+
+内联元素之间默认有4px列间距，5px行间距(处理字体间间距)，可设置父元素font-size:0;
+
+去除边距，使用div包裹，设置font-size:0;或line-height:0;
+
+## 元素隐藏 ##
+display:none; 不绘制
+
+visibility:hidden; 不绘制，占据空间 与height:0;配合
+
+    { display: none; /* 不占据空间，无法点击 */ } 
+    { visibility: hidden; /* 占据空间，无法点击 */ } 
+    { position: absolute; top: -999em; /* 不占据空间，无法点击 */ } 
+    { position: relative; top: -999em; /* 占据空间，无法点击 */ } 
+    { position: absolute; visibility: hidden; /* 不占据空间，无法点击 */ } 
+    { height: 0; overflow: hidden; /* 不占据空间，无法点击 */ } 
+    { opacity: 0; filter:Alpha(opacity=0); /* 占据空间，可以点击 */ } 
+    { position: absolute; opacity: 0; filter:Alpha(opacity=0); /* 不占据空间，可以点击 */ } 
+    { 
+	    zoom: 0.001; 
+	    -moz-transform: scale(0); 
+	    -webkit-transform: scale(0); 
+	    -o-transform: scale(0); 
+	    transform: scale(0); 
+	    /* IE6/IE7/IE9不占据空间，IE8/FireFox/Chrome/Opera占据空间。都无法点击 */ 
+    } 
+    { 
+	    position: absolute; 
+	    zoom: 0.001; 
+	    -moz-transform: scale(0); 
+	    -webkit-transform: scale(0); 
+	    -o-transform: scale(0); 
+	    transform: scale(0); 
+	    /* 不占据空间，无法点击 */ 
+    } 
+## 文本换行 ##
+word-break:break-all|keep-all|keep-all;
+
+## 重绘与回流 ##
+
+[重绘与回流](http://www.zhangxinxu.com/wordpress/2010/01/%E5%9B%9E%E6%B5%81%E4%B8%8E%E9%87%8D%E7%BB%98%EF%BC%9Acss%E6%80%A7%E8%83%BD%E8%AE%A9javascript%E5%8F%98%E6%85%A2%EF%BC%9F/)
+
+> 当一个元素的外观的可见性visibility发生改变的时候，**重绘(repaint)**也随之发生，但是不影响布局。类似的例子包括：outline, visibility, or background color
+
+**重绘的代价是高昂的，因为浏览器必须验证DOM树上其他节点元素的可见性**
+
+> **回流**更是性能的关键因为其变化涉及到部分页面（或是整个页面）的**布局**。一个元素的回流导致了其所有子元素以及DOM中紧随其后的祖先元素的随后的回流。
+
+### 那什么会导致回流呢？ ###
+1. 调整窗口大小（Resizing the window）
+1. 改变字体（Changing the font）
+1. 增加或者移除样式表（Adding or removing a stylesheet）
+1. 内容变化，比如用户在input框中输入文字（Content changes, such as a user typing text in
+1. an input box）
+1. 激活 CSS 伪类，比如 :hover (IE 中为兄弟结点伪类的激活)（Activation of CSS pseudo classes such as :hover (in IE the activation of the pseudo class of a sibling)）
+1. 操作 class 属性（Manipulating the class attribute）
+1. 脚本操作 DOM（A script manipulating the DOM）
+1. 计算 offsetWidth 和 offsetHeight 属性（Calculating offsetWidth and offsetHeight）
+1. 设置 style 属性的值 （Setting a property of the style attribute）
+
+### 如何避免回流或将它们对性能的影响降到最低？ ###
+1. 尽可能在DOM树的最末端改变class
+1. 避免设置多层内联样式
+1. 动画效果应用到position属性为absolute或fixed的元素上
+1. 牺牲平滑度换取速度
+1. 避免使用table布局
+2. 避免使用CSS的JavaScript表达式
+
+
+## hack ##
+
+### 头部底部固定，内容滚动布局 ###
+
+    .container{
+    	height:100vh; //屏幕的高度是100vh
+	    display:flex;
+	    flex-direction:column;//竖直方向布局
+    	overflow-y:hidden;//可以不用
+    }
+    
+    .content{
+    	flex:1; //内容部分撑开或缩小适应剩余屏幕，shrink默认为1
+    	overflow-y:scroll;//内容可滚动
+    }
+    
+    .content-item{
+	    flex-shrink:0;//子项目不可以缩小，以超出父高度滚动
+    }
+
+### 边框重叠 ###
+使用负margin，margin-right:-1px;
