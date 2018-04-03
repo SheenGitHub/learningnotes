@@ -423,6 +423,17 @@ let { log, sin, cos } = Math;
 **顶层对象的属性与全局变量挂钩，被认为是 JavaScript 语言最大的设计败笔之一**
 
 
+## 异步 ##
+异步执行的运行机制如下
+
+（1）所有同步任务都在主线程上执行，形成一个执行栈（execution context stack）。
+
+（2）主线程之外，还存在一个"任务队列"（task queue）。只要异步任务有了运行结果，就在"任务队列"之中放置一个事件。
+
+（3）一旦"执行栈"中的所有同步任务执行完毕，系统就会读取"任务队列"，看看里面有哪些事件。那些对应的异步任务，于是结束等待状态，进入执行栈，开始执行。
+
+（4）主线程不断重复上面的第三步。
+
 
 ## Promise ##
 > Promise 对象新建，函数内容就会立刻执行
@@ -493,6 +504,101 @@ hasOwnProperty() 查看对象的属性，而不是prototype上的
 
 > __proto__
 
+## jquery ##
+### jQuery.ajax ###
+[API 文档](http://api.jquery.com/jquery.ajax/)
+
+基本流程
+
+    $.ajax({
+      url: "test.html",
+      context: document.body
+    }).done(function() {
+      $( this ).addClass( "done" );
+    });
+
+#### then和done的区别 ####
+then可以向后继传值， done结束。
+
+    // 在浏览器环境下运行，而非 node 环境
+    cosnt jsPromise = Promise.resolve($.ajax('/whatever.json'))
+        jsPromise.then(data => {
+        // ...
+    })
+    
+#### 跨域 ####
+ajax选项
+> {xhrFields:{withCredentials:true}}
+
+服务器端header设置
+
+> // 指定允许其他域名访问  
+> header('Access-Control-Allow-Origin:*');  
+> // 响应类型  
+> header('Access-Control-Allow-Methods:POST');  
+> // 响应头设置  
+> header('Access-Control-Allow-Headers:x-requested-with,content-type');
+
+### .add() ###
+往集合中增加元素 类似addClass
+### .css() ###
+设置css属性
+### .addClass() ###
+为集合添加css类
+### .after() ###
+在集合的元素后操作
+### .ajaxXXXX ###
+可全局使用
+$(document).ajaxXXX();
+### .attr() ###
+checkbox 用prop()获取，html中设置check可以使用 attr()
+> To retrieve and change DOM properties such as the checked, selected, or disabled state of form elements, use the .prop() method.
+
+prop()类似
+
+### .hasClass() ###
+是否由css类
+
+### .html() ###
+设置或获取第一个元素的内部html
+
+### removeXXX ###
+- .removeAttr()
+- .removeClass()
+- .removeProp()
+
+### toggleClass() ###
+勾选所有元素的类
+### val() ###
+设置或获取第一个元素的值
+### $.Callback() ###
+
+- add()
+- fire() 为回调事件提供参数
+- remove()
+
+#### Flag ####
+- once 每次仅fire一个callback
+- memeory 保留callback
+- unique 每个回调仅加入一次
+- stopOnFalse 回调返回false即终止
+
+### $.holdReady() ###
+true参数锁定， 直到false释放，控制jquery的ready状态
+### $.noConflict() ###
+释放$变量
+### $.ready ###
+Promise-like obj 标识ready状态
+### $.sub() ###
+拷贝一份jquery，修改不影响原来的集
+### $.when ###
+提供thenable 对象
+### $.cssHooks ###
+设置css属性的读取和设置方式
+
+
+
+
 # CSS #
 
 ## width ##
@@ -524,10 +630,24 @@ left,right
 ## position ##
 ### static ###
 默认值
-### absolute ###> 
+
+div有非static的postion属性，默认宽度为0，div里面有内容，会被内容撑起
+
+同上，div有float:left, float:right等样式，div默认宽度为0，会被内部内容撑起
+### absolute ###
 > 脱离文档流，将与其他文档处于不同的层级
 > 若父元素不是relative定位，将相对于整个页面定位，默认位置是其在文档流中的定位
 > 若父元素是relative定位，将相对于父元素定位
+
+*本质，非static父元素*
+> 当给绝对定位元素设置定位值时，该元素会延着DOM树向上查找，直到找到一个具有定位属性的祖先元素，则定位相对于该元素，在该例子中，由于其祖先元素都没有定位属性，则该绝对定位元素会相对于body体进行定位；如果给其父元素加上一个定位属性，则该绝对定位元素会相对于这个父元素；
+
+#### 自动伸缩 ####
+当width为auto时，根据left，right自动伸缩，相对于第一个有定位属性的祖先
+
+> 如果 width 值为 auto 此时如果我们设置 left 和 right 都为0，则该元素会填充满其相对的元素，如果此时我们将宽度设置为固定值，这是绝对定位元素会优先取 left 值作为定位标志
+
+**将margin设为auto，lef和right值相等，绝对定位元素会居中，垂直方向也是一样的(bottom,top)**
 
 
     .cover {
@@ -555,6 +675,48 @@ left,right
 ### fix ###
 固定在页面中的位置
 
+### z-index ###
+[z-index](https://www.w3cplus.com/css/what-no-one-told-you-about-z-index.html)
+
+> HTML中的每一元素都是在其他元素的前面或者后面。这是众所周知的堆叠顺序（Stacking Order）
+
+> 如果没有涉及z-index和position属性的话，那规则很简单，堆叠顺序就是元素在HTML中出现的顺序。（**负margin特殊**）
+> 
+> 加上position属性的话，就是所有定位了得元素在没有被定位的元素前面。
+
+z-index只作用在定了位的元素上
+
+z-index会创建一个堆叠的上下文(Stacking Contexts)
+
+#### 堆叠上下文 ####
+> 每一个层都有唯一的根节点。当一个元素创建一个层，那么它的所有子元素都会受到父元素的堆叠顺序影响。意味着如果一个元素位于一个最低位置的层，那你z-index设置得再大，它也不会出现在其它层元素的上面。
+
+*什么情况下会产生新的层：*
+
+- 当一个元素位于HTML文档的最外层（<html>元素）
+- 当一个元素被定位了并且拥有一个z-index值（不为auto）
+- 当一个元素被设置了opacity，transforms, filters, css-regions, paged media等属性
+
+#### 堆叠顺序 ####
+- 层的根元素
+- 被定位了的元素，且z-index为负，相同z-index按照HTML元素的书写顺序
+- 没有被定位的元素
+- 被定位的元素，且z-index为auto
+- 被定位了的元素，且z-index为正
+
+z-index为负元素先被绘制，甚至在父元素后面
+## 透明度计算 ##
+alpha为不透光度 每层每一个色彩通道色度为c,
+
+三个层级的色彩计算
+
+(c1,a1) (c2,a2) (c3,a3)
+
+白光经过第一层的色度为 r1 = 255 * （1-a1）+ c1 * a1;
+
+经过第二层的色度为 r2 = r1 * (1-a2) + c2 * a2;
+
+经过第三层的色度为 r3 = r2 * (1-a3) + c3 * a3;
 ## flexbox布局 ##
 主轴方向块级布局，副轴方向行内布局
 
@@ -599,7 +761,7 @@ display:flex
 - flex-end:底部在侧轴结束位置对齐
 - center:在侧轴居中放置
 - baseline:如果行内距与侧轴相同，与flex-start一致，否则与基线对齐
-- stretch:如果侧轴大小为auto，使盒边距接近行的尺寸，但遵照'min/max-width/height'限制，相当于完成撑开
+- stretch:如果侧轴大小为auto，使盒边距接近行的尺寸，但遵照'min/max-width/height'限制，相当于完成撑开,默认完全撑开
 
 #### align-self ####
 定义flex子项单独的对齐方式，会重写align-items的参数
@@ -955,6 +1117,16 @@ justify-self:start|end|center|stretch;
 内联元素之间默认有4px列间距，5px行间距(处理字体间间距)，可设置父元素font-size:0;
 
 去除边距，使用div包裹，设置font-size:0;或line-height:0;
+
+## 块元素 ##
+postion:absolute时，块元素自动伸缩
+
+正常文档流等于父元素的宽度，absolute脱离了正常的文档流，宽度为最小宽度
+
+## 伪元素 ##
+:first-child 元素为其父元素的第一个子元素
+
+：first 符合条件的第一个元素
 
 ## 元素隐藏 ##
 display:none; 不绘制
