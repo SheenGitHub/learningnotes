@@ -223,3 +223,6 @@ flush privileges;
 重装mysql 
 
 Mysql5.1 默认密码123456
+
+#### Too many levels of symbolic links  ####
+使用绝对路径建立软链接，建立软软链接是采用相对路径的

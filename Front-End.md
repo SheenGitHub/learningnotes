@@ -97,6 +97,39 @@ Undefined Null Boolean Number String Object Symbol
 - Symbol       symbol 
 
 ### Object ###
+Object类型是所有的实例的基础
+
+#### 属性和方法 ####
+*constructor*
+
+保存用于创建当前对象的函数，默认就是 Object()
+
+*hasOwnProperty(propertyName)*
+
+检查给定的属性在当前的对象实例中是否存在
+
+*isPrototypeOf(object)* 
+
+检查传入的对象是否是当前对象的原型
+
+*propertyIsEnumerable*
+
+(检查给定的对象是否能够使用for-in语法)
+
+*toLocalString()*
+
+返回对象的字符串表示，该字符串与执行环境的地区对应
+
+*toString()*
+
+返回对象的字符串表示
+
+*valueOf()*
+
+返回对象的字符串，数值或布尔值
+
+**JavaScript不适用于BOM DOM中的对象,EMCA不负责定义宿主对象**
+
 对象的属性名现在可以有两种类型，一种是原来就有的字符串，另一种就是新增的 Symbol 类型。
 
 定义属性
@@ -123,6 +156,92 @@ Undefined Null Boolean Number String Object Symbol
 > 
 > 另一个新的 API，Reflect.ownKeys方法可以返回所有类型的键名，包括常规键名和 Symbol 键名。
 
+    const foo = bar;
+    const baz = {foo};
+    等同于
+    const baz = {foo:foo};
+
+#### 方法简写 ####
+    const o = {
+	    method(){
+		    return "Hello!";
+	    }
+    };
+    等同于
+    const o ={
+	    method:function(){
+		    return "Hello!";
+	    }
+    };
+#### 属性的赋值器（setter）和取值器（getter） ####
+> 如果对象的方法使用了取值函数（getter）和存值函数（setter），则name属性不是在该方法上面，而是该方法的属性的描述对象的get和set属性上面，返回值是方法名前加上get和set
+####  ####
+属性名表达式如果是一个对象，默认情况下会自动将对象转为字符串[object Object]
+
+属性名表达式如果是一个对象，默认情况下会自动将对象转为字符串[object Object]
+
+#### method name ####
+- (new Function()).name//"anonymous"
+- doSomething.bind().name//"bound doSomething"
+- obj[key1].name//"[description]" Symbol 的描述符
+#### Object.is() ####
+- Object.is(+0, -0) // false
+- Object.is(NaN, NaN) // true
+
+#### Object.assign ####
+合并对象，复制可枚举属性
+
+**undefined和null无法转成对象**
+
+**有字符串合入目标对象（以字符数组的形式），数值和布尔值都会被忽略。这是因为只有字符串的包装对象，会产生可枚举属性。**
+
+**Object.assign方法实行的是浅拷贝，而不是深拷贝,拷贝得到对象的引用**
+
+Object.assign只能进行值的复制，如果要复制的值是一个取值函数，那么将求值后再复制。
+
+#### 属性的可枚举和遍历 ####
+目前，有四个操作会忽略enumerable为false的属性。
+
+- for...in循环：只遍历对象自身的和继承的可枚举的属性。
+- Object.keys()：返回对象自身的所有可枚举的属性的键名。
+- JSON.stringify()：只串行化对象自身的可枚举的属性。
+- Object.assign()： 忽略enumerable为false的属性，只拷贝对象自身的可枚举的属性。
+
+**我们只关心对象自身的属性。所以，尽量不要用for...in循环，而用Object.keys()代替**
+
+*ES6 一共有 5 种方法可以遍历对象的属性*
+
+- for...in 遍历对象自身的和继承的可枚举属性
+- Object.key(obj) 自身可枚举属性，不含Symbol
+- Object.getOwnPropertyNames(obj) 包括不可枚举属性，不包括Symbol属性
+- Object.getOwnPropertySymbols(obj) 自身所有Symbol属性
+- Reflect.ownKeys(obj) 自身所有属性
+
+*遍历次序规则*
+
+- 首先遍历所有数值键，按照数值升序排列。
+- 其次遍历所有字符串键，按照加入时间升序排列。
+- 最后遍历所有 Symbol 键，按照加入时间升序排列。
+
+#### Object.getOwnPropertyDescriptor ####
+ES2017引入 Object.getOwnPropertyDescriptors
+
+**引入原因: Object无法正确拷贝get和set属性**
+
+super 指向当前对象的原型对象
+
+super只能在方法中
+
+#### __proto__ ####
+> super.foo等同于Object.getPrototypeOf(this).foo（属性）或Object.getPrototypeOf(this).foo.call(this)（方法）
+
+#### Object.create ####
+Object.create创建属性默认是不可遍历的
+
+#### Object.entries ####
+返回键值对数组
+
+用于将对象转化为Map结构
 ### Symbol ###
 Symbol() 唯一生成 
 
@@ -282,6 +401,76 @@ var s = "𠮷"；
 补全字符串
 
 'abc'.padStart(10,'01234567890') // 01234567abc
+### Class ###
+Function的语法糖
+
+类的内部所有定义的方法，都是不可枚举的（non-enumerable）
+
+类必须使用new调用，否则会报错。这是它跟普通构造函数的一个主要区别，后者不用new也可以执行。
+
+实例的属性除非显式定义在其本身（即定义在this对象上），否则都是定义在原型上（即定义在class上）
+
+类的所有实例共享一个原型对象
+
+类不存在变量提升（hoist）
+
+#### new.target ####
+返回new命令作用于的那个构造函数
+
+#### 继承 ####
+> 子类必须在constructor方法中调用super方法，否则新建实例时会报错。这是因为子类没有自己的this对象，而是继承父类的this对象，然后对其进行加工。如果不调用super方法，子类就得不到this对象。
+
+*继承实例*
+> ES5 的继承，实质是先创造子类的实例对象this，然后再将父类的方法添加到this上面（Parent.apply(this)）。ES6 的继承机制完全不同，实质是先创造父类的实例对象this（所以必须先调用super方法），然后再用子类的构造函数修改this。
+
+#### Object.getPrototypeOf ####
+取得父类
+#### super ####
+**只有调用super之后，才可以使用this关键字**
+
+constructor中 super虽然代表了父类A的构造函数，但是返回的是子类B的实例，即super内部的this指的是B，因此super()在这里相当于A.prototype.constructor.call(this)。
+
+**super()只能用在子类的构造函数之中**
+
+super作为对象时，在普通方法中，指向父类的原型对象；在静态方法中，*指向父类。*
+
+> 由于super指向父类的原型对象，所以定义在父类实例上的方法或属性，是无法通过super调用的
+
+**由于this指向子类实例，所以如果通过super对某个属性赋值，这时super就是this，赋值的属性会变成子类实例的属性。**
+
+> super在静态方法之中指向父类，在普通方法之中指向父类的原型对象。
+
+    // B 的实例继承 A 的实例
+    Object.setPrototypeOf(B.prototype, A.prototype);
+    
+    // B 继承 A 的静态属性
+    Object.setPrototypeOf(B, A);
+
+**一旦发现Object方法不是通过new Object()这种形式调用，ES6 规定Object构造函数会忽略参数**
+
+#### Mixin 多个类 ####
+    function mix(...mixins) {
+      class Mix {}
+    
+      for (let mixin of mixins) {
+	    copyProperties(Mix, mixin); // 拷贝实例属性
+	    copyProperties(Mix.prototype, mixin.prototype); // 拷贝原型属性
+      }
+    
+      return Mix;
+    }
+    
+    function copyProperties(target, source) {
+      for (let key of Reflect.ownKeys(source)) {
+	    if ( key !== "constructor"
+	      && key !== "prototype"
+	      && key !== "name"
+	    ) {
+	      let desc = Object.getOwnPropertyDescriptor(source, key);
+	      Object.defineProperty(target, key, desc);
+	    }
+      }
+    }
 ## 变量 ##
 ### var ###
 var 操作符定义的变量将成为该变量的作用域中的局部变量
@@ -595,7 +784,10 @@ Promise-like obj 标识ready状态
 提供thenable 对象
 ### $.cssHooks ###
 设置css属性的读取和设置方式
+### .data ###
+读取或设置属性变量
 
+### $.Deferred ###
 
 
 
@@ -905,7 +1097,8 @@ filter:grayscale(100%)图片滤镜
 
 (相邻元素的Margin-top相同，比较合理)
 
-> In this specification, the expression collapsing margins means that adjoining margins (no non-empty content, padding or border areas or clearance separate them) of two or more boxes (which may be next to one another or nested) combine to form a single margin. 
+> In this specification, the expression collapsing margins means that ad
+> joining margins (no non-empty content, padding or border areas or clearance separate them) of two or more boxes (which may be next to one another or nested) combine to form a single margin. 
 
 **当一个元素包含在另一个元素中时（假设没有内边距或边框把外边距分隔开），它们的上和/或下外边距也会发生合并**
 
@@ -1123,6 +1316,13 @@ postion:absolute时，块元素自动伸缩
 
 正常文档流等于父元素的宽度，absolute脱离了正常的文档流，宽度为最小宽度
 
+## box-sizing ##
+- content-box:默认，元素的width不包括padding和border
+- border-box: 元素的width包含padding和border
+- padding-box: 已删除
+
+## calc函数 ##
+ width: calc(100% - 100px);
 ## 伪元素 ##
 :first-child 元素为其父元素的第一个子元素
 
@@ -1214,3 +1414,23 @@ word-break:break-all|keep-all|keep-all;
 
 ### 边框重叠 ###
 使用负margin，margin-right:-1px;
+
+# 万维网 #
+## 备案查询 ##
+
+http://icp.chinaz.com
+
+# Nginx #
+## 安装 ##
+    ./configure --sbin-path=/usr/local/nginx/nginx \
+    --conf-path=/usr/local/nginx/nginx.conf \
+    --pid-path=/usr/local/nginx/nginx.pid \
+    --with-http_ssl_module \
+    --with-pcre=/usr/local/src/pcre-8.34 \
+    --with-zlib=/usr/local/src/zlib-1.2.8 \
+    --with-openssl=/usr/local/src/openssl-1.0.1c
+    make
+    make install
+
+#### no rule to make target libpcre.la'. stop ####
+使用低版本的pcre pcre2会出错

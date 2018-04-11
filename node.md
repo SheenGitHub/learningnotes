@@ -110,3 +110,77 @@ url地址前缺少http:// 协议名称
 > {"errcode":"45015","errmsg":"response out of time limit or subscription is canceled hint:[rnk_TA0921ge21]"}
 
 当用户微信不活跃时间超过24小时（此时间当前是多少由腾讯定），微信公众号不会将信息推送到用户。
+
+# Webpack #
+
+标准配置
+
+// 一个常见的`webpack`配置文件
+const webpack = require('webpack');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
+
+	module.exports = {
+		entry: __dirname + "/app/main.js", //已多次提及的唯一入口文件
+		output: {
+		path: __dirname + "/build",
+		filename: "bundle-[hash].js"
+	},
+	devtool: 'none',
+	devServer: {
+		contentBase: "./public", //本地服务器所加载的页面所在的目录
+		historyApiFallback: true, //不跳转
+		inline: true,
+		hot: true
+	},
+	module: {
+		rules: [{
+			test: /(\.jsx|\.js)$/,
+			use: {
+				loader: "babel-loader"
+			},
+			exclude: /node_modules/
+			}, {
+				test: /\.css$/,
+				use: ExtractTextPlugin.extract({
+					fallback: "style-loader",
+					use: [{
+						loader: "css-loader",
+						options: {
+							modules: true,
+							localIdentName: '[name]__[local]--[hash:base64:5]'
+						}
+						}, {
+							loader: "postcss-loader"
+					}],
+				})
+			}
+			}
+		]
+	},
+	plugins: [
+		new webpack.BannerPlugin('版权所有，翻版必究'),
+		new HtmlWebpackPlugin({
+			template: __dirname + "/app/index.tmpl.html" //new 一个这个插件的实例，并传入相关的参数
+		}),
+		new webpack.optimize.OccurrenceOrderPlugin(),
+		new webpack.optimize.UglifyJsPlugin(),
+		new ExtractTextPlugin("style.css")
+	]
+	};
+
+# 常用包 #
+### 
+ ###
+
+## Q&A ##
+
+> webpack一直提示安装webpack-cli 
+
+全局安装webpack-cli
+
+> ERROR in multi ./src/index.js ./public/bundle.js
+
+webpack --display-error-details 查看错误细节
+
+需要配置文件webpack.config.js
