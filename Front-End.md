@@ -1539,3 +1539,4 @@ kill -HUP `主进程号`
 - 简化模式（implicit）
 - 密码模式（resource owner password credentials）
 - 客户端模式（client credentials）
+
