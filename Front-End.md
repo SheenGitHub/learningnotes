@@ -377,6 +377,127 @@ Undefined n/a 为true   undefined为false
 
 JavaScript数值存储为64位双精度格式,数值精度做多达53个二进制位(1个隐藏位和52个有效位)，超过这个限度就会被放弃
 
+转化成无符号数
+
+    var a = -18
+    a>>>0
+    a.toString(2) //11111111111111111111111111101110 18的二进制补码
+### 位运算 ###
+    >>> 无符号移位
+    ~ 取反 负值减一
+    & 与运算
+    | 或运算
+    ^ 异或运算
+
+[感受神奇的异或](https://www.lijinma.com/blog/2014/05/29/amazing-xor/)
+
+，但是如果你在解决问题的时候，你可能会忘记异或的这些特性，所以适当的应用可以让我们加深对异或的理解；
+
+- A ⊕ 1 = A';
+- A ⊕ 0 = A;
+- A ⊕ A = 0;
+- A ⊕ A' = 1;
+
+#### 异或的作用 ####
+1. 判断两个值相等
+
+    static inline int ipv6_addr_equal(const struct in6_addr *a1, const struct in6_addr *a2)
+    {
+    return (((a1->s6_addr32[0] ^ a2->s6_addr32[0]) |
+        (a1->s6_addr32[1] ^ a2->s6_addr32[1]) |
+        (a1->s6_addr32[2] ^ a2->s6_addr32[2]) |
+        (a1->s6_addr32[3] ^ a2->s6_addr32[3])) == 0);
+    }
+
+2. 汇编中将变量置零
+
+    xor a，a
+
+3. 翻转特定的位
+
+    10100001 ^ 0100000 = 10000001 //翻转第6位
+
+4. 校验二进制数中1是奇数还是偶数
+
+    1 ^ 0 ^ 1 ^ 0 ^ 0 ^ 0 ^ 0 ^ 1 = 1 粗略地校验
+
+5. 校验与恢复
+
+> A ^ B的结果写到磁盘C；当读取A的数据时，通过B ^ C可以对A的数据做校验，当A盘出错时，通过B ^ C也可以恢复A盘的数据
+
+6. 不使用其他空间，交换两个值
+
+    a = a ^ b;
+    b = a ^ b; //a ^ b ^ b = a ^ 0 = a;
+    a = a ^ b;
+
+7. 互换二进制数的奇偶位
+
+    `#define N(n) ((n<<1)&(0xAAAA))|((n>>1)&(0x5555))`
+
+8. 一个整型数组里除了N个数字之外，其他的数字都出现了两次，找出这N个数字
+
+      A ^ B ^ C ^ B ^ C ^ D ^ A
+    
+    = A ^ A ^ B ^ B ^ C ^ C ^ D
+    
+    = 0 ^ 0 ^ 0 ^ D
+    
+    = 0 ^ D
+    
+    = D
+
+#### 题目：一个整型数组里除了两个数字之外，其他的数字都出现了两次。请写程序找出这两个只出现一次的数字？ ####
+
+思路： 
+
+- 第一步：肯定还是像我们上面的解法一样，所有数进行异或，不过最终得到的结果是 a 和 b（假设 a 和 b 是落单的数字）两个值的异或结果 aXORb，没有直接得到 a 和 b 的值；
+- 第二步：想办法得到 a 或者 b，假设 aXORb 为 00001001（F肯定不为0），根君 aXORb 的值我们发现，值为1的位（比如从右向左第一位）表示在此位上 a 和 b 的值不同；所以，根据这个特点，我们找出来所有第一位为1的数进行异或，得到的就是 a 或者 b；
+- 第三步：aXORb = a ^ b，假设我们已经找到了 a，根据异或特性，我们知道，b = aXORb ^ a；这样我们就可以找出 b；所以我们只需要循环两次；
+
+这样我们的时间复杂度是 O(n)，空间复杂度是 O(1) 代码
+
+#### 布尔操作符 ####
+- && 两个对象，返回第二个对象
+- || 两个对象，返回第一个对象
+
+#### 乘性操作符 ####
+> 先将数字用Number()转化,对象调用其上的valueOf()和toString()
+
+数值除以0，结果是Infinity
+#### 加性操作符 ####
+ 加法
+
+- 两个字符串，拼接；
+- 一个字符串，另一个转换为字符串，调用 toString()
+- 数值和对象，对象先调用valueOf(),再调用 toString()
+
+- 3 + {valueOf(){return 3}  = 6
+- 3 + {toString(){return "3"}} = "33"
+- 3 + {toString(){return 3}} = 6
+- 3 + {value:3} = 3[object Object]
+
+ -Infinity + Infinity = NaN
+
+undefined  和 null 调用 toString()转换为 "undefined" 和 "null"
+
+#### 关系操作符 ####
+- 一个是数值，另一个转成数值
+- 字符串，比较字符编码值  "Brick" < "alphabet"
+- 对象，先调用valueOf,再调用toString()
+- 布尔值转数值
+- NaN参与比较为false
+
+#### 相等操作符 ####
+- 相等和不相等 先转换，再比较
+- 全等和不全等， 仅比较不转换
+
+null 和undefined相等
+
+能对null 和undefined作转换
+
+switch转换时是使用全等操作符
+
 ### String ###
 #### Unicode表示法 ####
 - \uxxxx
@@ -414,6 +535,9 @@ Function的语法糖
 
 类不存在变量提升（hoist）
 
+hasOwnProperty() 查看对象的属性，而不是prototype上的
+
+> __proto__
 #### new.target ####
 返回new命令作用于的那个构造函数
 
@@ -686,13 +810,246 @@ let { log, sin, cos } = Math;
 
 每次当前页面js运行都在给页面的js环境中，故每次定义变量，都会添加到全局js环境中，刷新页面即可
 
-## class ##
-> 类不存在变量提升（hoist）
 
-hasOwnProperty() 查看对象的属性，而不是prototype上的
 
-> __proto__
+## Proxy ##
+代理对象的行为
 
+    var obj = new Proxy({}, {
+      get: function (target, key, receiver) {
+      console.log(`getting ${key}!`);
+      return Reflect.get(target, key, receiver);
+      },
+      set: function (target, key, value, receiver) {
+      console.log(`setting ${key}!`);
+      return Reflect.set(target, key, value, receiver);
+      }
+    });
+
+
+*没有设置拦截，就直接通向原对象*
+
+直接在对象上调用
+
+    var object = { proxy: new Proxy(target, handler) };
+
+
+使用proxy实现链式调用
+
+    var pipe = (function () {
+      return function (value) {
+	    var funcStack = [];
+	    var oproxy = new Proxy({} , {
+	      get : function (pipeObject, fnName) {
+	        if (fnName === 'get') {
+	          return funcStack.reduce(function (val, fn) {
+	            return fn(val);
+	          },value);
+	        }
+	        funcStack.push(window[fnName]);
+	        return oproxy;
+	      }
+	    });
+	
+	    return oproxy;
+	      }
+    }());
+    
+    var double = n => n * 2;
+    var pow= n => n * n;
+    var reverseInt = n => n.toString().split("").reverse().join("") | 0;
+    
+    pipe(3).double.pow.reverseInt.get; // 63
+
+生成dom对象
+
+    const dom = new Proxy({}, {
+      get(target, property) {
+	    return function(attrs = {}, ...children) {
+	      const el = document.createElement(property);
+	      for (let prop of Object.keys(attrs)) {
+	        el.setAttribute(prop, attrs[prop]);
+	      }
+	      for (let child of children) {
+	        if (typeof child === 'string') {
+	          child = document.createTextNode(child);
+	        }
+	        el.appendChild(child);
+	      }
+	      return el;
+	    }
+      }
+    });
+    
+    const el = dom.div({},
+      'Hello, my name is ',
+      dom.a({href: '//example.com'}, 'Mark'),
+      '. I like:',
+      dom.ul({},
+        dom.li({}, 'The web'),
+	    dom.li({}, 'Food'),
+	    dom.li({}, '…actually that\'s it')
+      )
+    );
+    
+    document.body.appendChild(el);
+
+*如果一个属性不可配置（configurable）和不可写（writable），则该属性不能被代理，通过 Proxy 对象访问该属性会报错。*
+
+
+*设置私有不可访问属性*
+    
+    const handler = {
+      get (target, key) {
+	    invariant(key, 'get');
+	    return target[key];
+      },
+      set (target, key, value) {
+	    invariant(key, 'set');
+	    target[key] = value;
+	    return true;
+      }
+    };
+    function invariant (key, action) {
+      if (key[0] === '_') {
+	    throw new Error(`Invalid attempt to ${action} private "${key}" property`);
+      }
+    }
+    const target = {};
+    const proxy = new Proxy(target, handler);
+    proxy._prop
+    // Error: Invalid attempt to get private "_prop" property
+    proxy._prop = 'c'
+    // Error: Invalid attempt to set private "_prop" property
+    
+*变量p是 Proxy 的实例，当它作为函数调用时（p()），就会被apply方法拦截*
+
+*回收代理权*
+
+    let target = {};
+    let handler = {};
+    
+    let {proxy, revoke} = Proxy.revocable(target, handler);
+    
+    proxy.foo = 123;
+    proxy.foo // 123
+    
+    revoke();
+    proxy.foo // TypeError: Revoked
+
+> 有些原生对象的内部属性，只有通过正确的this才能拿到，所以 Proxy 也无法代理这些原生对象的属性
+
+## Reflect ##
+### 设计目的 ###
+- 将Object对象的一些明显属于语言内部的方法，放到Reflect对象上
+- 修改某些Object方法的返回结果，让其变得更合理
+- 让Object操作都变成函数行为
+- Reflect对象的方法与Proxy对象的方法一一对应
+
+## Decorator ##
+### 修饰类 ###
+- 使用函数作为装饰器，装饰的类作为函数的参数
+- 使用类作为，装饰的类添加类的行为
+
+## Property Descriptor ##
+属性的描述符，可以描述value为值，或者函数，或者属性的getter和setter
+
+### Data descriptor ###
+Mandatory properties:
+
+- value
+
+Optional properties:
+
+- configurable
+- enumerable
+- writable
+
+Sample:
+
+    {
+	    value: 5,
+	    writable: true
+    }
+
+> 在调用Object.
+> defineProperty()方法时，如果不指定， configurable， enumerable， writable特性的默认值都是false
+### Accessor descriptor ###
+Mandatory properties:
+
+
+- Either get or set or both
+
+Optional properties:
+
+- configurable
+- enumerable
+- Sample: 
+- 
+    {
+	  	get: function () {
+			return 5;
+		},
+		enumerable: true
+	}
+
+### 废除旧的属性的使用 ###
+
+    [
+      'json',
+      'urlencoded',
+      'bodyParser',
+      'compress',
+      'cookieSession',
+      'session',
+      'logger',
+      'cookieParser',
+      'favicon',
+      'responseTime',
+      'errorHandler',
+      'timeout',
+      'methodOverride',
+      'vhost',
+      'csrf',
+      'directory',
+      'limit',
+      'multipart',
+      'staticCache',
+    ].forEach(function (name) {
+      Object.defineProperty(exports, name, {
+	    get: function () {
+	      throw new Error('Most middleware (like ' + name + ') is no longer bundled with Express and must be installed separately. Please see https://github.com/senchalabs/connect#middleware.');
+	    },
+	    configurable: true
+	      });
+    });
+
+## 函数 ##
+return 返回 undefined；
+
+arguments与对应的命名参数值同步，它们并不是同一内存空间，但是值会同步
+
+arguments的length是由传入的参数个数决定，并非定义的参数个数
+
+**ECMAScript中所有的参数都是值传递，不可能通过引用传递参数**
+
+没有重载，参数是有包含0或多个值的数组表示
+
+### 箭头函数 ###> 
+> 事实上 =>箭头函数并不绑定 this，arguments，super(ES6)，抑或 new.target(ES6)。
+> 
+> 这是真的，对于上述的四个（未来可能有更多）地方，箭头函数不会绑定那些局部变量，所有涉及它们的引用，都会沿袭向上查找外层作用域链的方案来处理。
+
+    function foo() {
+       setTimeout( () => {
+	      console.log("args:", arguments);
+       },100);
+    }
+
+    foo( 2, 4, 6, 8 );
+	// args: [2, 4, 6, 8]
+
+=>箭头函数并没有绑定 arguments，所以它会以 foo() 的 arguments 来取而代之，而 super 和 new.target 也是一样的情况。
 ## jquery ##
 ### jQuery.ajax ###
 [API 文档](http://api.jquery.com/jquery.ajax/)
@@ -1540,3 +1897,7 @@ kill -HUP `主进程号`
 - 密码模式（resource owner password credentials）
 - 客户端模式（client credentials）
 
+# 许可证 #
+![](http://ww1.sinaimg.cn/large/48ceb85dgy1fqnlm8ar2nj20sg0f775l.jpg)
+
+![](http://ww1.sinaimg.cn/large/48ceb85dgy1fqnlnhzcd2j20m80dw3zd.jpg)
