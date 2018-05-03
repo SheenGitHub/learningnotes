@@ -83,6 +83,31 @@ npm cache verify 清理cache
 #### Cannot enqueue Handshake after invoking quit ####
 mysql 关闭的connection不能再重新connect；
 
+## --save-dev --save ##
+
+npm install module：
+-
+
+- 会把module包安装到node_modules目录中
+- 不会修改package.json
+- 之后运行npm install 命令时，不会自动安装module包
+
+npm install module --save
+-
+
+- 会把module包安装到node_modules目录汇总
+- 会修改package.json，将模块名和版本号添加到dependencies部分
+- 之后运行npm install 命令时，会自动安装module包
+- 之后运行npm install --production或者注明NODE_ENV变量值为production时，会自动安装 module到node_modules目录中,即是在线上环境运行时会将包安装
+
+npm install module --save-dev
+-
+
+- 会把module包安装到node_modules目录汇总
+- 会修改package.json，将模块名和版本号添加到devDependencies部分
+- 之后运行npm install 命令时，会自动安装module包
+- 之后运行npm install --production或者注明NODE_ENV变量值为production时，不会自动安装msbuild到node_modules目录中，即是在线上环境并不会进行安装。
+
 # 问题 #
 #### TypeError: First argument must be a string or buffer ####
 
@@ -169,6 +194,22 @@ const ExtractTextPlugin = require('extract-text-webpack-plugin');
 	]
 	};
 
+## 依赖包 ##
+### Babel依赖 ###
+// npm一次性安装多个依赖模块，模块之间用空格隔开
+npm install --save-dev babel-core babel-loader babel-preset-env babel-preset-react
+
+### React React-DOM 依赖 ###
+npm install --save react react-dom
+
+### Webpack-server依赖 ###
+局部安装 webpack-dev-server webpack webpack-cli
+
+### CSS 依赖 ###
+- css-loader使你能够使用类似@import 和 url(...)的方法实现 require()的功能
+- style-loader将所有的计算后的样式加入页面中
+
+
 # 常用包 #
 ### 
  ###
@@ -184,6 +225,11 @@ const ExtractTextPlugin = require('extract-text-webpack-plugin');
 webpack --display-error-details 查看错误细节
 
 需要配置文件webpack.config.js
+
+> module parse failed Unpected token g in JSON at postion:4
+
+JSON 文件里使用  "property":"value", 不直接使用名称或 ""
+
 
 
 ## 加密 ##

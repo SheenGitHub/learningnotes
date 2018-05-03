@@ -231,6 +231,42 @@ Mysql5.1 默认密码123456
 mysql.ini 文件里头有一个参数叫做 lc-messages
 设成 lc-messages=en_US
 
+# Shell #
+## awk ##
+[三十分钟学会AWK](http://blog.jobbole.com/109089/)
+### 第N个参数 ###
+$0 全行 $N 第N个参数
+
+批量添加 svn add
+
+*svn status 结果*
+
+??  filename.ext
+
+    svn status|awk 'print $2'|xargs -I {} svn add {}
+
+### 常用参数 ###
+- FILENAME 当前文件名
+- FS 字段分隔符
+- NF 字段数目
+- NR 行号
+
+### 运算操作 ###
+算数操作
+
+    $ awk 'BEGIN { a = 50; b = 20; print "(a + b) = ", (a + b) }'
+
+数组操作
+
+    $ awk 'BEGIN { 
+       arr[0] = 1; arr[1] = 2; arr[2] = 3; for (i in arr) printf "arr[%d] = %d\n", i, arr[i]
+    }'
+
+正则操作
+
+    $ echo -e "Apple Juice\nApple Pie\nApple Tart\nApple Cake" | awk '/Apple (Juice|Cake)/'
+    Apple Juice
+    Apple Cake
 # Spring boot #
 #Q&A#
 ### 如何嵌套解析XML ###

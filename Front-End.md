@@ -1685,6 +1685,7 @@ postion:absolute时，块元素自动伸缩
 
 ：first 符合条件的第一个元素
 
+:before 的元素属于当前的div定位
 ## 元素隐藏 ##
 display:none; 不绘制
 
@@ -1748,7 +1749,35 @@ word-break:break-all|keep-all|keep-all;
 1. 避免使用table布局
 2. 避免使用CSS的JavaScript表达式
 
+## 动态添加和更改css ##
+### 添加style节点 ###
+    var style = document.createElement("style");
+    style.type = "text/css";
+    var textNode = document.createTextNode("body{background-color:red}");
+    style.appendChild(textNode);
+    var head = document.getElementsByTagName("head")[0];
+    head.append(style);
 
+IE 
+
+    style.styleSheet.cssText = "body{background-color:red}";
+
+### 添加CSS规则 ###
+    var sheet = document.styleSheets[0]; //styleSheet的length为0，undefined
+    var rules = sheet.cssRules||sheet.rules;
+    var rule = rules[0];
+    rule.style.backgroundColor = "red";
+
+创建规则
+
+    sheet.insertRule("body {background-color:silver}",0);
+
+删除规则
+
+    sheet.deleteRule(0);
+
+### JQuery 修改style属性###
+    $(this).css("color","red");
 ## hack ##
 
 ### 头部底部固定，内容滚动布局 ###
@@ -1772,6 +1801,62 @@ word-break:break-all|keep-all|keep-all;
 ### 边框重叠 ###
 使用负margin，margin-right:-1px;
 
+## SASS ##
+SASS是一种CSS的开发工具，提供了许多便利的写法，大大节省了设计者的时间，使得CSS的开发，变得简单和可维护。
+
+    sass --style compressed test.sass test.css
+
+基本语法
+
+    $side : left;
+    .rounded {
+	    border-#{$side}-radius: 5px;
+    }
+
+允许定义变量， 计算， 可嵌套
+
+### 注释 ###
+/*comment*/ 保留到编译的文件
+
+//comment 编译后省略 
+### 继承 ###
+
+    .class2 {
+		@extend .class1;
+	　　 font-size:120%;
+	}
+
+### Mixin 宏 ###
+    @mixin left {
+       float: left;
+    　　margin-left: 10px;
+    }
+    
+    div {
+    　　@include left;
+    }
+
+使用参数
+
+    @mixin rounded($vert, $horz, $radius: 10px) {
+      border-#{$vert}-#{$horz}-radius: $radius;
+      -moz-border-radius-#{$vert}#{$horz}: $radius;
+      -webkit-border-#{$vert}-#{$horz}-radius: $radius;
+    }
+
+支持条件控制语句
+
+@if @else @for @while @each 
+
+支持函数
+
+    @function double($n) {
+      @return $n * 2;
+    }
+
+    #sidebar {
+    　width: double(5px);
+    }
 # 万维网 #
 ## 备案查询 ##
 
@@ -1901,3 +1986,11 @@ kill -HUP `主进程号`
 ![](http://ww1.sinaimg.cn/large/48ceb85dgy1fqnlm8ar2nj20sg0f775l.jpg)
 
 ![](http://ww1.sinaimg.cn/large/48ceb85dgy1fqnlnhzcd2j20m80dw3zd.jpg)
+
+
+# Q&A #
+> TypeError: cannot read property 'dataXXXXX' of null · Issue  -- Browser-sync
+
+Browsersync works by injecting an asynchronous script tag right after the body tag during initial request. In order for this to work properly the body tag must be present. Alternatively you can provide a custom rule for the snippet using snippetOptions
+
+**使用了load载入新的页面，新的页面中存在body标签，browser-sync向body中注入异步标签，此时页面存在两个body标签**  
