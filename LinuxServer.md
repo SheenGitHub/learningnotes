@@ -224,6 +224,14 @@ flush privileges;
 
 Mysql5.1 默认密码123456
 
+启动 停止 重启 MariaDB
+
+      systemctl start mariadb.service #启动MariaDB
+
+      systemctl stop mariadb.service #停止MariaDB
+      systemctl restart mariadb.service #重启MariaDB
+      systemctl enable mariadb.service #设置开机启动
+
 #### Too many levels of symbolic links  ####
 使用绝对路径建立软链接，建立软软链接是采用相对路径的
 

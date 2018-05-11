@@ -76,7 +76,15 @@ getElementsByTag 返回的是动态的集合 HTMLCollection,不区分大小写
 ### href使用 ###
 [a标签中href=""的几种用法](http://blog.csdn.net/u010297791/article/details/52784879)
 
+## viewport ##
+<meta name=”viewport” content=”width=device-width, initial-scale=1, maximum-scale=1″>
 
+- width：控制 viewport 的大小，可以指定的一个值，如果 600，或者特殊的值，如 device-width 为设备的宽度（单位为缩放为 100% 时的 CSS 的像素）。
+- height：和 width 相对应，指定高度。
+- initial-scale：初始缩放比例，也即是当页面第一次 load 的时候缩放比例。
+- maximum-scale：允许用户缩放到的最大比例。
+- minimum-scale：允许用户缩放到的最小比例。
+- user-scalable：用户是否可以手动缩放
 # JavaScript #
 ## 严格模式 ##
 ES6的模块自动采用严格模式
@@ -97,6 +105,16 @@ Undefined Null Boolean Number String Object Symbol
 - Symbol       symbol 
 
 ### Object ###
+> ECMAScript定义 ： 无序属性的集合，其属性可以包含基本值，对象或者函数
+
+#### 数据属性 ####
+- [[Configurable]] :能否通过delete删除属性，能否修改属性的特性，能否把属性修改为访问器属性，默认true
+- [[Enumerable]]： 能否通过for-in访问器属性，默认true
+- [[Writable]]：能否修改属性的值，默认true
+- [[Value]]：默认undefined
+
+Object.defineProperty()时 configurable,enumerable,writable都默认为false；
+
 Object类型是所有的实例的基础
 
 #### 属性和方法 ####
@@ -223,7 +241,7 @@ Object.assign只能进行值的复制，如果要复制的值是一个取值函�
 - 其次遍历所有字符串键，按照加入时间升序排列。
 - 最后遍历所有 Symbol 键，按照加入时间升序排列。
 
-#### Object.getOwnPropertyDescriptor ####
+#### Object.getOwnPropertyDescriptors ####
 ES2017引入 Object.getOwnPropertyDescriptors
 
 **引入原因: Object无法正确拷贝get和set属性**
@@ -242,6 +260,7 @@ Object.create创建属性默认是不可遍历的
 返回键值对数组
 
 用于将对象转化为Map结构
+
 ### Symbol ###
 Symbol() 唯一生成 
 
@@ -324,6 +343,20 @@ ES6 新增内置对象的Symbol.toStringTag属性值如下。
 
 指向一个对象，当使用with关键字时，哪些属性会被with排除
 
+### 基本包装类型 ###
+基本类型不是对象，照理不应该有方法
+
+后台会自动完成流程
+
+1. 创建一个String类型的实例
+2. 在实例上调用指定的方法
+3. 销毁这个实例
+
+自动创建的基本包装类型的对象，只存在于一行代码执行的瞬间
+
+基本类型和引用类型的区别
+
+typeof 和 instanceof的操作区别
 ### Null ###
 null标识空指针，undefined派生自null
 
@@ -522,6 +555,22 @@ var s = "𠮷"；
 补全字符串
 
 'abc'.padStart(10,'01234567890') // 01234567abc
+
+#### replace ####
+	function htmlEscape(text){
+		return text.erplace(/[<>"&]/g,function(match, pos, originalText){
+			switch(match){
+				case '<':
+				  return "&lt;";
+				case '>':
+				  return "&gt;";
+				case '&':
+				  return "&amp;";
+				case '\"':
+				  return "&quot;";
+			}
+		})
+	}
 ### Class ###
 Function的语法糖
 
@@ -595,6 +644,283 @@ super作为对象时，在普通方法中，指向父类的原型对象；在静
 	    }
       }
     }
+## 面向对象 ##
+*构造函数*
+### 工厂模式 ###
+	function createPerson(name,age,job){
+		var o = new Object();
+		o.name = name;
+		o.age = age;
+		o.job = job;
+		o.sayName = function(){
+			console.log(this.name);
+		}
+		return o;
+	}
+
+没有解决识别对象的问题(**怎样知道一个对象的类型**)
+
+### 构造函数模式 ###
+	function Person(name,age,job){
+		this.name = name;
+		this.age = age;
+		this.job = job;
+		this.sayName =function(){
+			console.log(name);
+		}
+	}
+
+*将构造函数的作用域赋给新对象*
+
+	person1 = new Person();
+	person1.constructor == Person
+	person1 instanceof Object //true
+	person1 instanceof Person //true
+
+
+**它的实例标识为一种特定的类型**，这正是构造函数模式胜过工厂模式的地方
+
+> 这种方式定义的构造函数是定义在Global对象中的
+
+	Person("Greg",27,"Doctor");
+	window.sayName();
+
+不适用new调用函数时，属性和方法都被添加到window对象中
+
+	var o = new Obejct();
+	Person.call(o, "Kristen",25,"Doctor");
+	o.sayName();
+
+同上，属性和方法被添加到o对象中
+
+**函数执行后，属性和方法被添加到环境对象中**
+
+
+**SOLVED:函数中定义的函数无法被global直接访问，不提升**
+
+缺点:每一个都要**生成新的函数实例**,会导致不同的作用域链和标识符解析
+
+	function Person(name,age,job){
+		this.name = name;
+		this.age = age;
+		this.job = job;
+		this.sayName = new Function("console.log(name);");
+	}
+
+解决办法，全局函数,**破坏封装性**
+
+	function Person(name,age,job){
+		this.name = name;
+		this.age = age;
+		this.job = job;
+		this.sayName = sayName;
+	}
+
+	function(){
+		console.log(this.name)
+	}
+
+### 原型模式 ###
+> 每一个函数都有一个prototype，这个属性是一个指针，指向一个对象，这个对象的用途是包含由特定类型的所有实例共享的属性和方法。
+
+	function Person(){}
+	
+	Person.prototype.name = "Nicholas";
+	Person.prototype.age = 29;
+	Person.prototype.job = "Software Engineer";
+	Person.prototype.sayName = function(){
+		console.log(name);
+	}
+
+	var person1 = new Person();
+	person1.__proto__ == Person.prototype // true;
+
+对象和原型的联系在与实例和原型对象之间，不在对象和构造函数之间
+
+	person1.__proto__ == Object.getPrototypeOf(person1)
+
+**缺点:省略了为构造函数传递初始化参数这一环节，结果所有实例在默认情况下都取得了相同的值**
+### 使用构造函数和原型模式 ###
+
+	function Person(name,age,job){
+		this.name = name;
+		this.age = age;
+		this.job = job;
+		this.friends = ["Shelby", "Court"];
+	}
+
+	Person.prototype = {
+		constructor:Person,
+		sayName:function(){
+			console.log(this.name);
+		}
+	}
+
+**EMCAScript中使用岁广泛，认同度最高的创建自定义类型的方法**
+### 动态原型模式 ###
+有别于：独立的构造函数和原型（如上），
+
+把所有的信息都封装在构造函数中，通过在构造函数中初始化原型，同时保持构造函数和原型的优点
+
+	function Person(name,age,job){
+		this.name = name;
+		this.age = age;
+		this.job = job;
+		this.friends = ["Shelby", "Court"];
+
+		if(typeof this.sayName != "function"){
+			Person.prototype.sayName = function(){
+				console.log(this.name)
+			}
+		}
+	}
+
+**不能使用对象字面量重写原型**
+### 寄生构造函数模式 ###
+	function Person(name,age,job){
+		var o = new Object();
+		o.name = name;
+		o.age = age;
+		o.job = job;
+		o.sayName = function(){
+			console.log(this.name);
+		}
+		return o;
+	}
+
+重写调用构造函数时的返回值，类似Swift Extention
+
+构造SpecialArray
+
+	function SpecialArray(){
+		var values = new Array();
+		values.push.apply(values,arguments);
+		values.toPipedString = function(){
+			return this.join("|");
+		}
+		return values;
+	}
+
+instanceof没有意义
+
+### 稳妥构造函数模式 ###
+	function Person(name,age,job){
+		var o = new Object();
+		
+		o.sayName = function(){
+			console.log(name);
+		}
+		return o;
+	}
+
+只有sayName可以访问原始数据，提供安全性
+
+instanceof没有意义
+
+*继承*
+
+### 原型链 ###
+	function SuperType(){
+		this.property = true;
+	}
+	
+	SuperType.prototype.getSuperProperty = function(){
+		return this.property;
+	};
+	
+	function SubType(){
+		this.subProperty = false;
+	}
+	
+	SubType.prototype = new SuperType();
+	
+	SubType.prototype.getSubValue = function(){
+		return this.subProperty;
+	}
+	
+	var instance = new SubType();
+	console.log(instance.getSuperProperty())
+
+缺点:原型属性被所有实例引用，**不能向超类中传递参数**
+### 借用构造函数 ###
+伪造对象或经典继承
+
+	function SuperType(){
+		this.colors = ["red","blue","green"];
+	}
+	
+	function SubType(){
+		SuperType.call(this);
+	}
+
+在新创建的SubType实例的环境下调用SuperType构造函数。这样就会在SubType的对象上执行SuperType中定义的所有对象的初始化大妈，结果SubType的每个实例就会具有自己colors属性的副本。
+
+缺点：构造函数中的方法**无法复用**，超类的原型中定义的方法对子类型也是不可见的
+
+### 组合继承 ###
+伪经典继承
+
+将原型链和借用构造函数的技术组合在一起
+
+使用原型链实现对原型属性和方法的继承，通过构造函数来实现对实例属性的继承
+
+	function SuperType(name){
+		this.name = name;
+		this.colors = ["red","blue","green"];
+	}
+	
+	SuperType.prototype.sayName = function(){
+		console.log(this.name);
+	}
+	
+	function SubType(name,age){
+		SuperType.call(this,name);
+		this.age = age;
+	}
+	
+	SubType.prototype = new SuperType();
+	SubType.prototype.constructor = SubType;
+	SubType.prototype.sayAge = function(){
+		console.log(this.age);
+	}
+组合继承的最大不足：**调用了两次超类构造函数**
+
+**最常用的继承模式**
+
+### 原型式继承 ###
+
+	function object(o){
+		function F(){}
+		F.prototype = o;
+		return new F();
+	}
+
+ECMAScript中被标准化为 Object.create();
+
+### 寄生式继承 ###
+
+	function createAnother(original){
+		var clone = object(original);
+		clone.sayHi = function(){
+			console.log("hi");
+		}
+		return clone;
+	}
+
+与原型式继承一样由Douglas Crockford推介，在主要考虑对象而不是自定义类型和构造函数的情况下，是一种有用的模式
+
+缺点：**不能做到函数复用**
+
+### 寄生组合式继承 ###
+组合继承的最大不足：**调用了两次超类构造函数**
+
+	function inheritPrototype(subType,superType){
+		var prototype = object(superType.prototype);
+		prototype.constructor = subType;
+		subType.prototype = prototype; 
+	}
+
+
 ## 变量 ##
 ### var ###
 var 操作符定义的变量将成为该变量的作用域中的局部变量
@@ -1025,6 +1351,17 @@ Optional properties:
     });
 
 ## 函数 ##
+
+### apply, call, bind ###
+
+apply: 第一个参数为环境对象，第二个参数是参数数组（Array 或 arguments对象）
+
+call: 第一个参数为环境对象，后面的是直接传递参数
+
+bind: 返回绑定环境对象的函数实例
+
+apply和call实际执行了函数，bind只是反回了一个新函数实例
+
 return 返回 undefined；
 
 arguments与对应的命名参数值同步，它们并不是同一内存空间，但是值会同步
@@ -1062,6 +1399,9 @@ arguments的length是由传入的参数个数决定，并非定义的参数个�
     }).done(function() {
       $( this ).addClass( "done" );
     });
+    
+    dataType: "xml/html/script/json", // expected format for response
+      contentType: "application/json", // send as JSON
 
 #### then和done的区别 ####
 then可以向后继传值， done结束。
@@ -1072,6 +1412,16 @@ then可以向后继传值， done结束。
         // ...
     })
     
+#### val() 和 text() ####
+div , a 等没有val()，加入文字需要text()
+
+读取value 使用 attr("value")
+
+## 事件 ##
+### 点击事件 ###
+对于动态加入的元素使用
+
+	$("body").on('click',".className",()=>{})
 #### 跨域 ####
 ajax选项
 > {xhrFields:{withCredentials:true}}
@@ -1236,6 +1586,10 @@ div有非static的postion属性，默认宽度为0，div里面有内容，会被
 z-index只作用在定了位的元素上
 
 z-index会创建一个堆叠的上下文(Stacking Contexts)
+
+定位元素覆盖未定位元素
+
+如果父元素z-index有效，那么子元素无论是否设置z-index都和父元素一致，会在父元素上方
 
 #### 堆叠上下文 ####
 > 每一个层都有唯一的根节点。当一个元素创建一个层，那么它的所有子元素都会受到父元素的堆叠顺序影响。意味着如果一个元素位于一个最低位置的层，那你z-index设置得再大，它也不会出现在其它层元素的上面。
