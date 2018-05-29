@@ -57,6 +57,8 @@ getElementsByTag 返回的是动态的集合 HTMLCollection,不区分大小写
 
     images.namedItem("myImage") === images["myImage"]
 
+HTMLCollection而言，可以向方括号中传入数值或字符串形式的索引值，在后台，对数值就会调用item(),对字符串索引就会调用namedItem()
+
 - document.anchors 带name特性的< a>元素
 - document.forms 文档中所有的<form/>元素
 - document.images 文档中所有的<image>元素
@@ -505,7 +507,7 @@ JavaScript数值存储为64位双精度格式,数值精度做多达53个二进�
 - 一个字符串，另一个转换为字符串，调用 toString()
 - 数值和对象，对象先调用valueOf(),再调用 toString()
 
-- 3 + {valueOf(){return 3}  = 6
+- 3 + {valueOf(){return 3}}  = 6
 - 3 + {toString(){return "3"}} = "33"
 - 3 + {toString(){return 3}} = 6
 - 3 + {value:3} = 3[object Object]
@@ -513,6 +515,75 @@ JavaScript数值存储为64位双精度格式,数值精度做多达53个二进�
  -Infinity + Infinity = NaN
 
 undefined  和 null 调用 toString()转换为 "undefined" 和 "null"
+
+**下面的代码将输出到控制台，为什么？**
+
+下面的代码将输出到控制台，为什么？
+
+console.log(1 +  "2" + "2");
+console.log(1 +  +"2" + "2");
+console.log(1 +  -"1" + "2");
+console.log(+"1" +  "1" + "2");
+console.log( "A" - "B" + "2");
+console.log( "A" - "B" + 2);
+
+**解决递归超时**
+
+	var list = readHugeList();
+	
+	var nextListItem = function() {
+	    var item = list.pop();
+	
+	    if (item) {
+	        // process the list item...
+	        setTimeout( nextListItem, 0);
+	    }
+	};
+	推至事件队列
+	var list = readHugeList();
+	 
+	var nextListItem = function() {
+	    var item = list.pop();
+	 
+	    if (item) {
+	        // process the list item...
+	        setTimeout( nextListItem, 0);
+	    }
+	};
+
+**作用域**
+
+通过为每次迭代创建一个唯一的作用域 ，可以使用闭包来防止这个问题，并将该变量的每个唯一值存储在其作用域中
+
+	for (var i = 0; i < 5; i++) {
+	    (function(x) {
+	        setTimeout(function() { console.log(x); }, x * 1000 );
+	    })(i);
+	}
+
+**变量提升**
+
+	(function () {
+	    try {
+	        throw new Error();
+	    } catch (x) {
+	        var x = 1, y = 2;
+	        console.log(x);
+	    }
+	    console.log(x);
+	    console.log(y);
+	})();
+
+**变量声明**
+
+	var x = 21;
+	var girl = function () {
+	    console.log(x);
+	    var x = 20;
+	};
+	girl ();
+
+	未声明的变量，不在全局查找
 
 #### 关系操作符 ####
 - 一个是数值，另一个转成数值
@@ -920,7 +991,62 @@ ECMAScript中被标准化为 Object.create();
 		subType.prototype = prototype; 
 	}
 
+### 私有变量 ###
+	function Person(name){
+		this.getName = function(){
+			returen name;
+		}
+	
+		this.setName = function(){
+			name = value;
+		}
+	}
 
+在构造函数中定义特权方法的缺点，就是每个实例都会创建一组新方法
+#### 静态私有变量 ####
+	function(){
+		var privateVariable = 10; //静态私有变量
+		
+		function privateFunction(){ //私有方法
+			return false;
+		}
+	
+		MyObject = function(){
+		};
+	
+		MyObject.prototype.publicMethod = function(){//特权方法
+			privateVariable++;
+			return privateFunction();
+		}
+	}
+
+特权方法，作为一个闭包，总是包含对包含作用域的引用
+
+多**查找作用域链中的一个层次**，就会在**一定程度上影响查找速度**，这正是使用闭包和私有变量的一个明显的不足之处
+
+#### 模块模式 ####
+> JavaScript以字面量的方式来创建单例对象
+
+模块模式通过为单例添加私有变量和特权方法使其增强
+
+	var singleton = function(){
+		var privateVariable = 10;
+	
+		function privateFunction(){
+			return false;
+		}
+	
+		return {
+			publicProperty:true,
+			
+			publicMethod:function(){
+				privateVariable++;
+				return privateFunction();
+			}
+		}
+	}();
+
+使用单例来管理应用级的信息
 ## 变量 ##
 ### var ###
 var 操作符定义的变量将成为该变量的作用域中的局部变量
@@ -974,6 +1100,10 @@ person.sayHi.call(person) 就等价于 person.sayHi()，
 
 也就是说 person.sayHi 虽然是 person 的方法，但是是可以调用在任何对象上的。
 
+#### IIEF的闭包的this是window ####
+执行函数表达式(IIFE,即immediately-invoked function expression)
+
+因为函数执行时，实际是window调用了它，也就是window.函数名();那么，里面的this指向当前调用该函数的对象，就是window
 
 
 #### 执行js文件没有输出，可能是函数定义未被执行 ####
@@ -1061,6 +1191,12 @@ let { log, sin, cos } = Math;
 ## 顶层对象 ##
 **顶层对象的属性与全局变量挂钩，被认为是 JavaScript 语言最大的设计败笔之一**
 
+> 顶层对象的属性与全局变量挂钩...带来了几个很大的问题，首先是没法在编译时就报出变量未声明的错误，只有运行时才能知道...；其次，程序员很容易不知不觉地就创建了全局变量...；最后，顶层对象的属性是到处可以读写的，这非常不利于模块化编程。另一方面，...顶层对象是一个有实体含义的对象。
+
+ES6中
+
+	let a = 1;
+	console.log(window.a); // undefined
 
 ## 异步 ##
 异步执行的运行机制如下
@@ -1497,7 +1633,10 @@ Promise-like obj 标识ready状态
 ### $.Deferred ###
 
 
+### eval是魔鬼 ###
+eval会干扰作用域链，new Function()不会
 
+> The eval function (and its relatives, Function, setTimeout, and setInterval) provide access to the JavaScript compiler. This is sometimes necessary, but in most cases it indicates the presence of extremely bad coding. The eval function is the most misused feature of JavaScript. ————Douglas Crockford
 # CSS #
 
 ## width ##
@@ -2155,6 +2294,22 @@ IE
 ### 边框重叠 ###
 使用负margin，margin-right:-1px;
 
+## 过渡与动画 ##
+### Transition ###
+transition的优点在于简单易用，但是它有几个很大的局限。
+
+1. transition需要事件触发，所以没法在网页加载时自动发生。
+2. transition是一次性的，不能重复发生，除非一再触发。
+3. transition只能定义开始状态和结束状态，不能定义中间状态，也就是说只有两个状态。
+4. 一条transition规则，只能定义一个属性的变化，不能涉及多个属性。
+
+### Animation ###
+#### step函数 ####
+第一个参数number为指定的间隔数，指的是把两个关键帧之间的动画分为n步阶段性展示，而不是keyframes写的变化次数
+
+第二个参数可选，接受start和end两个值：指定在每个间隔的起点或是终点发生阶跃变化
+
+![](http://ww1.sinaimg.cn/large/48ceb85dgy1frr5c4620lj20e30ed0sr.jpg)
 ## SASS ##
 SASS是一种CSS的开发工具，提供了许多便利的写法，大大节省了设计者的时间，使得CSS的开发，变得简单和可维护。
 

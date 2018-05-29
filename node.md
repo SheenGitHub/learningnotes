@@ -238,3 +238,184 @@ JSON 文件里使用  "property":"value", 不直接使用名称或 ""
 
 
 ### Base64 ###
+
+# Vue #
+## 组件 ##
+组件中的参数要放在 props:[]数组中
+
+组件的内容必须只有单个根元素
+
+### 动态组件 ###
+	<component v-bind:is="currentTabComponent"></component>
+
+使用计算属性currentTabcomponent来切换组件
+
+### 禁用特性继承 ###
+*inheritAttrs:false*
+
+不在props中的属性(除class和style外)将不被渲染
+
+*$attrs*
+
+	v-bind="$attrs"
+
+没有声明传递的属性将被传递到子组件，减少多个属性的传递声明
+
+### v-model绑定 ###
+> 一个组件上的 v-model 默认会利用名为 value 的 prop 和名为 input 的事件
+
+自定义 checked (checked 和 onchange事件 ，**不是默认的value和input事件**)
+
+	model: {
+	    prop: 'customchecked',
+	    event: 'custom' //自定义事件名称
+	},
+	props: {
+    	customchecked: Boolean
+	},
+	template: `
+    <input
+      type="checkbox"
+      v-bind:checked="checked"
+	  //在change事件发生时，触发custom事件，
+	  //将$event.target.checked绑定在custom事件要求的prop上，即customchecked
+	  //同时customchecked绑定了组件的checked属性，触发属性的变化
+      v-on:change="$emit('custom', $event.target.checked)" 
+    >
+	`
+	})
+
+### Prop ###
+驼峰命名法的prop名在DOM模板中要使用kebab-case(短横线分隔命名)
+
+	props:['postTitle']
+	<blog-post post-title="hello!"></blog-post>
+	<blog-post v-bind:postTitle="post.postTitle"></blog-post> //动态绑定
+	<blog-post v-on:enlarge-text="postFontSize+= 0.1"></blog-post>//v-on在组件上定义了一个事件
+
+	<blog-post v-bind="post"></blog-post>
+	等价于
+	定义了['id','title'],同理v-bind="$attrs";v-on="$listeners"
+	<blog-post
+	  v-bind:id="post.id"
+	  v-bind:title="post.title"
+	></blog-post>
+#### 单向数据流 ####
+所有的 prop 都使得其父子 prop 之间形成了一个单向下行绑定：父级 prop 的更新会向下流动到子组件中
+
+
+### data ###
+#### 组件上的data ####
+一个组件的data选项必须是一个函数
+
+组件上定义的参数，在组件自身的模板上可以使用
+DOM上属性由外部传入，不能调动组件上的函数
+### slot ###
+使用 
+
+	<slot name="header"></slot>
+
+定义具名插槽
+
+使用
+
+	<template slot ="header"></template>
+	或者
+	<Tag slot="header"></Tag>
+
+来使用插槽
+
+向slot传值
+
+	<slot v-bind:todo="todo">
+		{{todo.text}}
+	</slot>
+
+#### slot-scope ####
+解构使用 slot-scope
+
+	<todo-list v-bind:todos="todos">
+	  <template slot-scope="{ todo }">
+	    <span v-if="todo.isComplete">✓</span>
+	    {{ todo.text }}
+	  </template>
+	</todo-list>
+
+### Template标签 ###
+template不会渲染成元素，用div的话会被渲染成元素。把if,show,for等语句抽取出来放在template上面，把绑定的事件放在temlpate里面的元素上，可以使html结构更加清晰，还可以改善一个标签过长的情况
+
+## Virtual DOM ##
+> createElement 到底会返回什么呢？其实不是一个实际的 DOM 元素。它更准确的名字可能是 createNodeDescription，因为它所包含的信息会告诉 Vue 页面上需要渲染什么样的节点，及其子节点。我们把这样的节点描述为“虚拟节点 (Virtual Node)”，也常简写它为“VNode”。“虚拟 DOM”是我们对由 Vue 组件树建立起来的整个 VNode 树的称呼。
+
+## 单文件组件 ##
+### CSS预处理器 ###
+- Sass
+- Less
+- Stylus
+
+## Vue-router ##
+	var app = new Vue({
+		el:'#app',
+		router,
+		component:{APP},
+		template:'<APP/>'
+	})
+
+相当于
+
+	const router = new VueRouter({
+	  routes // (缩写) 相当于 routes: routes
+	})
+	
+	const app = new Vue({
+	  router
+	}).$mount('#app')
+
+### URL中的 #  ###
+实际上存在三种模式：
+
+- Hash: 使用URL的hash值来作为路由。支持所有浏览器。 
+- History: 以来HTML5 History API 和服务器配置。参考官网中HTML5 History模式 
+- Abstract： 支持所有javascript运行模式。如果发现没有浏览器的API，路由会自动强制进入这个模式。
+
+### 嵌套路由 ###
+
+	const router = new VueRouter({
+	  routes: [
+	    { path: '/user/:id', component: User,
+	      children: [
+	        // UserHome will be rendered inside User's <router-view>
+	        // when /user/:id is matched
+	        { path: '', component: UserHome },
+					
+	        // UserProfile will be rendered inside User's <router-view>
+	        // when /user/:id/profile is matched
+	        { path: 'profile', component: UserProfile },
+	
+	        // UserPosts will be rendered inside User's <router-view>
+	        // when /user/:id/posts is matched
+	        { path: 'posts', component: UserPosts }
+	      ]
+	    }
+	  ]
+	})
+#### 代码导航 ####
+	router.push(location, onComplete?, onAbort?)
+	
+	router.push({ path: 'register', query: { plan: 'private' }})
+
+## Transition ##
+1. v-enter：定义进入过渡的开始状态。在元素被插入之前生效，在元素被插入之后的下一帧移除。
+- v-enter-active：定义进入过渡生效时的状态。在整个进入过渡的阶段中应用，在元素被插入之前生效，在过渡/动画完成之后移除。这个类可以被用来定义进入过渡的过程时间，延迟和曲线函数。
+- v-enter-to: 2.1.8版及以上 定义进入过渡的结束状态。在元素被插入之后下一帧生效 (与此同时 v-enter 被移除)，在过渡/动画完成之后移除。
+- v-leave: 定义离开过渡的开始状态。在离开过渡被触发时立刻生效，下一帧被移除。
+- v-leave-active：定义离开过渡生效时的状态。在整个离开过渡的阶段中应用，在离开过渡被触发时立刻生效，在过渡/动画完成之后移除。这个类可以被用来定义离开过渡的过程时间，延迟和曲线函数。
+- v-leave-to: 2.1.8版及以上 定义离开过渡的结束状态。在离开过渡被触发之后下一帧生效 (与此同时 v-leave 被删除)，在过渡/动画完成之后移除。
+
+![](http://ww1.sinaimg.cn/large/48ceb85dgy1frnos8jwyhj20xc0godfv.jpg)
+## Q&A ##
+#### 无法使用ip访问vue项目 ####
+修改 config/index.js 中 port:'localhost' 为 '0.0.0.0'
+
+#### 回调中无法访问Vue的根元素 ####
+使用箭头函数绑定this
