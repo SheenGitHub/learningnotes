@@ -318,12 +318,357 @@ Java内存模型为不可变对象提供了一种特殊的初始换安全性保�
 1. 线程安全共享:多个线程可以通过对象的公有接口来访问而不需要进一步的同步
 1. 保护对象:被保护的对象只能通过持有特定的锁来访问
 
+> 只对外发布不可变对象和基本数据类型变量
+
 #### 对象组合 ####
 设计线程安全类的三要素:
 
 - 找出构成对象那个状态的所以变量
 - 找出约束状态变量的不变性条件
 - 建立对象状态的并发访问管理策略
+
+要保证类的线程安全性，就要确保它的不变性不会再并发访问的情况下被破坏，对象与变量都有一个状态空间，即所有可能的值。
+
+状态空间越小，就越容易判断线程的状态。final类型的域越多，就越能简化对象可能状态的分析过程。
+
+**实例封闭**
+
+能够访问被封装对象的所有路径都是已知的
+
+Java类库中多线程封闭的实例：将非线程安全的类转化为线程安全的类
+
+Collections.synchronizedList及其类似方法
+
+Java监视器模式：将对象的所有可变状态都封装起来，并由对象自己的内置锁来保护
+
+使用私有锁对象，使客户代码无法得到锁
+
+**私有构造函数捕获模式**
+
+	private SafePoint(int[] a){ this(a[0],a[1]);}
+	
+	public SafePoint(SafePoint p){this(p.get());}
+	
+	public synchronized int[] get(){
+		return new int[]{x,y};
+	}
+
+**添加一个新的源自操作**
+
+1. 修改原始的类
+ 
+	修改原始的类需要了解代码中的同步策略，与原有的设计一致
+ 
+2. 扩展这个类，继承
+
+	“扩展”方法比直接添加代码到类中更加策略，因为现在的同步策略被分布到多个单独维护的源代码文件中，若基类改变同步策略并选择了不同的锁来保护它的状态改变，那么子类被破坏
+
+3. 将扩展代码放入一个辅助类中
+	
+	同上
+
+4. 组合
+	
+	相对安全
+
+迭代时容器被修改抛出CurrentModificationException(Fast-fail)
+
+**在迭代期间需要对容器加锁**
+
+
+
+ 并发容器 
+-
+
+**ConcurrentHashMap**
+
+分段锁(Locking Striping)
+
+弱一致性(Weakly Consistent),容忍并发的修改，一些需要在整个Map上进行计算的方法，例如size和isEmpty这些方法的语义被略微减弱了以反映容器的并发特性
+
+非独占锁，因此无法客户端加锁。
+
+**CopyOnWriteArrayList**
+
+"写入时复制"容器,不会抛出ConcurrentModificationException
+
+阻塞队列
+-
+
+提供可阻塞的put和take方法,以及支持定时的offer和poll方法
+
+简化了生产者-消费者设计的实现过程
+
+put的阻塞减少了内存的消耗，是的消费者有时间赶上工作进度
+
+offer如果数据不能被添加到队列中，返回一个失败状态
+
+生产者-消费者的行为通过共享工作队列耦合在一起，需要构建资源管理机制
+
+LinkedBlockingQueue，ArrayBlockingQueue， PriorityBlockingQueue(非FIFO顺序)
+
+SynchronousQueue 不维护存储空间，维护一组线程(等待元素的加入和移出)
+
+生产者-消费者模式：
+
+生产者和消费者可以并发地执行，如果一个是I/O密集型，另一个是CPU密集型，那么并发的吞吐量高于串行执行的吞吐量。如果并行度不同，那么它们紧密耦合在一起把整体并行度降为二者中更小的并行度
+
+对象池利用串行线程封闭，将对象“借给”一个请求线程。安全地在线程间传递所有权
+
+双端队列
+
+适合工作密取(Work Stealing)
+
+同步工具类
+-
+
+根据自身的状态来协调线程的控制流
+
+**闭锁**
+
+CountDownLatch 
+
+闭锁状态包含一个计数器，await方法等待计数器到达零
+
+FutureTask(Future, 表示一种可生成结果的计算)
+
+Callable 可生成结果的Runnable，可处以三种状态(Waiting to run, Running, Completed)
+
+**信号量**
+
+控制同时访问某个特定资源的操作数量
+
+**栅栏**
+
+CyclicBarrier类似于闭锁
+
+所有线程必须同时到达栅栏位置，才能继续执行。闭锁用于等待事件，栅栏用于等待其他线程
+
+如果对await的调用超时，或者await阻塞的线程被中断，那么栅栏被认为是打破了，所有线程终止，抛出BrokenBarrierException。 如果成功通过栅栏，await为每个线程返回一个唯一的到达索引号
+
+Runtime.getRuntime().availableProcessors()获得处理器数
+
+Exchanger是一种两方的(Two-party)栅栏，各方在栅栏位置交换数据
+
+结果缓存
+-
+
+当缓存的是Future而不是值时，将导致缓存污染(Cache Pollution)问题：如果某个计算被取消活失败，那么结果将指明计算过程被取消或失败，futureTask抛出CanncellationException或ExecutionException，如果检测到RuntimeException，那么要移除Future
+简单的缓存可能会将性能瓶颈转变成可伸缩性瓶颈
+
+总结
+-
+
+- 可变状态是至关重要的。可变状态越少，越确保线程安全
+- 尽量将域声明为final。除非它是可变的
+- 不可变对象一定是线程安全的
+- 封装有助于管理复杂性
+- 用锁来保护每个可变变量
+- 当保护同一个不变性条件中的所有变量时，要使用同一个锁
+- 在执行复合操作期间，要持有锁
+- 如果从多个线程中访问同一个可变变量时没有同步机制，那么程序会出现问题
+- 不要故作聪明地推断不需要使用同步
+- 在设计过程中考虑线程安全，或者在文档中明确指出它不是线程安全的
+- 将同步策略文档化
+
+Executor
+-
+
+解决每任务一线程的问题
+
+**执行策略**
+
+考虑执行任务中的 " What、Where、When、How"的问题
+
+线程池
+-
+
+newFixedThreadPool,newCachedThreadPool,new SingleThreadPool, newScheduledThreadPool
+
+只有当大量相互独立且同构的任务可以并发进行处理时，才能将程序的工作负载分配到多个任务重带来的真正性能提升。
+
+CompletionService
+-
+
+	List<ImageInfo> info = scanForImageInfo(source);
+	CompletionService<ImageData> completionService = new ExecutorCompletionService<ImageData>(executor);
+	for(final ImageInfo imageInfo:info){
+		completionService.submit(new Callable<ImageData>(){
+			public ImageData call(){
+				return ImageInfo.downloadImage();
+			}
+		});
+	}
+	
+	try{
+		for(int t = 0; n = info.size(); t < n; t++){
+			Future<ImageData> f = completionService.take();
+			ImageData imageData = f.get();
+			renderImage(imageData);
+		}
+	}catch(InterruptedException e){
+		Thread.currentThread().interrupt();
+	}catch(ExecutionException e){
+		throw launderThrowable(e.getCause());
+	}
+
+对照组
+
+	final<ImageInfo> imageInfos = scanForImageInfo(source);
+	Callable<List<ImageData>> task = new Callable<List<ImageData>>(){
+		public List<ImageData> call(){
+			List<ImageData> result = new ArrayList<ImageData>();
+			for(ImageInfo imageInfo : imageInfos){
+				result.add(imageInfo.downloadImage());
+			}
+			return result;
+		}
+	}
+	
+	Future<List<ImageData>> future = executor.submit(task);
+	try{
+		List<ImageData> imageData = future.get();
+		for(ImageData data: imageData){
+			renderImage(data);
+		}catch(InterruptedException e){
+			Thread.currentThread().interrupt();
+		}catch(ExecutionException e){
+			throw launderThrowable(e.getCause());
+		}
+	}
+
+ExecutorCompletionService中使用QueueingFuture，当future完成时将其加入BlockingQueue(ExecutorCompletionService中使用LinkedBlockingQueue)
+
+	private class QueueingFuture extends FutureTask<Void> {
+        QueueingFuture(RunnableFuture<V> task) {
+            super(task, null);
+            this.task = task;
+        }
+        protected void done() { completionQueue.add(task); }
+        private final Future<V> task;
+    }
+
+为每一幅图像的下载都创建一个独立任务，并在线程池中执行它们，从而将串行的下载过程装换为并行的过程,减少下载所有图像的总时间，此外通过CompletionService中获取结果以及每张图片在下载完成后立刻显示出来，能使用户获得一个更加动态和更加响应性的用户界面
+
+多个ExecutorCompletionService可以共享一个Executor，CompletionService相当于一组计算的句柄，与Future作为单个计算的句柄非常类似
+
+**限时操作**
+
+限时的future.get()
+
+	V get(long timeout, TimeUnit unit)
+
+Executors中的invokeAll()
+
+		public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks)
+            throws InterruptedException {
+            return e.invokeAll(tasks);
+        }
+        public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks,
+                                             long timeout, TimeUnit unit)
+任务取消
+-
+
+**Java没有提供任何机制来安全地终止线程**
+
+停止一个线程的最佳方法：条件变量 或 条件变量+中断
+
+但他提供了中断，这是一种协作机制，能够使一个线程终止另一个线程的当前工作，中断会使共享的数据处于不一致的状态
+
+> **一个行为良好的软件和勉强运行的软件之间的最主要区别是，行为良好的软件能很完善地处理失败、关闭和取消等过程。**
+
+设置"请求已取消"标志，使用volatile来保存取消状态
+
+> **一个可取消的任务必须拥有取消策略(Cancellation Policy),在这个策略中将详细地定义取消操作的"How","When",以及"What",即其他代码如何("How")请求取消任务，任务在何时(When)检查是否已经请求了取消，以及在响应取消请求时应该执行哪些("What")操作。**
+
+> Java的API或语言规范中，没有将中断与任何取消语义关联起来，在取消之外的其他操作中使用中断都是不合适的
+
+每个线程中都有一个boolean类型的中断状态。当中断线程时，这个线程的中断状态将被设置为true。
+
+	public class Thread{
+		public void interrupt(){}//中断目标线程
+		public boolean isInterrupted(){}//返回当前线程的中断状态
+		public static boolean interrupted(){}//清楚当前线程的中断状态，返回它之前的值，这也是清楚中断状态的唯一方法
+	}
+
+阻塞库方法，例如Thread.sleep和Object.wait等，都会检查线程何时中断，并在发现中断时提前返回。它们在响应终端执行的操作包括:清楚中断状态，抛出InterruptedException,标识阻塞操作由于中断而提前结束。JVM不能保证检测中断的速度，但实际响应还是很快的。
+
+当线程在非阻塞状态下中断时，它的中断状态将被设置，然后根据将被取消的操作来检查中断状态以判断发生了中断。----如果不出发InterruptedException，那么中断状态将一直保持，知道明确地清楚中断状态
+
+> 调用interrupted并不意味着立即停止目标线程正在进行的工作，只是传递了请求中断的消息
+
+有些方法，例如wait，sleep，join将严格处理这种请求，当它们收到中断请求或者执行时发现某个已经被设置好的中断状态时，将抛出一个异常。
+
+如果调用interrupted时返回了true，那么除非你像屏蔽这个中断，否则必须对它进行处理——可以抛出InterruptedException或者再起调用interrupt来回复中断状态。
+
+大多数可阻塞的库函数都只是抛出InterruptedException作为中断响应:尽快退出执行流程，把中断信息传递给调用者，从而使调用栈中的上层代码可以采取进一步的操作。
+
+在捕获InterruptedException之后恢复中断状态
+
+Thread.currentThread().interrupt();
+
+通过推迟中断请求的处理，能制定更加灵活的中断策略
+
+
+### 响应中断 ###
+两种处理中断的策略
+
+1. 传递异常
+1. 恢复中断状态
+
+对于一些不支持取消单仍可以调用中断阻塞方法的操作，必须在循环中调用这些方法，并在发现中断后重新尝试
+
+IO操作无法响应中断，只有通过直接close来抛出异常
+
+## 停止基于线程的服务 ##
+对于持有线程的服务，只要服务的存在时间大于创建线程的方法的存在时间，那么就应该提供声明周期方法。
+
+### shutdownNow的局限性 ###
+需要保存执行被中断的线程
+
+### 非正常终止的线程处理 ###
+典型的线程池处理结构
+
+	public void run(){
+		Throwable thrown = null;
+		try{
+			while(!isInterrupted())
+				runTask(getTaskFromWorkQueue());
+		}catch(Throwable e){
+			thrown = e;
+		}finally{
+			threadExited(this, thrown);
+		}
+	}
+	//当线程抛出一个未检查的异常时，整个应用程序都可能受到影响
+
+只有execute提交的任务，才能把它抛出的异常交给异常处理器，而通过submit提交的任务，无论抛出的未检查异常还是已检查异常，都会被认为是任务返回状态的一部分
+
+JVM关闭
+-
+
+当最后一个非守护进程关闭时，或调用System.exit(),或是特定于平台的关闭(SIGINT信号或Ctrl-C),也可调用Rumtime.halt或在操作系统中杀死JVM进程(如SIGKILL)
+
+### 关闭钩子 ###
+通过Runtime.addShutdownHook注册的但尚未开始的线程
+
+关闭钩子不应该依赖那些可能被应用程序或其他关闭钩子关闭的服务
+
+注册关闭钩子来停止日记服务
+
+	public void start(){
+		Runtime.getRuntime().addShutdownHook(new Thread(){
+			public void run(){
+				try{ LogService.this.stop();}
+				catch(InterruptedException ignored){}
+			}
+		})
+	}
+
+### 守护进程 ###
+尽量少地使用守护进程，很少操作能够在不进行清理的情况下被安全地抛弃
+
+**避免使用终结器**
 # JavaScript #
 
 ## 严格模式 ##
