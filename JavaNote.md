@@ -669,6 +669,236 @@ JVM关闭
 尽量少地使用守护进程，很少操作能够在不进行清理的情况下被安全地抛弃
 
 **避免使用终结器**
+
+## 线程池 ##
+### 线程饥饿死锁 ###
+	public class ThreadDeadLock{
+		ExecutorService exec = Executors.newSingleThreadExecutor();
+		
+		public class RenderPageTask implements Callable<String>{
+			public String call throws Exception{
+				Future<String> header, footer;
+				header = exec.submit(new LoadFileTask("header.html"));
+				footer = exec.submit(new LoadFileTask("footer.html"));
+				String page = renderBody();
+				//发生死锁，由于任务在等待子任务的结果	
+				return header.get() + page + footer.get();
+			}
+		}
+	}
+
+ThreadPoolExecutor的通用构造函数
+
+	public ThreadPoolExecutor(int corePoolSize,
+							int maximumPoolSize,
+							long keepAliveTime,//空闲时间超过存活时间将被回收
+							TimeUnit unit,
+							BlockingQueue<Runnable> workdQueue,
+							ThreadFactory threadFactory,
+							RejectedExecutionHandler handler){}
+
+> 回收空闲线程会产生额外的延迟，因为当需求增加时，必须创建新的线程来满足需求
+
+newFixedThreadPool工厂方法将线程池的基本大小和最大大小设置为参数中指定的值，而且创建的线程不会超时。
+
+newCachedThreadPool工厂方法将线程池的最大大小设置为Integer.MAX_VALUE,而降基本大小设置为零，并且设置超时时间为1分钟。
+
+如果无限制地创建线程，将导致不稳定，并通过采用固定大小的线程池来解决这个问题(newCachedThreadPool可能产生这个问题，突然大量的登录服务线程)
+
+ThreadPoolExecutor允许提供一个BlockingQueue来保存等待执行的任务。基本的任务排队方法有3中:无界队列、有界队列和同步移交(Synchronous Handoff)
+
+newFixedThreadPool和newSingleThreadExecutor默认使用一个无界的LinkedBlockingQueue，如果所有工作者线程都处于忙碌，那么任务在队列中等候
+
+一种更稳妥的资源管理策略是是有有界队列，当队列填满后，有许多饱和策略。
+
+对于非常大或者无界的线程池，可以通过使用SynchronousQueue来避免任务排队，以及直接将生产者交给工作者线程。SynchronousQueu不是一个真正的队列，而是线程之间进行移交的机制。如果没有线程咋等待，且线程数大于当前最大值，这个任务会被拒绝。只有工作线程时无界的或者可以拒绝任务时，SynchronousQueue才有实际价值。
+
+newCachedThreadPool在接收网络请求的服务器应用中，如果不进行限制，很容易发生过载问题
+
+#### 饱和策略 ####
+不同的饱和策略:AbortPolicy,CallerRunsPolicy,DiscardPolicy,DiscardOldestPolicy
+
+中止策略是默认的饱和测录，该策略将会抛出未检查的RejectedExecutionException，调用者可以捕获这个异常，根据需求编写自己的处理代码。。
+
+当新提交的任务无法保存到队列中等待执行时，抛弃策略将会悄悄抛弃改任务。 抛弃最旧策略会抛弃下一个将被执行的任务，然后重新尝试提交新任务。（优先队列会抛弃优先级最高的任务，两者不要同时使用）
+
+调用者运行策略，将某些任务退回到调用者，降低新任务的流量，调用一个execute的线程执行该任务。若持续过载，同样会抛弃请求。
+
+**使用Semaphore来控制任务的提交速率**
+
+	public class BoundedExecutor {
+	    private final Executor exec;
+	    private final Semaphore semaphore;
+	
+	    public BoundedExecutor(Executor exec, Semaphore semaphore) {
+	        this.exec = exec;
+	        this.semaphore = semaphore;
+	    }
+	
+	    public void submitTask(final Runnable command) throws InterruptedException{
+	        semaphore.acquire();
+	        try {
+	            exec.execute(() -> {
+	                try {
+	                    command.run();
+	                } finally {
+	                    semaphore.release();
+	                }
+	            });
+	        } catch (RejectedExecutionException e) {
+	            semaphore.release();
+	        }
+	    }
+	}
+
+**串行版本适合深度优先遍历，并行版本适合广度优先遍历**
+## GUI ##
+
+#### GUI为什么都是单线程 ####
+存在难处理的竞态和死锁
+
+用户的动作是从顶层到底层，系统的响应是从底层到底层，加锁容易出现死锁
+
+## 死锁 ##
+**Java应用程序无法从死锁中恢复过来**
+
+安全性与活跃性之间存在某种制衡
+
+过渡地使用加锁，可能导致顺序死锁(Lock-Ordering Deadlock),使用线程池和信号量来限制对资源的使用，可能导致资源死锁(Resource Deadlock)
+哲学家问题；相互请求，形成抱死问题(Deadly Embrace)
+
+数据库检测到一组事务发生死锁，将选择一个牺牲者并放弃这个事务。Java并没有数据库服务器那么强大。
+
+### 锁顺序锁死 ###
+如果所有线程以固定的顺序来获得锁，那么就不会出现顺序死锁问题
+
+解决嵌套的锁获取操作，必须定义锁的顺序，并在整个应用程序中按照这个顺序来获取锁
+
+	private static final Object tieLock = new Object();
+	
+	int fromHash = System.identityHashCode(fromAcct);
+	int toHash = System.identityHashCode(toAcct);
+	
+	if(fromHash < toHash){
+		synchronized(fromAcct){
+			Synchronized(toAcct){
+				new Helper().transfer();
+			}
+		}
+	}else if(fromHash > toHash){
+		synchronized(toAcct){
+			Synchronized(fromAcct){
+				new Helper().transfer();
+			}
+		}
+	}else{
+		synchronized(tieLock){//极少数两个对象有相同的散列值
+			synchronized(toAcct){
+				Synchronized(fromAcct){
+					new Helper().transfer();
+				}
+			}
+		}
+	}
+
+如果持有锁时，调用外部方法，将出现活跃性问题。在外部方法中可能获得其他锁，或者阻塞时间过长，导致其他线程无法及时获得当前被持有的锁。
+
+#### 开放调用 ####
+如果调用某个方法的时候不需要持有锁，那么这种方法被称为开发调用(Open Call)
+
+采用开放调用的方式类似于采用封装机制提供的线程安全分析。使用锁对象的同步代码块而不是同步方法。
+
+#### 资源死锁 ####
+**线程饥饿死**
+
+有界线程池/资源池与相互依赖的任务不能一起使用。(在Executor执行的线程中get子任务的Future)
+
+## 死锁的避免与诊断 ##
+### 两阶段策略 ###
+1. 首先找出什么地方将获取多个锁(使这个集合尽量小)
+2. 然后对这些实例进行全局分析，从而确保它们在整个程序中获得锁的顺序保持一致
+
+使用shutdownRequest方法将shutdownRequest设置为true，还会调用interrupt方法，使线程就算在sleep和wait的状态下，也能结束掉
+
+**定时锁**，只在同时获得两个锁时才有效
+
+**活锁**，不会阻塞线程，但是会不断重复执行相同的操作，而且总会失败，比如事务的回滚
+
+## 性能 ##
+与单线程相比，使用多个线程总会引入一些额外的性能开销，包括:线程之间的协调(加锁，触发信号以及内存同步)，增加上下文切换，线程的创建和销毁，线程的调度。设置开销会超过由于提高吞吐量、响应性和计算能力所带来的的性能提升。
+
+性能的指标:服务时间、延时时间、吞吐量、效率、可伸缩性以及容量
+
+**可伸缩性**:当增加计算资源时(例如CPU、内存、存储容量或IO带宽)，程序的吞吐量或者处理能力相应地增加
+
+> 大多数提高单线程程序性能的技术，往往都会破坏可伸缩性
+
+**Amdahl定律**，并行部分的比率越高，加速比越大
+
+上下文切换:如果可运行的线程数大于CPU的数量，那么操作系统会将某个正在运行的线程调度出来
+
+上下文切换的开销相当于:5000~10000个时钟周期，也就是几微米
+
+### 内存同步 ###
+内存栅栏(Memory Barrier):内存栅栏可以刷新缓存，使缓存无效，刷新硬件的写缓存，以及停止执行管道；内存栅栏中大多数是不能被重排序的。
+
+区分竞争的同步和无竞争的同步非常重要
+
+synchronized机制针对无竞争的同步进行了优化，volatile通常是非竞争的。一个"快速通道"(Fast-Path)的非竞争同步消耗20~250个时钟周期。现代JVM会优化去掉一些不会发生竞争的锁。一个完备的JVM能通过逸出分析(Escape Analysis)来找出不会发布到堆本地的对象。
+
+竞争的同步可能需要操作系统的接入。在锁上竞争失败的线程肯定会阻塞。JVM在实现阻塞行为时，可以采用自旋等待(Spin=Waiting,通过循环不断地尝试获取锁，直到成功)或者通过操作系统挂起被阻塞的线程。大多数JVM将线程挂起。
+
+## 减少锁竞争 ##
+影响因素:锁的请求频率和每次持有该锁的事件
+
+缩小锁的范围，减小锁的粒度
+
+### 段分锁 ###
+ConcurrentHashMap
+
+劣势:要获得多个锁实现独占访问将会更加困难并且开销更高
+
+当ConcurrentHashMap需要扩展映射范围，以及重新计算键值的散列值要分布到更大的筒集合中时，就需要获取分段锁集合中所有的锁，ConcurrentHashMap为每个分段都维护一个独立的计数。
+
+热点域，非独占锁(读写锁)
+
+## 并发测试 ##
+并发测试大致分两类:安全性测试和活跃性测试
+
+### 活跃性测试 ###
+- 吞吐量
+- 响应性
+- 可伸缩性
+
+#### 测试设计 ####
+执行与测试串行类时的相同的分析————找出需要检查的不变性和后验条件
+
+## 可重入锁 ##
+Lock提供了一种无条件、可轮询、定时的以及可中断的锁获取操作，所以加锁和解锁都是显示的
+
+	public interface Lock{
+		void lock();
+		void lockInterruptibly() throws InterruptedException;
+		boolean tryLock();
+		boolean tryLock(long timeout, TimeUnit unit) throws InterruptedException;
+		void unlock();
+		Condition newCondition(); 
+	}
+
+ReentrantLock实现了Lock接口，并提供了synchronized相同的互斥性和内存可见性
+
+### 优点 ###
+无法中断一个正在等待获取锁的线程，或无法在请求一个锁时无限时等待下去。内置锁必须在获取该锁时在锁的代码块内释放，与异步操作处理实现良好的交互，无法实现非阻塞的加锁规则。
+
+### 定时锁与轮询锁 ###
+tryLock：避免死锁发生。
+
+在无法获取两个锁时，选择释放现有的锁
+
+### 可中断的锁获取操作 ###
+lockInterruptibly方法能够在获取锁的同时保持对中断的响应
+
+非块结构的加锁
 # JavaScript #
 
 ## 严格模式 ##
