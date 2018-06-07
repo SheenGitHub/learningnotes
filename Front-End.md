@@ -1638,6 +1638,22 @@ eval会干扰作用域链，new Function()不会
 
 > The eval function (and its relatives, Function, setTimeout, and setInterval) provide access to the JavaScript compiler. This is sometimes necessary, but in most cases it indicates the presence of extremely bad coding. The eval function is the most misused feature of JavaScript. ————Douglas Crockford
 # CSS #
+## 长度 ##
+em:相对长度单位。相对于当前对象内文本的字体尺寸
+ex:相对长度单位。相对于字符“x”的高度。通常为字体高度的一半
+ch:数字“0”的宽度
+rem:相对长度单位。相对于根元素(即html元素)font-size计算值的倍数
+vw:相对于视口的宽度。视口被均分为100单位的vw
+vh:相对于视口的高度。视口被均分为100单位的vh
+vmax:相对于视口的宽度或高度中较大的那个。其中最大的那个被均分为100单位的vmax
+vmin:相对于视口的宽度或高度中较小的那个。其中最小的那个被均分为100单位的vmin
+cm:厘米（Centimeters）。绝对长度单位
+mm:毫米（Millimeters）。绝对长度单位
+q:1/4毫米（quarter-millimeters）。绝对长度单位
+in:英寸（Inches）。绝对长度单位
+pt:点（Points）。绝对长度单位 1in=72pt=2.54cm=96px=6pc
+pc:派卡（Picas）。绝对长度单位。相当于我国新四号铅字的尺寸
+px:相对长度单位。像素（Pixels）
 
 ## width ##
 100% 只与父元素有关，与屏幕无关
@@ -2502,4 +2518,7 @@ kill -HUP `主进程号`
 
 Browsersync works by injecting an asynchronous script tag right after the body tag during initial request. In order for this to work properly the body tag must be present. Alternatively you can provide a custom rule for the snippet using snippetOptions
 
-**使用了load载入新的页面，新的页面中存在body标签，browser-sync向body中注入异步标签，此时页面存在两个body标签**  
+**使用了load载入新的页面，新的页面中存在body标签，browser-sync向body中注入异步标签，此时页面存在两个body标签** 
+
+####Weui pullToRefresh刷新不出来 ####
+ 在手机上刷新即可

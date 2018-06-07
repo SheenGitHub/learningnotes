@@ -240,11 +240,30 @@ JSON 文件里使用  "property":"value", 不直接使用名称或 ""
 ### Base64 ###
 
 # Vue #
+## 属性 ##
+非HTML的标准属性，需要使用v-bind:,例如data-*等
+
+HTML 中的特性名是大小写不敏感的，所以浏览器会把所有大写字符解释为小写字符。这意味着当你使用 DOM 中的模板时，camelCase (驼峰命名法) 的 prop 名需要使用其等价的 kebab-case (短横线分隔命名) 命名
+
+### v-for ###
+为了在循环的item中使用属性，最好将item本身定义为组件，方便使用组件实例中的属性
 ## 组件 ##
 组件中的参数要放在 props:[]数组中
 
 组件的内容必须只有单个根元素
 
+### DOM中模板解析 ###
+有些 HTML 元素，诸如 <ul>、<ol>、<table> 和 <select>，对于哪些元素可以出现在其内部是有严格限制的。而有些元素，诸如 <li>、<tr> 和 <option>，只能出现在其它某些特定的元素内部
+
+	<table>
+	  <tr is="blog-post-row"></tr>
+	</table>
+
+需要注意的是如果我们从以下来源使用模板的话，这条限制是不存在的：
+
+- 字符串 (例如：template: '...')
+- 单文件组件 (.vue)
+- <script type="text/x-template">
 ### 动态组件 ###
 	<component v-bind:is="currentTabComponent"></component>
 
