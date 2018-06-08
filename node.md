@@ -76,7 +76,27 @@ xml2js/lib/builder.js
     90,48 删除 requiresCDATA(obj) 
 
 # npm #
+## 安装 ##
+### windows中安装 ###
+- npm config set prefix "C:\Program Files\nodejs\node_global"
+- npm config set cache "C:\Program Files\nodejs\node_cache"
+- 新建”NODE_PATH”，输入”C:\Program Files\nodejs\node_global\node_modules“
+- 变量”PATH”修改为“C:\Program Files\nodejs\node_global\”
 
+### 淘宝源安装 ###
+#### 临时使用 ####
+npm --registry https://registry.npm.taobao.org install express
+#### 持久使用 ####
+npm config set registry https://registry.npm.taobao.org
+
+配置后可通过下面方式来验证是否成功
+
+npm config get registry
+
+npm info express
+
+#### 配置cnpm ####
+npm install -g cnpm --registry=https://registry.npm.taobao.org
 #### npm install unexpected token ####
 npm cache verify 清理cache
 
