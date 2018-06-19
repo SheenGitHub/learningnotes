@@ -267,6 +267,26 @@ HTML 中的特性名是大小写不敏感的，所以浏览器会把所有大写
 
 ### v-for ###
 为了在循环的item中使用属性，最好将item本身定义为组件，方便使用组件实例中的属性
+
+还是由于 JavaScript 的限制，Vue 不能检测对象属性的添加或删除
+
+可以直接使用push
+
+**可以使用 Vue.set(object, key, value) 方法向嵌套对象添加响应式属性**
+
+**Vue 包含一组观察数组的变异方法，所以它们也将会触发视图更新。这些方法如下：**
+
+- push()
+- pop()
+- shift()
+- unshift()
+- splice()
+- sort()
+- reverse()
+#### 数组对象更新的检测 ####
+不要使用 Array.prototype.push(target,added);
+
+这种情况不会检测到更新
 ## 组件 ##
 组件中的参数要放在 props:[]数组中
 

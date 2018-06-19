@@ -1636,15 +1636,86 @@ CARP, Composite/Aggregate Reuse Principle
 
  继承复用通过扩展一个已有对象的实现来得到新的功能，基类明显地捕获共同的属性和方法，而子类通过增加新的属性和方法来扩展父类的实现。继承是类型的复用。
 
+# JVM #
+## GC ##
+Garbage Collection
+[Minor GC, Major GC, Full GC的区别](http://www.importnew.com/15820.html)
+### Minor GC ###
+从年轻代空间（包括 Eden 和 Survivor 区域）回收内存被称为 Minor GC
 
+Eden 和 Survivor 区不存在内存碎片。写指针总是停留在所使用内存池的顶部
 
+从永久代到年轻代的引用被当成 GC roots，从年轻代到永久代的引用在标记阶段被直接忽略掉
+### Major GC VS FullGC ###
+- Major GC 是清理老年代。
+- Full GC 是清理整个堆空间—包括年轻代和老年代。
 
+## Heap ##
+### Eden ###
+新来的对象要进入Eden，经过一次Minor GC，进入到 Survior
+### Survivor ###
+#### 没有Survivor的情况 ####
+**增加老年代空间**
 
+- 更多存活对象才能填满老年代。降低Full GC频率	
+- 随着老年代空间加大，一旦发生Full GC，执行所需要的时间更长
 
+**减少老年代空间**	
 
+- Full GC所需时间减少	
+- 老年代很快被存活对象填满，Full GC频率增加
 
+#### 两个Survivor区 ####
+Survivor的存在意义，就是减少被送到老年代的对象，进而减少Full GC的发生，Survivor的预筛选保证，只有经历16次Minor GC还能在新生代中存活的对象，才会被送到老年代
 
+**设置两个Survivor区最大的好处就是解决了碎片化**
 
+> 刚刚新建的对象在Eden中，一旦Eden满了，触发一次Minor GC，Eden中的存活对象就会被移动到Survivor区。这样继续循环下去，下一次Eden满了的时候，问题来了，此时进行Minor GC，Eden和Survivor各有一些存活对象，如果此时把Eden区的存活对象硬放到Survivor区，很明显这两部分对象所占有的内存是不连续的，也就导致了内存碎片化
 
+> 应该建立两块Survivor区，刚刚新建的对象在Eden中，经历一次Minor GC，Eden中的存活对象就会被移动到第一块survivor space S0，Eden被清空；等Eden区再满了，就再触发一次Minor GC，Eden和S0中的存活对象又会被复制送入第二块survivor space S1
 
+**如果对象的复制次数达到16次，该对象就会被送到老年代中**
 
+> 永远有一个survivor space是空的，另一个非空的survivor space无碎片
+
+### old ###
+在年轻代中经历了N次垃圾回收后仍然存活的对象，就会被放到年老代中。
+### 持久代 ###
+用于存放静态文件，如今Java类、方法等
+
+**JDK8中已经把持久代（PermGen Space） 干掉了，取而代之的元空间（Metaspace）。Metaspace占用的是本地内存，不再占用虚拟机内存。**
+### 堆外内存 ###
+底层访问，越过JVM（例如Socket）
+
+适合分配次数少，读写操作很频繁的场景
+
+因为DirectByteBuffer是通过虚引用(Phantom Reference)来实现堆外内存的释放
+
+其实虚引用主要被用来 跟踪对象被垃圾回收的状态，通过查看引用队列中是否包含对象所对应的虚引用来判断它是否 即将被垃圾回收，从而采取行动
+
+优点： 提升了IO效率（避免了数据从用户态向内核态的拷贝）；减少了GC次数（节约了大量的堆内内存）。 
+　　
+缺点：分配和回收堆外内存比分配和回收堆内存耗时；（解决方案：通过对象池避免频繁地创建和销毁堆外内存）
+
+## JIT ##
+[深入浅出JIT编译器](https://www.ibm.com/developerworks/cn/java/j-lo-just-in-time/)
+
+当 JIT 编译启用时（默认是启用的），JVM 读入.class 文件解释后，将其发给 JIT 编译器。JIT 编译器将字节码编译成本机机器代码
+
+如果一段代码频繁的调用方法，或是一个循环，也就是这段代码被多次执行，那么编译就非常值得
+
+> Java 本身是一种半编译半解释执行的语言。Hot Spot VM 采用了 JIT compile 技术，将运行频率很高的字节码直接编译为机器指令执行以提高性能，所以当字节码被 JIT 编译为机器码的时候，要说它是编译执行的也可以
+
+### 编译模式 ###
+> JVM Server 模式与 client 模式启动，最主要的差别在于：-server 模式启动时，速度较慢，但是一旦运行起来后，性能将会有很大的提升。原因是：当虚拟机运行在-client 模式的时候，使用的是一个代号为 C1 的轻量级编译器，而-server 模式启动的虚拟机采用相对重量级代号为 C2 的编译器。C2 比 C1 编译器编译的相对彻底，服务起来之后，性能更高。
+
+#### 优化代码缓存 ####
+当 JVM 编译代码时，它会将汇编指令集保存在代码缓存。代码缓存具有固定的大小，并且一旦它被填满，JVM 则不能再编译更多的代码
+
+ –XX:ReservedCodeCacheSize=Nflag（N 就是之前提到的默认大小）来最大化代码缓存大小
+
+> 例如 Intel 系列机器，client 编译器模式下代码缓存大小起始于 160KB，server 编译器模式下代码缓存大小则起始于 2496KB
+
+标准编译是被-XX:CompileThreshold=Nflag 的值所触发。Client 编译器模式下，N 默认的值 1500，而 Server 编译器模式下，N 默认的值则是 10000
+
+如果 PrintCompilation 被启用，每次一个方法（或循环）被编译，JVM 都会打印出刚刚编译过的相关信息

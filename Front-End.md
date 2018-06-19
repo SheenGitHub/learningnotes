@@ -219,6 +219,9 @@ Object类型是所有的实例的基础
 
 Object.assign只能进行值的复制，如果要复制的值是一个取值函数，那么将求值后再复制。
 
+对非对象属性的拷贝
+Object.assign({},obj}
+
 #### 属性的可枚举和遍历 ####
 目前，有四个操作会忽略enumerable为false的属性。
 
@@ -1188,6 +1191,30 @@ let { log, sin, cos } = Math;
 - 函数参数的默认值
 - 遍历Map结构
 - 输入模块的指定方法
+
+## 模块 ##
+#### 导出一个模块中的某个内容 ####
+
+	import {ZipCodeValidator} from './ZipCodeValidator'
+
+#### 将整个模块导入到一个变量，并通过它来访问模块的导出部分 ####
+
+	import * as validator from "./ZipCodeValidator";
+	let myValidator = new validator.ZipCodeValidator();
+
+#### 具有副作用的导入模块 ####
+
+设置一些全局状态供其它模块使用
+
+	import "./my-module.js";
+
+#### 默认导出 ####
+
+	export default class ZipCodeValidator；
+	
+	import validator from "./ZipCodeValidator";
+	
+	let myValidator = new validator();
 ## 顶层对象 ##
 **顶层对象的属性与全局变量挂钩，被认为是 JavaScript 语言最大的设计败笔之一**
 
@@ -1523,6 +1550,17 @@ arguments的length是由传入的参数个数决定，并非定义的参数个�
 	// args: [2, 4, 6, 8]
 
 =>箭头函数并没有绑定 arguments，所以它会以 foo() 的 arguments 来取而代之，而 super 和 new.target 也是一样的情况。
+
+## 事件触发 ##
+
+[自定义事件](https://developer.mozilla.org/en-US/docs/Web/Guide/Events/Creating_and_triggering_events)
+
+### 事件流程 ###
+
+- document.createEvent()
+- Event.initEvent()
+- EventTarget.dispatchEvent()
+- EventTarget.addEventListener()
 ## jquery ##
 ### jQuery.ajax ###
 [API 文档](http://api.jquery.com/jquery.ajax/)
@@ -1870,10 +1908,9 @@ border-radius:边框圆角
 - text-shadow:文字阴影
 - box-shadow:盒子阴影，适用于div
 - text-overflow:ellipsis(...) clip(裁剪字)
+- white-space:nowrap;
 - word-wrap:break-work 换行,分裂一个字
 - word-break: keep-all 保持单词不拆分， break-all 拆分单词
-
-
 
 > **阴影第三个参数 模糊度，越大越模糊**
 > 
@@ -2522,3 +2559,31 @@ Browsersync works by injecting an asynchronous script tag right after the body t
 
 ####Weui pullToRefresh刷新不出来 ####
  在手机上刷新即可
+
+#### jquery 点击在safari上失效 ####
+[jquery中on绑定click事件在苹果手机失效的问题](https://blog.csdn.net/yuexiage1/article/details/51612496)
+
+因为是动态添加的内容，所以想要使用click事件，需要给他用on绑定一下：
+
+	$(document).on("click",".next_button",function(){
+	    alert();
+	});
+
+苹果有这么个设置： 
+对于点击的对象，拥有cursor:pointer这个样式的设置，也就是说，鼠标放上去，能够出现“手”型的图标才被认作可以使用点击事件，增加样式
+
+	<style>
+	    .next_button{
+	        cursor:pointer
+	    }
+	</style>
+
+#### 页面刷新或离开时的提示框 ####
+	window.onbeforeunload = function() {
+		// 兼容IE8和Firefox 4之前的版本
+		  if (e) {
+		    e.returnValue = '关闭提示';
+		  }
+	
+		return thewordtoshow；
+	}
