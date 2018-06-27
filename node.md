@@ -266,12 +266,16 @@ JSON 文件里使用  "property":"value", 不直接使用名称或 ""
 HTML 中的特性名是大小写不敏感的，所以浏览器会把所有大写字符解释为小写字符。这意味着当你使用 DOM 中的模板时，camelCase (驼峰命名法) 的 prop 名需要使用其等价的 kebab-case (短横线分隔命名) 命名
 
 ### v-for ###
+
+
 为了在循环的item中使用属性，最好将item本身定义为组件，方便使用组件实例中的属性
 
 还是由于 JavaScript 的限制，Vue 不能检测对象属性的添加或删除
 
 可以直接使用push
 
+#### 就地复用 ####
+![](http://ww1.sinaimg.cn/large/48ceb85dgy1fsitszq21ag209p07dq46.gif)
 **可以使用 Vue.set(object, key, value) 方法向嵌套对象添加响应式属性**
 
 **Vue 包含一组观察数组的变异方法，所以它们也将会触发视图更新。这些方法如下：**
@@ -478,3 +482,7 @@ template不会渲染成元素，用div的话会被渲染成元素。把if,show,f
 
 #### 回调中无法访问Vue的根元素 ####
 使用箭头函数绑定this
+#### 安装React Devtools ####
+Run npm install or yarn
+Run npm run build:extension:chrome, the extension will be compiled to shells/chrome/build/unpacked/
+

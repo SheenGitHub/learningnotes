@@ -1215,6 +1215,10 @@ let { log, sin, cos } = Math;
 	import validator from "./ZipCodeValidator";
 	
 	let myValidator = new validator();
+
+> 若要导入一个使用了export =的模块时，必须使用TypeScript提供的特定语法import module = require("module")
+
+
 ## 顶层对象 ##
 **顶层对象的属性与全局变量挂钩，被认为是 JavaScript 语言最大的设计败笔之一**
 
@@ -2549,9 +2553,35 @@ kill -HUP `主进程号`
 
 ![](http://ww1.sinaimg.cn/large/48ceb85dgy1fqnlnhzcd2j20m80dw3zd.jpg)
 
+# TypeScript #
+### TypeScript的module加载模式 ###
+**import {b} from "moduleB"**
+#### Classic ####
+
+- /root/src/folder/moduleB.ts
+- /root/src/folder/moduleB.d.ts
+- /root/src/moduleB.ts
+- /root/src/moduleB.d.ts
+- /root/moduleB.ts
+- /root/moduleB.d.ts
+- /moduleB.ts
+- /moduleB.d.ts
+
+#### Node ####
+- /root/src/node_modules/moduleB.js
+- /root/src/node_modules/moduleB/package.json (if it specifies a "main" property)
+- /root/src/node_modules/moduleB/index.js 
+
+- /root/node_modules/moduleB.js
+- /root/node_modules/moduleB/package.json (if it specifies a "main" property)
+- /root/node_modules/moduleB/index.js 
+
+- /node_modules/moduleB.js
+- /node_modules/moduleB/package.json (if it specifies a "main" property)
+- /node_modules/moduleB/index.js
 
 # Q&A #
-> TypeError: cannot read property 'dataXXXXX' of null · Issue  -- Browser-sync
+> TypeError: cannot read property 'dataXXXXX' of null · Issue  -Browser-sync
 
 Browsersync works by injecting an asynchronous script tag right after the body tag during initial request. In order for this to work properly the body tag must be present. Alternatively you can provide a custom rule for the snippet using snippetOptions
 
