@@ -2617,3 +2617,234 @@ Browsersync works by injecting an asynchronous script tag right after the body t
 	
 		return thewordtoshow；
 	}
+
+#### JS自动插入分号 ####
+- empty statement
+- var statement
+- expression statement
+- do-while statement
+- continue statement
+- break statement
+- return statement
+- throw statement
+
+Three cases are described:
+
+When a token (LineTerminator or }) is encountered that is not allowed by the grammar, a semicolon is inserted before it if:
+
+1. The token is separated from the previous token by at least one LineTerminator.
+The token is }
+e.g.:
+
+	{ 1
+	2 } 3
+is transformed to
+
+	{ 1
+	;2 ;} 3;
+The NumericLiteral 1 meets the first condition, the following token is a line terminator.
+The 2 meets the second condition, the following token is }.
+
+2. When the end of the input stream of tokens is encountered and the parser is unable to parse the input token stream as a single complete Program, then a semicolon is automatically inserted at the end of the input stream.
+
+	e.g.:
+	
+		a = b
+		++c
+	is transformed to:
+	
+		a = b;
+		++c;
+3. This case occurs when a token is allowed by some production of the grammar, but the production is a restricted production, a semicolon is automatically inserted before the restricted token.
+
+
+	UpdateExpression :
+	    LeftHandSideExpression [no LineTerminator here] ++
+	    LeftHandSideExpression [no LineTerminator here] --
+	
+	ContinueStatement :
+	    continue ;
+	    continue [no LineTerminator here] LabelIdentifier ;
+	
+	BreakStatement :
+	    break ;
+	    break [no LineTerminator here] LabelIdentifier ;
+	
+	ReturnStatement :
+	    return ;
+	    return [no LineTerminator here] Expression ;
+	
+	ThrowStatement :
+	    throw [no LineTerminator here] Expression ; 
+	
+	ArrowFunction :
+	    ArrowParameters [no LineTerminator here] => ConciseBody
+	
+	YieldExpression :
+	    yield [no LineTerminator here] * AssignmentExpression
+	    yield [no LineTerminator here] AssignmentExpression
+
+7.9.1 Rules of Automatic Semicolon Insertion
+There are three basic rules of semicolon insertion:
+
+- When, as the program is parsed from left to right, a token (called the offending token) is encountered that is not allowed by any production of the grammar, then a semicolon is automatically inserted before the offending token if one or more of the following conditions is true:
+- The offending token is separated from the previous token by at least one LineTerminator.
+- The offending token is }.
+- When, as the program is parsed from left to right, the end of the input stream of tokens is encountered and the parser is unable to parse the input token stream as a single complete ECMAScript Program, then a semicolon is automatically inserted at the end of the input stream.
+- When, as the program is parsed from left to right, a token is encountered that is allowed by some production of the grammar, but the production is a restricted production and the token would be the first token for a terminal or nonterminal immediately following the annotation "[no LineTerminator here]" within the restricted production (and therefore such a token is called a restricted token), and the restricted token is separated from the previous token by at least one LineTerminator, then a semicolon is automatically inserted before the restricted token.
+
+However, there is an additional overriding condition on the preceding rules: a semicolon is never inserted automatically if the semicolon would then be parsed as an empty statement or if that semicolon would become one of the two semicolons in the header of a for statement (see 12.6.3).
+
+# React #
+## JSX元素 ##
+> 元素是构成组件的”材料”
+> 组件也是一种元素
+### JSX表示对象 ###
+	const element = (
+	  <h1 className="greeting">
+	    Hello, world!
+	  </h1>
+	);
+
+等同于
+
+	const element = React.createElement(
+	  'h1',
+	  {className: 'greeting'},
+	  'Hello, world!'
+	);
+
+相当于创建了一个如下对象
+
+	// 注意: 这是简化的结构
+	const element = {
+	  type: 'h1',
+	  props: {
+	    className: 'greeting',
+	    children: 'Hello, world'
+	  }
+	};
+
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+> React 元素是 不可突变（immutable） 的. 一旦你创建了一个元素, 就不能再修改其子元素或任何属性。一个元素就像电影里的一帧: 它表示在某一特定时间点的 UI
+
+## 组件 ##
+> 组件可以将UI切分成一些的独立的、可复用的部件，这样你就只需专注于构建每一个单独的部件。
+### 函数定义/类定义组件 ###
+	function Welcome(props) {
+	  return <h1>Hello, {props.name}</h1>;
+	}
+
+在React中等同于 
+
+	class Welcome extends React.Component {
+	  render() {
+	    return <h1>Hello, {this.props.name}</h1>;
+	  }
+	}
+
+### ES6的模块导出 ###
+
+	// 写法一
+	export var m = 1;
+	
+	// 写法二
+	var m = 1;
+	export {m};
+	
+	// 写法三
+	var n = 1;
+	export {n as m};
+	
+	//使用
+	
+	import {m} from "./moduleName"
+
+> 输出接口，不可输出值
+
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+> Function are not valid as React child. This may happen if you return a Component instead of <Component/from render.
+
+**组件可以理解为一组HTML标签，函数式组件必须对组件函数求值**
+
+	function App(){return <Component/>}
+	ReactDOM.render(<App/>,#ele);
+	ReactDOM.render(App(),#ele);
+
+## State & 生命周期 ##
+> 状态与属性十分相似，但是状态是私有的，完全受控于当前组件。定义为类的组件有一些特性。局部状态就是如此：一个功能只适用于类。使用类就允许我们使用其它特性，例如局部状态、生命周期钩子
+
+### State更新可能是异步的 ###
+建议使用
+
+	this.setState((prevState, props) => {
+		counter:preState.counter + props.increment
+	});
+
+> setState将对象合并到当前的状态，即浅合并,所以可单独设置属性，也就是说this.setState({comments})完整保留了this.state.posts，但完全替换了this.state.comments
+
+### 数据自顶向下流动 ###
+父组件或子组件都不能知道某个组件是有状态还是无状态，并且它们不应该关心某组件是被定义为一个函数还是一个类。
+
+这就是为什么状态通常被称为局部或封装。 除了拥有并设置它的组件外，其它组件不可访问
+# Webpack #
+第三方模块分离配置
+
+	const HtmlWebpackPlugin = require('html-webpack-plugin');
+	const webpack = require('webpack');
+	module.exports = {
+	  entry:{
+	    app:__dirname + "/src",
+	  },
+	  output:{
+	    path: __dirname + "/public",
+	    filename:"[name].js",
+	    chunkFilename:"[name].js"
+	  },
+	  module:{
+	    rules:[
+	      {
+	        test:/\.js$/,
+	        exclude:/node_modules/,
+	        use:{
+	          loader:"babel-loader"
+	        }
+	      }
+	    ]
+	  },
+	  plugins:[
+	    new HtmlWebpackPlugin({
+	      template:"./src/index.html",
+	      filename:"./index.html"
+	    })
+	  ],
+	  optimization:{
+		//Create a separate chunk 
+		//for the webpack runtime code and chunk manifest
+	    runtimeChunk:{
+	      name:"manifest"
+	    },
+		//Finds modules which are shared between chunk 
+		//and splits them into separate chunks 
+		//to reduce duplication or 
+		//separate vendor modules from application modules.
+	    splitChunks:{
+	      // chunks:"async",
+	      // minSize:300000,
+	      // minChunks:1,
+	      // maxAsyncRequests:5,
+	      // maxInitialRequests:3,
+	      // name:"vendors",
+	      cacheGroups:{
+	        vendor:{
+	          test:/[\\/]node_modules[\\/]/,
+	          name:"vendors",
+	          priority:-20,
+	          chunks:"all"
+	        }
+	      }
+	    }
+	  }
+	}
