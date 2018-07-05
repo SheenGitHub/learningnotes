@@ -1181,38 +1181,7 @@ aVariable = 3；
 JVM维护一种类似串行的语义:只要程序的最终结果与在严格串行环境中执行的结果相同。
 
 重排序提高了计算的性能，同时包括流水线额超标量执行单元，动态指令调度，猜测执行以及完备的多级缓存。
-# JavaScript #
 
-## 严格模式 ##
-**"use strict"**
-
-未经声明的变量赋值在严格模式下回导致抛出ReferenceError(尝试未证实)
-
-八进制字面量在严格模式下是无效的(Chrome:Uncaught SyntaxError: Octal literals are not allowed in strict mode.)
-
-不允许使用with
-
-不要把函数或参数命名为 eval 或arguments， 不能出现两个同名参数
-
-对arguments赋值会导致语法错误
-
-访问arguments.callee会导致错误
-
-不能为函数的caller赋值
-
-未指定环境对象而调用函数，this值不会转型为window，除非把函数添加到某个对象或调用apply或call，否则this值将是undefined
-
-外部访问不到eval()中创建的任何变量或函数
-
-给eval赋值也会导致错误
-
-writable属性为false的属性，给它赋值将会抛出异常
-
-尝试写入只指定了get特然函数的属性会抛出异常
-
-只指定了setter函数的属性也不能读
-
-超时函数全局执行，this在非严格模式下指向window， 严格模式下是undefined
 ## Number ##
 NaN
 
