@@ -1818,6 +1818,157 @@ JSON.stringify(..) 在对象中遇到undefined、function 和symbol 时会自动
 - false
 - +0、-0 和NaN
 - ""
+
+假值对象 document.all
+
+
+强制转换 + ~~ ~
+
+	0 | -0; // 0
+	0 | NaN; // 0
+	0 | Infinity; // 0
+	0 | -Infinity; // 0
+
+*parseInt*
+
+parseInt 针对字符串，第一个字符决定基数(x,X,0)
+
+08,09会出错，最好指定第二个参数
+
+向parseInt(..) 传递非字符串，此时JavaScript
+会将参数强制类型转换为它能够处理的字符串。
+
+parseInt(1/0,19) === 18
+
+19为基数的有效数字是 0-9,a-i;
+
+**parseInt 最大基数是36**; 0-9，a-z 36个字母
+
+	parseInt( 0.000008 ); // 0 ("0" 来自于 "0.000008")
+	parseInt( 0.0000008 ); // 8 ("8" 来自于 "8e-7")
+	parseInt( false, 16 ); // 250 ("fa" 来自于 "false")
+	parseInt( parseInt, 16 ); // 15 ("f" 来自于 "function..")
+	parseInt( "0x10" ); // 16
+	parseInt( "103", 2 ); // 2
+
+a + "" 会对a 调用valueOf() 方法，然后通过ToString 抽象
+操作将返回值转换为字符串。而String(a) 则是直接调用ToString()
+
+	var a = {
+	valueOf: function() { return 42; },
+	toString: function() { return 4; }
+	};
+	a + ""; // "42"
+	String( a ); // "4"
+
+- 是数字减法运算符，因此a - 0 会将a 强制类型转换为数字
+
++ 如果+ 的其中一个操作数是字符串（或者通过以上步骤可以得到字符串），
+则执行字符串拼接；否则执行数字加法
+
+**|| && 选择运算符**
+
+- a||defaultValue 默认值 //小心假值
+- a && foo() 保护运算符
+
+符号不能够被强制类型转换为数字（显式和隐式都会产生错误），但可以被强制类型转换
+为布尔值（显式和隐式结果都是true）。
+
+#### 宽松相等和严格相等 ####
+== 允许在相等比较中进行强制类型转换，而=== 不允许
+
+*字符串和数字之间的相等比较*
+
+ES5 规范11.9.3.4-5 这样定义：
+
+- (1) 如果Type(x) 是数字，Type(y) 是字符串，则返回x == ToNumber(y) 的结果。
+- (2) 如果Type(x) 是字符串，Type(y) 是数字，则返回ToNumber(x) == y 的结果。
+
+*其他类型和布尔类型之间的相等比较*
+
+- (1) 如果Type(x) 是布尔类型，则返回ToNumber(x) == y 的结果；
+- (2) 如果Type(y) 是布尔类型，则返回x == ToNumber(y) 的结果。
+
+*null 和undefined 之间的相等比较*
+
+ES5 规范11.9.3.2-3 规定：
+
+- (1) 如果x 为null，y 为undefined，则结果为true。
+- (2) 如果x 为undefined，y 为null，则结果为true。
+
+*对象和非对象之间的相等比较*
+
+ES5 规范11.9.3.8-9 做如下规定：
+
+- (1) 如果Type(x) 是字符串或数字，Type(y) 是对象，则返回x == ToPrimitive(y) 的结果；
+- (2) 如果Type(x) 是对象，Type(y) 是字符串或数字，则返回ToPromitive(x) == y 的结果。
+
+	var a = null;
+	var b = Object( a ); // 和Object()一样
+	a == b; // false
+	var c = undefined;
+	var d = Object( c ); // 和Object()一样
+	c == d; // false
+	var e = NaN;
+	var f = Object( e ); // 和new Number( e )一样
+	e == f; // false
+
+null 和undefined 不能够被封装（boxed），Object(null)
+和Object() 均返回一个常规对象
+
+	var i = 2;
+	Number.prototype.valueOf = function() {
+	return i++;
+	};
+	var a = new Number( 42 );
+	if (a == 2 && a == 3) {
+	console.log( "Yep, this happened." );
+	}
+
+a.valueOf() 每次调用都产生副作用
+
+> 不要有这样的想法，觉得“编程语言应该阻止我们犯错误”。
+
+	[] == ![] // true
+
+，""、"\n"（或者" " 等其他空格组合）等空字符串被ToNumber 强制类型转换
+为0。
+
+> 类型转换总会出现一些特殊情况，并非只有强制类型转换，任何编程语言都是如此。问题
+> 出在我们的臆断（有时或许碰巧猜对了？！），但这并不能成为诟病强制类型转换机制的
+> 理由。
+
+*安全运用隐式强制类型转换*
+
+- 如果两边的值中有true 或者false，千万不要使用==。
+- 如果两边的值中有[]、"" 或者0，尽量不要使用==。
+
+typeof 总是
+返回七个字符串之一（参见第1 章），其中没有空字符串，typeof x == "function" 是100% 安全
+的
+
+#### 抽象关系比较 ####
+- 比较双方首先调用ToPrimitive，如果结果出现非字符串，就根据ToNumber 规则将双方强制类型转换为数字来进行比较。
+- 如果比较双方都是字符串，则按字母顺序来进行比较
+
+	var a = { b: 42 };
+	var b = { b: 43 };
+	a < b; // false
+	a == b; // false
+	a > b; // false
+	a <= b; // true
+	a >= b; // true
+
+> 实际上在比较两个对象的时
+> 候，== 和=== 的工作原理是一样的
+> 
+> 因为根据规范a <= b 被处理为b < a，然后将结果反转,
+> 实际上JavaScript 中<= 是
+> “不大于”的意思
+
+**相等比较有严格相等，关系比较却没有“严格关系比较”（strict relational comparison）。也
+就是说如果要避免a < b 中发生隐式强制类型转换，我们只能确保a 和b 为相同的类型，
+除此之外别无他法。**
 ## 变量 ##
 ### var ###
 var 操作符定义的变量将成为该变量的作用域中的局部变量
