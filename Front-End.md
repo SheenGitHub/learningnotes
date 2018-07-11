@@ -1797,7 +1797,7 @@ JSON.stringify(..) 在对象中遇到undefined、function 和symbol 时会自动
 	JSON.stringify(a,(k,v)=>{if(k!=='c') return v;},3);
 
 #### ToNumber ####
-其中true 转换为1，false 转换为0。undefined 转换为NaN，null 转换为0
+**其中true 转换为1，false 转换为0。undefined 转换为NaN，null 转换为0**
 
 *对象*
 
@@ -1902,16 +1902,16 @@ ES5 规范11.9.3.8-9 做如下规定：
 
 - (1) 如果Type(x) 是字符串或数字，Type(y) 是对象，则返回x == ToPrimitive(y) 的结果；
 - (2) 如果Type(x) 是对象，Type(y) 是字符串或数字，则返回ToPromitive(x) == y 的结果。
-
-	var a = null;
-	var b = Object( a ); // 和Object()一样
-	a == b; // false
-	var c = undefined;
-	var d = Object( c ); // 和Object()一样
-	c == d; // false
-	var e = NaN;
-	var f = Object( e ); // 和new Number( e )一样
-	e == f; // false
+	
+		var a = null;
+		var b = Object( a ); // 和Object()一样
+		a == b; // false
+		var c = undefined;
+		var d = Object( c ); // 和Object()一样
+		c == d; // false
+		var e = NaN;
+		var f = Object( e ); // 和new Number( e )一样
+		e == f; // false
 
 null 和undefined 不能够被封装（boxed），Object(null)
 和Object() 均返回一个常规对象
@@ -1951,13 +1951,13 @@ typeof 总是
 - 比较双方首先调用ToPrimitive，如果结果出现非字符串，就根据ToNumber 规则将双方强制类型转换为数字来进行比较。
 - 如果比较双方都是字符串，则按字母顺序来进行比较
 
-	var a = { b: 42 };
-	var b = { b: 43 };
-	a < b; // false
-	a == b; // false
-	a > b; // false
-	a <= b; // true
-	a >= b; // true
+		var a = { b: 42 };
+		var b = { b: 43 };
+		a < b; // false
+		a == b; // false
+		a > b; // false
+		a <= b; // true
+		a >= b; // true
 
 > 实际上在比较两个对象的时
 > 候，== 和=== 的工作原理是一样的
@@ -1969,6 +1969,563 @@ typeof 总是
 **相等比较有严格相等，关系比较却没有“严格关系比较”（strict relational comparison）。也
 就是说如果要避免a < b 中发生隐式强制类型转换，我们只能确保a 和b 为相同的类型，
 除此之外别无他法。**
+## 语法 ##
+### 语句和表达式 ###
+“句子”（sentence）是完整表达某个意思的一组词，由一个或多个“短语”（phrase）组成，
+它们之间由标点符号或连接词（and 和or 等）连接起来
+
+> 语句都有一个结果值（statement completion value，undefined 也算）,但我们在代码中是没有办法获得这个结果值的
+
+{ .. } 的结果值是其最后一个语句/ 表达式的结果
+
+**可以使用万恶的eval(..)（又读作“evil”）来获得结果值**
+
+> ++a++ 会产生ReferenceError 错误,，因为++ 无法直接
+> 在42 这样的值上产生副作用
+
+a = 42 中的= 运算符看起来没有副作用，实际上它的结果值是42，它的副作用是将42 赋
+值给a。
+
+如果变量b 没有在作用域中象var b 这样声明过，则var a = b =
+42 不会对变量b 进行声明。
+
+使用 a&&b 代替 if(a) b;
+
+	{
+		**foo: bar()**//标签语句
+	}
+
+很多开发人员以为这里的{ .. } 只是一个孤立的对象常量，没有赋值。
+{ .. } 在这里只是一个普通的代码块
+
+在控制
+台中输入{"a":42} 会报错。
+
+> JSON 的确是JavaScript 语法的一个子集，但是JSON 本身并不是合法的JavaScript 语法。
+
+JSON-P（将JSON 数据封装为函数调用，
+比如foo({"a":42})）通过将JSON 数据传递给函数来实现对其的访问
+
+> JSON-P 能将JSON 转换为合法的JavaScript 语法。
+
+	[] + {}; // "[object Object]"
+	{} + []; // 0 ,{}被当作空代码块
+
+{ .. } 还可以用作函数命名参数（named function argument）的对象解构（object destructuring）
+
+	function foo({ a, b, c }) {
+		// 不再需要这样:
+		// var a = obj.a, b = obj.b, c = obj.c
+		console.log( a, b, c );
+	}
+
+**事实上JavaScript 没有else if，但if 和else 只包含单条语句的时候可以省略代码块的**
+
+### 优先级 ###
+
+短路保护
+
+- ， 运算符最低
+- &&优先于||
+- && 和|| 运算符先于? : 执行
+
+> 如果&& 是右关联的话会被处理为a && (b && c)。但这并不意味着c 会在b
+> 之前执行。右关联不是指从右往左执行，而是指从右往左组合。任何时候，
+> 不论是组合还是关联，严格的执行顺序都应该是从左到右，a，b，然后c。
+
+因为是右关联，所以它实际上是这样
+来处理的：a = (b = (c = 42))
+### 自动分号 ###
+	var a = 42;
+	do {
+		// ..
+	} while (a) // <-- 这里应该有;
+	a;
+
+语法规定do..while 循环后面必须带;，而while 和for 循环后则不需要。大多数开发人员
+都不记得这一点，此时ASI 就会自动补上分号。
+
+其他涉及ASI 的情况是break、continue、return 和yield（ES6）等关键字：
+
+	function foo(a) {
+		if (!a) return
+		a *= 2;
+		// ..
+	}
+
+由于ASI 会在return 后面自动加上;，所以这里return 语句并不包括第二行的a *= 2。
+return 语句的跨度可以是多行，但是其后必须有换行符以外的代码：
+
+> ASI 是一个语法纠错机制。若将换行符当作有意义的字符来对待，就会遇到很多
+> 问题。多希望在1995 年5 月的那十天里（ECMAScript 规范制定期间），我让换
+> 行符承载了更多的意义。但切勿认为ASI 真的会将换行符当作有意义的字符。 —————— brendan Eich
+
+### 错误 ###
+> 在编译阶段发现的代码错误叫作“早期错误”（early error）。语法错误是早期错误的一种
+> （如a = ,）这些错误在代码执行之前是无法用try..catch 来捕获的，相反，它们还会导致解析/ 编译失败。
+
+#### 提前使用变量 ####
+TDZ(Temporal Dead Zone)
+
+	{
+		typeof a; // undefined
+		typeof b; // ReferenceError! (TDZ)
+		let b;
+	}
+
+另一个TDZ 违规的例子是ES6 中的参数默认值
+
+	var b = 3;
+	function foo( a = 42, b = a + b + 5 ) {
+		// ..
+	}
+b = a + b + 5 在参数b（= 右边的b，而不是函数外的那个）的TDZ 中访问b，
+
+在ES6 中，如果参数被省略或者值为undefined，则取该参数的默认值
+
+	function foo( a = 42, b = a + 1 ) {
+		console.log(
+		arguments.length, a, b,
+		arguments[0], arguments[1]
+		);
+	}
+	foo(); // 0 42 43 undefined undefined
+	foo( 10 ); // 1 10 11 10 undefined
+	foo( 10, undefined ); // 2 10 11 10 undefined
+	foo( 10, null ); // 2 10 null 10 null
+
+虽然参数a 和b 都有默认值，但是函数不带参数时，arguments 数组为空。
+
+相反，如果向函数传递undefined 值，则arguments 数组中会出现一个值为undefined 的单
+元，而不是默认值。
+
+向函数传递参数时，arguments 数组中的对应单元会和命名参数建立关联（linkage）以得
+到相同的值。
+
+**finally执行完，函数才会放回值；**
+
+finally中的return会覆盖前面的return；
+
+yield可以看做是return的中间版本，但是yield在generator重新开始时才会执行，所以finally不会再yield之后立刻执行
+
+### 宿主对象 ###
+	var a = document.createElement( "div" );
+	typeof a; // "object"--正如所料
+	Object.prototype.toString.call( a ); // "[object HTMLDivElement]"
+	a.tagName; // "DIV"
+
+DOM 元
+素。其内部的[[Class]] 值（为"HTMLDivElement"）来自预定义的属性
+
+宿主对象的行为差异有
+
+- 无法访问正常的object 内建方法，如toString();
+- 无法写覆盖；
+- 包含一些预定义的只读属性；
+- 包含无法将this 重载为其他对象的方法；
+- 其他……
+
+> 由于浏览器演进的历史遗留问题，在创建带有id 属性
+> 的DOM 元素时也会创建同名的全局变量
+
+**这也是尽量不要使用全局变量的一个原因**
+
+#### 在扩展原生方法时需要加入判断条件 ####
+	if (!Array.prototype.push) {
+		// Netscape 4没有Array.push
+		Array.prototype.push = function(item) {
+		this[this.length-1] = item;
+		};
+	}
+
+*shim/polyfill*
+
+在低版本浏览器上引入polyfill
+
+
+不同的script之间共享global对象，但是全局变量提升的作用域不适用
+
+> 字符串常量中的</script将会被当作结束标签来处理，
+> 因此会导致错误。常用的变通方法是：
+
+## 异步 ##
+异步是关于现在和将来的时间间隙，而并行是关于能够同时发生的事情
+
+在JavaScript 的特性中， 这种函数顺序的不确定性就是通常所说的竞态条件（racecondition），这种不确定性是在函数（事
+件）顺序级别上，而不是多线程情况下的语句顺序级别
+
+单线程事件循环是并发的一种形式
+### 协作 ###
+	var res = [];
+	// response(..)从Ajax调用中取得结果数组
+	function response(data) {
+		// 一次处理1000个
+		var chunk = data.splice( 0, 1000 );
+		// 添加到已有的res组
+		res = res.concat(
+			// 创建一个新的数组把chunk中所有值加倍
+			chunk.map( function(val){
+				return val * 2;
+			} )
+		);
+		// 还有剩下的需要处理吗？
+		if (data.length > 0) {
+			// 异步调度下一次批处理
+			setTimeout( function(){
+				response( data );
+			}, 0 );
+		}
+	}
+	// ajax(..)是某个库中提供的某个Ajax函数
+	ajax( "http://some.url.1", response );
+	ajax( "http://some.url.2", response );
+### 任务队列 ###
+它是挂在事件循环队列的每个tick 之后的一个队列
+### 回调 ###
+continuation
+
+限制回调代码被多次执行
+
+	var tracked = false;
+	analytics.trackPurchase( purchaseData, function(){
+		if (!tracked) {
+			tracked = true;
+			chargeCreditCard();
+			displayThankyouPage();
+		}
+	} );
+
+> “信任，但要核实。”
+
+## Promise ##
+Promise 是一种封装和组合未来值的易于复用的机制
+### 完成事件 ###
+一个Promise 决议后，这个Promise 上所有的通过
+then(..) 注册的回调都会在下一个异步时机点上依次被立即调用
+
+	p.then( function(){
+		p.then( function(){
+			console.log( "C" );
+		} );
+		console.log( "A" );
+	} );
+	p.then( function(){
+		console.log( "B" );
+	} );
+	// A B C
+
+"C" 无法打断或抢占"B"，这是因为Promise 的运作方式。，p1 不是用立即值而是用另一个promise p3 决
+议，后者本身决议为值"B"。规定的行为是把p3 展开到p1，但是是异步地展开。所以，在
+异步任务队列中，p1 的回调排在p2 的回调之后
+
+，没有任何东西（甚至JavaScript 错误）能阻止Promise 向你通知它的决议（如果它
+决议了的话）。如果你对一个Promise 注册了一个完成回调和一个拒绝回调，那么Promise
+在决议时总是会调用其中的一个。
+
+	var p3 = new Promise( function(resolve,reject){
+		resolve( "B" );
+	} );
+	var p1 = new Promise( function(resolve,reject){
+		resolve( p3 );
+	} );
+	p2 = new Promise( function(resolve,reject){
+		resolve( "A" );
+	} );
+	p1.then( function(v){
+		console.log( v );
+	} );
+	p2.then( function(v){
+		console.log( v );
+	} );
+	// A B <-- 而不是像你可能认为的B A
+
+### Promise超时模式 ###
+	// 用于超时一个Promise的工具
+	function timeoutPromise(delay) {
+		return new Promise( function(resolve,reject){
+			setTimeout( function(){
+				reject( "Timeout!" );
+			}, delay );
+		} );
+	}
+	// 设置foo()超时
+	Promise.race( [
+		foo(), // 试着开始foo()
+		timeoutPromise( 3000 ) // 给它3秒钟
+	] )
+	.then(
+		function(){
+			// foo(..)及时完成！
+		},
+		function(err){
+			// 或者foo()被拒绝，或者只是没能按时完成
+			// 查看err来了解是哪种情况
+		}
+	);
+
+由于Promise 只能被决议一次，所以任何通过then(..) 注册的（每个）回调就只会被调
+用一次。
+
+如果你没有用任何值显式决议，那么这个值就是undefined
+
+任何时间点上出现了一个JavaScript 异常错误，比如一个TypeError 或
+ReferenceError，那这个异常就会被捕捉，并且会使这个Promise 被拒绝。
+
+	var p = {
+	then: function(cb) {
+		cb( 42 );
+	}
+	};
+	// 这可以工作，但只是因为幸运而已
+	p
+	.then(
+		function fulfilled(val){
+		console.log( val ); // 42
+	},
+	function rejected(err){
+		// 永远不会到达这里
+	}
+	);
+
+Promise.resolve()会将thenable对象的resolve处理函数的参数解出来
+
+链式流程控制可行的Promise 固有特性:
+
+- 调用Promise 的then(..) 会自动创建一个新的Promise 从调用返回。
+- 在完成或拒绝处理函数内部，如果返回一个值或抛出一个异常，新返回的（可链接的）
+Promise 就相应地决议。
+- 如果完成或拒绝处理函数返回一个Promise，它将会被展开，这样一来，不管它的决议
+值是什么，都会成为当前then(..) 返回的链接Promise 的决议值
+
+### 术语：决议、完成以及拒绝 ###
+reject不会自动展开
+
+> 前面提到的reject(..) 不会像resolve(..) 一样进行展开。如果向
+> reject(..) 传入一个Promise/thenable 值，它会把这个值原封不动地设置为
+> 拒绝理由。后续的拒绝处理函数接收到的是你实际传给reject(..) 的那个
+> Promise/thenable，而不是其底层的立即值。
+
+try..catch无法跨异步操作工作
+
+#### error-first 回调风格 ####
+	function foo(cb) {
+		setTimeout( function(){
+			try {
+				var x = baz.bar();
+				cb( null, x ); // 成功！
+			}
+			catch (err) {
+				cb( err );
+			}
+		}, 100 );
+	}
+	foo( function(err,val){
+		if (err) {
+			console.error( err ); // 烦 :(
+		}
+		else {
+			console.log( val );
+		}
+	} );
+
+
+> 若向Promise.all([ .. ]) 传入空数组，它会立即完成，但Promise.
+> race([ .. ]) 会挂住，且永远不会决议
+
+### Promise 局限性 ###
+	// polyfill安全的guard检查
+	if (!Promise.wrap) {
+		Promise.wrap = function(fn) {
+			return function() {
+				var args = [].slice.call( arguments );
+				return new Promise( function(resolve,reject){
+					fn.apply(
+						null,
+						args.concat( function(err,v){
+							if (err) {
+								reject( err );
+							}
+							else {
+								resolve( v );
+							}
+						} )
+					);
+				} );
+			};
+		};
+	}
+#### 顺序错误处理 ####
+> 即Promise 链中的错误很容易被
+> 无意中默默忽略掉
+
+#### 单一值 ####
+> Promise 只能有一个完成值或一个拒绝理由
+
+#### 单决议 ####
+> Promise 最本质的一个特征是：Promise 只能被决议一次（完成或拒绝）
+
+	// click(..)把"click"事件绑定到一个DOM元素
+	// request(..)是前面定义的支持Promise的Ajax
+	var p = new Promise( function(resolve,reject){
+		click( "#mybtn", resolve );
+	} );
+	p.then( function(evt){
+		var btnID = evt.currentTarget.id;
+		return request( "http://some.url.1/?id=" + btnID );
+	} )
+	.then( function(text){
+		console.log( text );
+	} );
+
+如果这个按钮被
+点击了第二次的话，promise p 已经决议，因此第二个resolve(..) 调用就会被忽略
+
+#### 无法取消的Promise ####
+#### Promise 性能 ####
+
+## 生成器 ##
+	// 构造一个迭代器it来控制这个生成器
+	var it = foo();
+	// 这里启动foo()！
+	it.next();
+	x; // 2
+	bar();
+	x; // 3
+	it.next(); // x: 3
+
+1. it = foo() 运算并没有执行生成器*foo()，而只是构造了一个迭代器（iterator），这个
+迭代器会控制它的执行。后面会介绍迭代器。
+2. 第一个it.next() 启动了生成器*foo()，并运行了*foo() 第一行的x++。
+3. *foo() 在yield 语句处暂停，在这一点上第一个it.next() 调用结束。此时*foo() 仍
+在运行并且是活跃的，但处于暂停状态。
+4. 我们查看x 的值，此时为2。
+5. 我们调用bar()，它通过x++ 再次递增x。
+6. 我们再次查看x 的值，此时为3。
+7. 最后的it.next() 调用从暂停处恢复了生成器*foo() 的执行，并运行console.log(..)
+语句，这条语句使用当前x 的值3。
+
+**生成器就是一类特殊的函数，可以一次或多次启动和停止，并不一定非得要完成**
+
+#### 迭代消息传递 ####
+	function *foo(x) {
+		var y = x * (yield);
+		return y;
+	}
+	var it = foo( 6 );
+	// 启动foo(..)
+	it.next();
+	var res = it.next( 7 );
+	res.value; // 42
+
+next(arg) 将arg作为被暂停的yield的表达式的结果；
+
+。一般来说，需要的next(..) 调用要
+比yield 语句多一个，**为什么会有这个不匹配？**
+
+**因为第一个next(..) 总是启动一个生成器，并运行到第一个yield 处。**
+
+> 消息是双向传递的——yield.. 作为一个
+> 表达式可以发出消息响应next(..) 调用，next(..) 也可以向暂停的yield 表达式发送值。
+
+	function *foo(x) {
+		var y = x * (yield "Hello"); // <-- yield一个值！
+		return y;
+	}
+	var it = foo( 6 );
+	var res = it.next(); // 第一个next()，并不传入任何东西
+	res.value; // "Hello"
+	res = it.next( 7 ); // 向等待的yield传入7
+	res.value; // 42
+
+yield .. 和next(..) 这一对组合起来，在生成器的执行过程中构成了一个双向消息传递系统
+
+**第一个next() 调用（没有参数的）基本上就是在提出一个问题：“生成器*foo(..) 要给我
+的下一个值是什么”。谁来回答这个问题呢？第一个yield "hello" 表达式。**
+
+return 语句回答这个问题！(最后一个next)
+
+Object.keys(..) 并不包含来自于[[Prototype]] 链
+上的属性，而for..in 则包含
+
+### 生成器迭代器 ###
+严格说来，生成器本身并不是iterable，尽管非常类似——当你执行一个生成器，就得到了一个迭代器：
+
+调用it.return(..) 之后，它会立即终止生成器
+### 异步迭代生成器 ###
+#### 同步错误处理 ####
+	try {
+		var text = yield foo( 11, 31 );
+		console.log( text );
+	}
+	catch (err) {
+		console.error( err );
+	}
+	
+	
+	if (err) {
+		// 向*main()抛出一个错误
+		生成器 ｜ 253
+		it.throw( err );
+	}
+
+### Promise并发 ###
+	function *foo() {
+		// 让两个请求"并行"
+		var p1 = request( "http://some.url.1" );
+		var p2 = request( "http://some.url.2" );
+		// 等待两个promise都决议
+		var r1 = yield p1;
+		var r2 = yield p2;
+		var r3 = yield request(
+		"http://some.url.3/?v=" + r1 + "," + r2
+		);
+		console.log( r3 );
+	}
+	// 使用前面定义的工具run(..)
+	run( foo );
+### 生成器委托 ###
+yield 委托的主要目的是代码组织，以达到与普通函数调用的对称。
+
+从外层的迭代器（it）角度来说，是控制最开始的生成器还是控制委托的那个，没有任何
+区别。
+
+### 形实转换程序 ###
+	function thunkify(fn) {
+		var args = [].slice.call( arguments, 1 );
+		return function(cb) {
+			args.push( cb );
+			return fn.apply( null, args );
+		};
+	}
+	var fooThunk = thunkify( foo, 3, 4 );
+	// 将来
+	fooThunk( function(sum) {
+		console.log( sum ); // 7
+	} );
+
+#### thunk+factory方案 ####
+	function thunkify(fn) {
+		return function() {
+			var args = [].slice.call( arguments );
+			return function(cb) {
+				args.push( cb );
+				return fn.apply( null, args );
+			};
+		};
+	}
+
+**用法**
+
+	var whatIsThis = thunkify( foo );
+	var fooThunk = whatIsThis( 3, 4 );
+	
+	// 将来
+	fooThunk( function(sum) {
+		console.log( sum ); // 7
+	} );
+
+#### Uncaught TypeError:CreateListArrayLike called on non-object ####
+apply的第二个参数应该是个数组或者类数组
 ## 变量 ##
 ### var ###
 var 操作符定义的变量将成为该变量的作用域中的局部变量
@@ -2880,7 +3437,43 @@ self 只是一个可以通过
 - EventTarget.dispatchEvent()
 - EventTarget.addEventListener()
 
+### 事件类型 ###
+*UI事件*
 
+#### load ####
+image，script，link的动态加载在指定src或href之后开始加载
+
+	var image = Image();//加载后将image的src赋给DOM元素
+
+	var script = document.createElement("script");
+	script.src = "example.js"
+	document.body.append(script);
+
+	var link = document.createElement("link");
+	link.type = "text/css";
+	link.rel = "stylesheet";
+	link.href = "example.css";
+
+#### unload ####
+一个页面跳转到另一个页面都会发生一个unload事件；
+
+此时页面加载后存在的对象就不一定存在了
+
+#### resize ####
+浏览器窗口被调整到一个新的高度或者宽度时会触发
+
+Firefox会在用户停止调整窗口大小时才出发resize事件；
+
+浏览器窗口最小化或最大化时也会出发resize事件；
+
+#### scroll事件 ####
+scroll是在window对象上发生的，混杂模式下可以通过scrollLeft和scrollTop来监控这一变化
+
+*焦点事件*
+
+focus和blur不冒泡， focusout和focusin冒泡
+
+聚焦和失焦元素的事件分别是获得焦点的元素和失去焦点的元素
 ## 作用域 ##
 但是作用域“对象”无法通过JavaScript
 代码访问，它存在于JavaScript 引擎内部。
@@ -2984,6 +3577,8 @@ JavaScript只有词法作用域，简单明了。
 
 **主要区别：词法作用域是在写代码或者说定义时确定的，而动态作用域是在运行时确定
 的。（this 也是！)**
+## 性能 ##
+
 ## jquery ##
 ### jQuery.ajax ###
 [API 文档](http://api.jquery.com/jquery.ajax/)
