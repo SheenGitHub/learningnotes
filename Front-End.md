@@ -3474,6 +3474,82 @@ scroll是在window对象上发生的，混杂模式下可以通过scrollLeft和s
 focus和blur不冒泡， focusout和focusin冒泡
 
 聚焦和失焦元素的事件分别是获得焦点的元素和失去焦点的元素
+
+#### 事件代理 ####
+在根元素上设置事件监听，事件最终会冒泡到根元素上，不必每个子元素上都设置监听事件，如此减少了内存消耗
+
+	<p id="testParagraph">
+		Some text.
+		<input id="testInput" />
+	</p>
+	
+	$('testParagraph').onfocus = handleEventPar;
+	$('testInput').onfocus = handleEventInput;
+
+focus事件不冒泡，handleEventPar事件将不会被触发
+
+	$('testParagraph').addEventListener('focus',handleEventPar,true);
+	$('testInput').addEventListener('focus',handleEventInput,true);
+
+在捕获阶段设置监听事件，提前截获事件
+
+*鼠标和滚轮事件*
+
+click,dblclick,mousedown,mouseenter,mouseleave,mousemove,mouseout,mouseover,mouseup;
+
+除了mouseenter和mouseleave，所有鼠标事件都会冒泡；
+
+- ClientX,ClientY 鼠标在窗口中的位置
+- pageX，pageY 页面点在页面中的位置
+- screenX，screenY， 点在电脑屏幕汇总的位置
+
+按键:shiftKey,ctrlKey,altKey,metaKey;
+
+相关元素：mouseover和mouseout事件时，相对于失去或获得光标的元素；DOM relatedTarget, IE:fromElement,toElement
+
+DOM button属性；中|次|主；响应的二进制位
+
+detail：点击次数
+
+mousewheel：wheelDelta 120的倍数
+
+Firefox支持一个 DOMMouseScroll事件滚轮信息保存在detail中，是3的倍数，方向为负
+
+#### 触摸设备 ####
+- safari中：不支持dblclick，双击浏览器会放大画面，并无法更改该行为；
+- 轻击元素产生mousemove事件，若事件导致内容变化，将不再有其他事件发生；若屏幕没有变化，一次发生mousedown,mouseup和click事件；
+- mousemove事件也会出发mouseover和mouseout事件
+- 两个手指放在屏幕上且页面随手指移动而滚动时触发mousewheel和scroll事件 
+
+*键盘和鼠标事件*
+
+- keydown:当键盘按下任意键时触发，如果按住不放，会重复触发此事件；
+- keypress:当键盘按下字符键时触发，如果按住不放，会重复触发此事件；
+- keyup:当键盘释放时触发；
+- textInput：将文本显示给用户之间拦截文本，文本插入文本框之前会触发textInput；
+
+textInput：inputMethod，表示文本输入到文本框中的方式
+
+复合事件：处理IME的输入序列
+
+*变动事件*
+
+#### 删除节点 ####
+
+DOMNodeRemoved事件，target是被删除的节点，relatedNode包含对目标节点父节点的引用，子节点尚未移除时，parentNode与relatedNode相同；会冒泡；
+
+如果被移除的节点包含子节点，在器所有子节点和这个被移除的节点上会触发DOMNodeRemovedFromDocument事件；target是被移除的子节点或被移除的节点；不会冒泡；
+
+随后触发DOMSubtreeModified，这个事件的target是被移除节点的父节点
+
+#### 插入节点 ####
+首先触发DOMNodeInserted事件，target是被插入的节点，relatedNode包括一个对父节点的引用；冒泡的；
+
+紧接着，DOMNodeInsertedIntoDocument事件。不冒泡；
+
+最后，DOMSuntreeModified，触发于新插入节点的父节点；
+
+
 ## 作用域 ##
 但是作用域“对象”无法通过JavaScript
 代码访问，它存在于JavaScript 引擎内部。
