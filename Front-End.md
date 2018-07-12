@@ -3549,7 +3549,88 @@ DOMNodeRemoved事件，target是被删除的节点，relatedNode包含对目标�
 
 最后，DOMSuntreeModified，触发于新插入节点的父节点；
 
+*HTML5事件*
 
+#### contextmenu ####
+自定义右击按钮
+#### beforeunload ####
+在浏览器卸载页面之前触发，可以通过它取消卸载并继续使用原有页面
+
+	window.onbeforeunload = cb //正常工作
+	window.addEventListener('beforeunload',cb)//工作，但不弹框
+
+#### DOMContentLoaded事件 ####
+在形成完整的DOM树之后就触发，不理会图像，JavaScript,CSS文件或其他资源是否下载完毕
+
+	setTimeout(function(){
+	//action
+	},0);
+
+#### readystatechange事件 ####
+提供文档与元素加载有关的信息 readystate
+
+#### pageshow和pagehide ####
+浏览器的前进后退按钮保存了页面的缓存，event.persisted 是否缓存
+
+#### hashchange ####
+URL参数列表及#后面的字符串发生变化时触发；event.oldURL,event.newURL;
+
+*设备事件*
+
+#### orientationchange事件 ####
+0肖像；-90向右转；90向左转；
+#### MozOrientation事件 ####
+检测设备方向的变化；
+#### deviceorientation ####
+- alpha 围绕z轴变化时，y轴的度数差
+- beta 围绕x轴旋转时，z轴的度数差
+- gamma 围绕y轴变化时，x轴的度数差
+- absolute 是否是绝对值
+- compassCalibrated是否校准过
+
+数值按右手定制，逆时针
+
+#### devicemotion事件 ####
+设备移动的加速度
+
+- acceleration不考虑重力时，个方向加速度
+- accelerationIncludingGravity 考虑z轴重力加速度时个分方向的加速度
+- interval 以毫秒表示的事件值，常量；
+- rotationRate：表示方向的alpah,beta和伽马属性的对象指
+
+*触摸与手势事件*
+
+#### 触摸事件 ####
+- touchstart 当手指触摸屏幕时触发；即使已经有手指放在屏幕上
+- touchmove 当手指在屏幕上滑动式连续地触发
+- touchend 当手指从屏幕上移开时触发
+- touchcancel 当系统停止跟踪触摸时触发
+
+都会冒泡，也可以取消
+
+- touches 当前跟踪的触摸操作的Touch对象的数组
+- targetTouches 特定于事件目标的Touch对象的数组
+- changTouches 表示自上次触摸以来发生了什么改变的数组
+
+#### 手势事件 ####
+- gesturestart 当一个手指已经按在屏幕上而另一个手指有触摸屏幕时触发
+- gestrurechange 当触摸屏幕的任何一个手指的位置发生变化时触发
+- gestureend 当任何一个手指从屏幕上移开时触发
+
+- roatation：两个手指变化引起的旋转角度
+- scale：两个手指尖距离的变化
+
+### 事件委托 ###
+在事件处理程序中删除按钮也能组织事件冒泡，目标元素在文档中是事件冒泡的前提
+### 模拟事件 ###
+document.createEvent(event)
+
+- UIEvents 一般的UI事件，鼠标手事件和键盘事件都继承自UI事件
+- MouseEvents 一般化的鼠标事件
+- MutationEvents 一般化的变动事件
+- HTMLEvent 一般化的HTML事件
+
+target.dispatch(event)
 ## 作用域 ##
 但是作用域“对象”无法通过JavaScript
 代码访问，它存在于JavaScript 引擎内部。
