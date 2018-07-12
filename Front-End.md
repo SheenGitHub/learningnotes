@@ -3631,6 +3631,77 @@ document.createEvent(event)
 - HTMLEvent 一般化的HTML事件
 
 target.dispatch(event)
+
+## 表单 ##
+<form>元素对应JavaScript中的HTMLFormElement类型
+
+- acceptCharset 服务器能够处理的字符集
+- action 接受请求URL
+- elements 清单中所有空间的集合(HTMLCollection)
+- enctype 请求的编码类型
+- length 表单中控件的数量
+- method 要发送的HTTP请求类型
+- name 表单的名称
+- reset 将鼠标单中所有域重置为默认值
+- submit 提交表单
+- target 用于发送请求和响应请求的窗口名称
+
+document.forms 所有表单的集合
+
+有提交按钮时，在响应表单控件拥有焦点的情况下，按回车就会提交表单(textarea 除外)
+
+编程方式提交 form.submit(); 此种方式不会触发submit事件；
+
+表单字段的属性
+
+- disabled 表示当前字段是否被禁用
+- form 指向当前字段所有表单的指针
+- name 当前字段的名称
+- readOnly 表示字段是否只读
+- tabIndex 表示当前字段的切换序号
+- type 当前字段的类型
+- value 当前字段将被提交给服务器的值。对于文件字段来说，这个属性是只读的，包含着文件在计算机中的路径
+- files 文件字段中存在 FileList类型
+
+只有表单中包含提交按钮，才有可能触发表单的submit事件
+
+表单支持的事件
+
+blur 失去焦点时触发
+change 失去焦点且value值改变；select选项改变时触发
+focus 获得焦点时
+
+### 输入过滤 ###
+#### 操作剪切板 ####
+### HTML验证API ###
+- 必填字段
+- 输入类型
+- 数值范围
+- 输入模式
+- 有效性验证
+- 禁用验证
+### 选择框脚本 ###
+HTMLSelectElement类型
+
+- add(newOption, relOption) 向控件中插入新option
+- multiple 控件中所有option元素
+- options 移除给定位置的选项
+- remove 移除给定的选项
+- selectedIndex 基于0的选中项选项
+- size 选择框中可见的行数
+
+选择框的value，未指定则为显示的文本
+
+每一个 <option>都有一个HTMLOptionElement对象表示
+
+- index：当前选项在options中的索引
+- label 单钱选项的标签
+- selected 当前选项是否被选中，可设置
+- text 选项的文本
+- value 选项的值
+
+新增选项 createElement('option')|new Option("Option text","Option value")
+### 表单序列化 ###
 ## 作用域 ##
 但是作用域“对象”无法通过JavaScript
 代码访问，它存在于JavaScript 引擎内部。
