@@ -272,9 +272,9 @@ Values）
 默认情况下，嵌套函数是对外界不可见的，但是可以被他们封闭函数（enclosing function）来调用。一个封闭函数也可
 以返回它的某一个嵌套函数，使得这个函数可以在其他域中被使用。
 
-    func chooseStepFunction(backwards: Bool) -(Int) -Int {
-	    func stepForward(input: Int) -Int { return input + 1 }
-	    func stepBackward(input: Int) -Int { return input - 1 }
+    func chooseStepFunction(backwards: Bool) ->(Int) ->Int {
+	    func stepForward(input: Int) ->Int { return input + 1 }
+	    func stepBackward(input: Int) ->Int { return input - 1 }
 	    return backwards ? stepBackward : stepForward
     }
     var currentValue = -4
@@ -2036,6 +2036,13 @@ UICollectionView中长按会触发 collectionViewdisSelectItemAtindexPath,需要
 
 **Swift中，数组的可变性由var和let关键字来决定**
 
+### show, show detail, present modally区别 ###
+show 和 show detail的区别在于,是否有返回上一视图的按钮
+
+实际上 show是将新的视图控件push到视图堆栈的顶端予以显示,然后通过按键pop返回上一视图
+show detail 是用新的视图替换原始图,所以没有返回按钮 也无法返回
+
+present modally是使用模态展示
 ## CharacterSet ##
 
 CharacterSet是一个结构体，CharacterSet.urlHostAllowed等预制类型包含了所有不需要被转码的字符，反过来说就是指明了需要被转码的字符。
@@ -2297,3 +2304,10 @@ Derive中虚函数表结构：
 ![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fmdu4m8mqyj207u05cmyf.jpg)
 
 ![](http://ww1.sinaimg.cn/mw690/48ceb85dgy1fmdu4yp6gyj20bo04t3zw.jpg)
+
+
+# Q & A #
+Safari浏览器不保存跨域 cookie的问题
+
+NSHTTPCookieStorage *cook = [NSHTTPCookieStorage sharedHTTPCookieStorage];  
+[cook setCookieAcceptPolicy:NSHTTPCookieAcceptPolicyAlways];  

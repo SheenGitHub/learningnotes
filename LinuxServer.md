@@ -94,6 +94,16 @@ Q:scanf()函数如何才能输入带空格的字符串
 
 A:scanf("%[^\n]", a); 
 
+Q:packet_write_wait: Connection to x.x.x.x port 22: Broken pipe
+
+A:Unresolved
+
+Q:ssh登录报ssh_exchange_identification: read: Connection reset by peer
+
+A:cd /var 
+chmod -R 755 *
+
+
 
 #### 批处理命令 ####
 
@@ -321,3 +331,5 @@ CentOS7使用firewalld打开关闭防火墙与端口
 - firewall-cmd --zone= public --query-port=80/tcp
 - 删除
 - firewall-cmd --zone= public --remove-port=80/tcp --permanent
+
+

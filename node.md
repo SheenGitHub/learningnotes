@@ -231,8 +231,10 @@ npm install --save react react-dom
 
 
 # 常用包 #
-### 
- ###
+### async ###
+[async模块](https://blog.csdn.net/zzwwjjdj1/article/details/51857959)
+
+async模块是为了解决嵌套金字塔,和异步流程控制而生
 
 ## Q&A ##
 
@@ -297,7 +299,7 @@ HTML 中的特性名是大小写不敏感的，所以浏览器会把所有大写
 组件的内容必须只有单个根元素
 
 ### DOM中模板解析 ###
-有些 HTML 元素，诸如 <ul>、<ol>、<table> 和 <select>，对于哪些元素可以出现在其内部是有严格限制的。而有些元素，诸如 <li>、<tr> 和 <option>，只能出现在其它某些特定的元素内部
+	
 
 	<table>
 	  <tr is="blog-post-row"></tr>
@@ -305,9 +307,9 @@ HTML 中的特性名是大小写不敏感的，所以浏览器会把所有大写
 
 需要注意的是如果我们从以下来源使用模板的话，这条限制是不存在的：
 
-- 字符串 (例如：template: '...')
-- 单文件组件 (.vue)
-- <script type="text/x-template">
+	- 字符串 (例如：template: '...')
+	- 单文件组件 (.vue)
+	- <script type="text/x-template">
 ### 动态组件 ###
 	<component v-bind:is="currentTabComponent"></component>
 
@@ -476,6 +478,45 @@ template不会渲染成元素，用div的话会被渲染成元素。把if,show,f
 - v-leave-to: 2.1.8版及以上 定义离开过渡的结束状态。在离开过渡被触发之后下一帧生效 (与此同时 v-leave 被删除)，在过渡/动画完成之后移除。
 
 ![](http://ww1.sinaimg.cn/large/48ceb85dgy1frnos8jwyhj20xc0godfv.jpg)
+
+# Network #
+## curl ##
+
+curl URL -d {}
+
+向URL发起请求
+# 中间件 #
+## morgan ##
+代替 express.logger()
+
+## body-parser ## 
+
+bodyParser.json()
+
+bodyParser.urlencoded( { extended : false } );
+
+## method-override ##
+[method-override](https://blog.csdn.net/millions_02/article/details/78945189)
+
+## multer ##
+处理文件上传
+
+## express-error-handler ##
+
+## app.router ##
+无需使用，使用单独的文件描述响应路径下的路由
+
+ 
+	  app.route('/book')
+	  .get(function (req, res) {
+	    res.send('Get a random book')
+	  })
+	  .post(function (req, res) {
+	    res.send('Add a book')
+	  })
+	  .put(function (req, res) {
+	    res.send('Update the book')
+	  })
 ## Q&A ##
 #### 无法使用ip访问vue项目 ####
 修改 config/index.js 中 port:'localhost' 为 '0.0.0.0'
@@ -485,4 +526,149 @@ template不会渲染成元素，用div的话会被渲染成元素。把if,show,f
 #### 安装React Devtools ####
 Run npm install or yarn
 Run npm run build:extension:chrome, the extension will be compiled to shells/chrome/build/unpacked/
+
+# MongoDB #
+## 配置 ##
+### 安装 ###
+
+[安装MongoDB](https://docs.mongodb.com/manual/tutorial/install-mongodb-on-red-hat/)
+创建 a /etc/yum.repos.d/mongodb-org-4.0.repo
+
+#### 配置内容 #### 
+
+	[mongodb-org-4.0]
+	name=MongoDB Repository
+	baseurl=https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/4.0/x86_64/
+	gpgcheck=1
+	enabled=1
+	gpgkey=https://www.mongodb.org/static/pgp/server-4.0.asc
+
+#### 安装  ####
+
+sudo yum install -y mongodb-org
+
+#### 启动 ####
+
+启动  sudo service mongod start
+
+
+确认启动 查看 /var/log/mongodb/mongod.log，默认端口27017
+
+关闭 sudo service mongod stop
+
+重启 sudo service mongod restart
+
+启动客户端 mongo --host 127.0.0.1:27017
+
+### CRUD ###
+	显示所有库 show dbs
+	创建数据库 use DATA_BASENAME
+	删除数据库 db.dropDatabase
+	当前数据库 db
+	创建集合 db.createCollection(name, options)
+	查看集合 show collections 
+	插入文档时，自动创建集合
+	删除集合 db.collection.drop()
+	插入文档 db.collection.insert(document)
+	向指定集合中插入一条文档数据 db.collection.insertOne():
+	向指定集合中插入多条文档数据 db.collection.insertMany()
+
+更新 update
+
+	update db.collection.update(
+	   <query>,
+	   <update>,
+	   {
+	     upsert: <boolean>,
+	     multi: <boolean>,
+	     writeConcern: <document>
+	   }
+	)
+
+update中的操作符 $inc,$set
+
+save
+
+	db.collection.save(
+	   <document>,
+	   {
+	     writeConcern: <document>
+	   }
+	)
+
+查看  db.col.find().pretty()
+
+删除文档  
+
+	db.collection.remove(
+	   <query>,
+	   <justOne>
+	)
+
+query中的比较  $lt,$lte,$gt,$gte,$ne
+
+AND条件 
+
+db.col.find({key1:value1, key2:value2}).pretty()
+
+OR条件 
+
+db.col.find({$or: [{key1: value1}{key2:value2}]}).pretty()
+
+$type 类型查询
+
+limit db.COLLECTION_NAME.find().limit(NUMBER)
+
+skip 跳过条数 db.COLLECTION_NAME.find().limit(NUMBER).skip(NUMBER)
+
+排序 db.COLLECTION_NAME.find().sort({KEY:1}) 1升序，2降序
+
+索引 db.collection.createIndex(keys, options)
+
+聚合 db.col.aggregate([{$group:{_id:'$by',number:{$sum:"$likes"}}}])
+
+### Nodejs操作mongoDB ###
+
+插入操作
+
+	var MongoClient = require('mongodb').MongoClient;
+	var url = "mongodb://localhost:27017/";
+	 
+	MongoClient.connect(url, function(err, db) {
+	    if (err) throw err;
+	    var dbo = db.db("runoob");
+	    var myobj =  [
+	        { name: '菜鸟工具', url: 'https://c.runoob.com', type: 'cn'},
+	        { name: 'Google', url: 'https://www.google.com', type: 'en'},
+	        { name: 'Facebook', url: 'https://www.google.com', type: 'en'}
+	       ];
+	    dbo.collection("site").insertMany(myobj, function(err, res) {
+	        if (err) throw err;
+	        console.log("插入的文档数量为: " + res.insertedCount);
+	        db.close();
+	    });
+	});
+
+查询操作 
+
+	var MongoClient = require('mongodb').MongoClient;
+	var url = "mongodb://localhost:27017/";
+	 
+	MongoClient.connect(url, function(err, db) {
+	    if (err) throw err;
+	    var dbo = db.db("runoob");
+	    dbo.collection("site"). find({}).toArray(function(err, result) { // 返回集合中所有数据
+	        if (err) throw err;
+	        console.log(result);
+	        db.close();
+	    });
+	});
+
+
+#### mongoose的 useNewUrlParser 警告解决办法 ####
+	mongoose.connect('mongodb://127.0.0.1:27017/admin', { useNewUrlParser: true },(err,res)=>{
+	    if(!err){
+	        console.log(res)
+	    }
+	})
 
