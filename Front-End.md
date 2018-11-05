@@ -119,6 +119,40 @@ getAttribute();setAttribute();
 #### 元素文本内容 ####
 textContent innerHTML 返回纯文本内容
 
+## HTML 5 API ##
+### Page Visibility API ###
+#### 常用的方法是监听下面三个事件 ####
+- pagehide
+- beforeunload
+- unload
+
+在手机上可能不会触发
+
+- 用户点击了一条系统通知，切换到另一个 App。
+- 用户进入任务切换窗口，切换到另一个 App。
+- 用户点击了 Home 按钮，切换回主屏幕。
+- 操作系统自动切换到另一个 App（比如，收到一个电话）
+
+#### document.visibilityState ####
+该属性返回一个字符串，表示页面当前的可见性状态
+
+- hidden：页面彻底不可见。
+- visible：页面至少一部分可见。
+- prerender：页面即将或正在渲染，处于不可见状态。
+
+#### visibilitychange 事件 ####
+
+	document.addEventListener('visibilitychange', function () {
+	  // 用户离开了当前页面
+	  if (document.visibilityState === 'hidden') {
+	    document.title = '页面不可见';
+	  }
+	
+	  // 用户打开或回到页面
+	  if (document.visibilityState === 'visible') {
+	    document.title = '页面可见';
+	  }
+	});
 # JavaScript #
 ## 严格模式 ##
 ES6的模块自动采用严格模式
@@ -4349,6 +4383,8 @@ border-radius:边框圆角
 
 > **阴影第三个参数 模糊度，越大越模糊**
 > 
+> ** 第四个参数，阴影的大小，扩散到的范围**
+> 
 > box-shadow: h-shadow v-shadow blur spread color inset;
 
 
@@ -5109,6 +5145,12 @@ kill -HUP `主进程号`
 
 ![](http://ww1.sinaimg.cn/large/48ceb85dgy1fqnlnhzcd2j20m80dw3zd.jpg)
 
+
+# Lodash #
+数据分组
+
+_(dataList.list).groupBy(item=>item.lc).map((items,lc)=>{return {lc:lc, items:items}}).value()
+
 # TypeScript #
 ### TypeScript的module加载模式 ###
 **import {b} from "moduleB"**
@@ -5146,6 +5188,11 @@ Browsersync works by injecting an asynchronous script tag right after the body t
 ####Weui pullToRefresh刷新不出来 ####
  在手机上刷新即可
 
+#### 子元素使用css float 导致父元素没有高度 ####
+- 对父级设置固定高度 
+- 对父级div标签闭合div前加一个clear清除浮动对象
+- 只需要对父级加一个overflow:hidden样式即可
+
 #### jquery 点击在safari上失效 ####
 [jquery中on绑定click事件在苹果手机失效的问题](https://blog.csdn.net/yuexiage1/article/details/51612496)
 
@@ -5164,6 +5211,36 @@ Browsersync works by injecting an asynchronous script tag right after the body t
 	    }
 	</style>
 
+#### ios上input disabled 不显示文字 ####
+	input:disabled, textarea:diabled {
+	    -webkit-text-fill-color: #000;
+	    -webkit-opacity: 1;
+	    color: #000;
+	}
+
+#### jquery发送application/json格式数据 ####
+jquery将请求分为两次，第一为options(不会带上cookie)，第二次才是真实的post
+
+springboot设置 spring.mvc.dispatch-options-request=true
+
+#### 父元素 width：100vh, flex布局，justify-content:center,子元素不居中 ####
+改成width:100%; 可能是因为子元素的位置计算使用了vh；
+
+#### iOS HTML5 无法定位 ####
+IOS系统在10以上版本考虑到安全问题禁止用户在http协议下定位，要想定位必须将http协议升级成https协议
+
+微信公众号的浏览器版本等同于android的chrome浏览器,高德定位为http
+
+微信企业号的浏览器版本等同于ios的safari浏览器, 高德定位为https
+
+
+ios 系统访问定位 需要满足以下两点：
+
+1、需要使用JS API的高精度定位功能，在iOS 11上，请通过https访问定位。
+
+2、您的个人（或企业）网站在iOS 11系统下也请您调整成https形式对终端用户提供。
+
+#### line-height,em,font-size的关系 ####
 #### 页面刷新或离开时的提示框 ####
 	window.onbeforeunload = function() {
 		// 兼容IE8和Firefox 4之前的版本
@@ -5173,6 +5250,11 @@ Browsersync works by injecting an asynchronous script tag right after the body t
 	
 		return thewordtoshow；
 	}
+
+#### 网页路径问题 ####
+被多个页面使用的模块，不要使用相对路径 "../../xxx/xxx"，
+
+使用相对于主机名的路径 "/xxx/xxx"
 
 #### JS自动插入分号 ####
 - empty statement
@@ -5485,3 +5567,9 @@ However, there is an additional overriding condition on the preceding rules: a s
 	    }
 	  }
 	}
+
+# 移动端 #
+## 屏幕宽度 ##
+- iPhone6 Plus 398
+- Huawei P9 344
+
