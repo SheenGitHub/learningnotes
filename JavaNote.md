@@ -1,3 +1,11 @@
+# Lang #
+## enum ##
+Enum是Java提供给编译器的一个用于继承的类。枚举量的实现其实是public static final T 类型的未初始化变量，之后，会在静态代码中对枚举量进行初始化。所以，如果用枚举去实现一个单例，这样的加载时间其实有点类似于饿汉模式，并没有起到lazy-loading的作用。
+## 内部类 ##
+### 外部类可以访问内部类private变量 ###
+Java规范里确实规定了外部类可以访问内部类的private/protected变量，就像访问自己的private/protected变量一样.........实际上，编译器实现的时候是这样的：
+
+Outer类和Inner类不再是嵌套结构，而是变为一个包中的两个类，然后，对于private变量的访问，编译器会生成一个accessor函数
 # 并发（Concurrent) #
 
 ## Java 多线程设计模式 ##
@@ -1215,6 +1223,114 @@ String是基本数据类型，是值类型，不是引用类型，复制时拷�
     52   0   1.8
 
 # Spring #
+## Spring容器 ##
+Spring容器使用DI管理构成应用的组件，它会创建相互协作的组件之间的管理
+
+Spring自带多个容器实现，可以分为两种不同的类型
+
+### BeanFactory ###
+最简单的容器，提供基本的DI支持
+### ApplicationContext ###
+基于BeanFactory构建，提供应用框架级别的服务(属性文件解析以及发布应用事件给监听者)
+
+#### 类型 ####
+- AnnotationConfigApplicationContext
+- AnnotaiionConfigWebApplicationContext
+- ClassPathXmlApplicationContext
+- FileSystemXmlApplicationContext
+- XmlWebApplicationVontext
+#### 获取ApplicationContext的几种方式 ####
+- 在初始化时保存ApplicationContext对象
+- 通过Spring提供的工具类获取ApplicationContext对象(WebApplicationContextUtils)
+- 继承抽象类ApplicationObjectSupport
+- 继承抽象类WebApplicationObjectSupport
+- 实现接口ApplicationContextAware
+- 不依赖与Servlet和注入的方式，ContextLoader.getCurrentWebApplicationContext
+
+### ServletContext ###
+Servlet容器在启动时会加载Web应用，并为每个Web应用创建唯一的ServletContext对象
+
+在ServletContext中可以存放共享数据，有4个读取或者设置共享数据的方法
+
+#### ServletContextListener ####
+> 在 Servlet API 中有一个 ServletContextListener 接口，它能够监听 ServletContext 对象的生命周期，实际上就是监听 Web 应用的生命周期。当Servlet 容器启动或终止Web 应用时，会触发ServletContextEvent 事件，该事件由ServletContextListener 来处理。在 ServletContextListener 接口中定义了处理ServletContextEvent 事件的两个方法
+
+需要注册listener-class，在xml中或使用WebListener(注意注册@Component)
+
+	@WebListener
+	@Component
+	public class GlobalContextListener implements ServletContextListener {
+	
+	    @Override
+	    public void contextInitialized(ServletContextEvent sce) {
+	        System.out.println("启动了");
+	    }
+	
+	    @Override
+	    public void contextDestroyed(ServletContextEvent sce) {
+	        System.out.println("结束了");
+	    }
+	}
+
+## 生命周期 ##
+![](http://ww1.sinaimg.cn/mw690/48ceb85dly1fx6j9xso8dj22bc1eawog.jpg)
+
+1. Spring对bean进行实例化
+2. Spring将值和bean的引用注入到bean对应的属性中
+3. 如果Bean实现BeanNameAware，将bean的ID传递，从而知道自己的名字
+4. 如果Bean实现了BeanFactoryAware接口，传入BeanFactory，从而知道自己的Factory
+5. 如果是实现了ApplicationContext，Spring将出入上下文，从而保留上下文
+6. 如果实现了BeanPostProcessor接口，将调用postProcessBeforeInitialization方法
+7. 如果Bean实现了InitializingBean接口，Spring将调用它的postProcessBeforeInitialization方法
+8. 调用自定义的初始化方法init-method方法
+9. 如果实现了BeanPostProcessor接口，将调用postProcessAfterInitialization方法
+10. Bean可以使用了
+11. 关闭容器
+12. 调用DisposableBean接口的destroy方法
+13. 调用自定义的销毁方法destroy-method
+### 自定义创建和销毁阶段调用方法 ###
+1. 注解方式 @PostContruct, @PreDestroy
+2. 实现 InitilizingBean,DisposableBean接口
+3. Java Config， 配置@Bean(initMethod="start", destroyMehtod="destroy")
+4. XML中配置 init-method="" destroy-method=""
+
+#### BeanNameAware ####
+让Bean获取自己在BeanFactory配置中的名字（根据情况是id或者name）
+#### BeanFactoryAware ####
+让Bean获取配置他们的BeanFactory的引用
+
+> 实际上非常不推荐这样做，因为结果是进一步加大Bean与Spring的耦合
+
+**补充说明**
+
+factory.preInstantiateSingletons()方法立即实例化所有的Bean实例,方法本身的目的是让Spring立即处理工厂中所有Bean的定义，并且将这些Bean全部实例化。因为Spring默认实例化Bean的情况下，采用的是lazy机制
+
+#### ApplicationContextAware ####
+> 在Web应用中，Spring容器通常采用声明式方式配置产生：开发者只要在web.xml中配置一个Listener，该Listener将会负责初始化Spring容器，MVC框架可以直接调用Spring容器中的Bean，无需访问Spring容器本身。在这种情况下，容器中的Bean处于容器管理下，无需主动访问容器，只需接受容器的依赖注入即可。
+
+在方法
+
+	void setApplicationContext(ApplicationContext applicationContext) 
+
+中设置applicationContext
+
+#### BeanPostProcessor简介 ####
+BeanPostProcessor的实现类注册到Spring IOC容器后，对于该Spring IOC容器所创建的每个bean实例在初始化方法(afterPropertiesSet和任意声明的init方法)调用前，将会调用BeanPostProcessor中的postProcessBeforeInitializaition方法。而bean初始化方法调用完成后，会调用BeanPostProcessor中的postProcessAfterInitialization方法。
+	
+	--> Spring IOC容器实例化Bean
+	--> 调用BeanPostProcessor的postProcessBeforeInitialization方法
+	--> 调用bean实例的初始化方法
+	--> 调用BeanPostProcessor的postProcessAfterInitialization方法
+
+> Spring容器通过BeanPostProcessor给了我们一个机会对Spring管理的bean进行再加工。比如：我们可以修改bean的属性，可以给bean生成一个动态代理实例等等。一些Spring AOP的底层处理也是通过实现BeanPostProcessor来执行代理包装逻辑的。
+
+> The BeanPostProcessor interface defines callback methods that you can implement to provide your own (or override the container's default) instantiation logic, dependency-resolution logic, and so forth. If you want to implement some custom logic after the Spring container finishes instantiating, configuring, and initializing a bean, you can plug in one or more BeanPostProcessor implementations.
+
+## InitializingBean和DisposableBean ##
+> **The difference to the @PostConstruct, InitializingBean and custom init method is that these are defined on the bean itself. Their ordering can be found in the Combining lifecycle mechanisms section of the spring documentation.**
+
+
+ApplicationContextAware,BeanPostProcessor接口的实现在扫描全局，而这几个注解和接口在bean自身；
 ## IoC, Inversion of Control ##
 `@ComonentScan` 扫描所在的包
 
@@ -1298,7 +1414,107 @@ ModelMap继承LinkedHashMap，spring框架自动创建实例并作为controller�
 
 	ModelAndView view = new ModelAndView();
 	view.setViewName("test");
+### RequestMapping中的produces ###
+@RequestMapping(value = "/produces", produces = "application/json")：表示将功能处理方法将生产json格式的数据，此时根据请求头中的Accept进行匹配，如请求头“Accept:application/json”时即可匹配;
+## 日志 ##
+默认情况下，Spring Boot会用Logback来记录日志，并用INFO级别输出到控制台
 
+[https://blog.csdn.net/inke88/article/details/75007649](https://blog.csdn.net/inke88/article/details/75007649)
+## 定时器 ##
+- java.util.Timer类
+- Quartz 或者 elastic-job
+- @Scheduled
+
+@Scheduled 注释方法 @EnableSchduling 注释类
+
+### cron ###
+[cron](https://www.cnblogs.com/linjiqin/archive/2013/07/08/3178452.html)
+
+Seconds Minutes Hours DayofMonth Month DayofWeek Year或 
+
+Seconds Minutes Hours DayofMonth Month DayofWeek
+
+\* 表示在任意秒/分/时
+
+/ 步长
+
+, 枚举
+
+- 时间范围
+
+> 只是说是 fixedRate 任务两次执行时间间隔是任务的开始点，而 fixedDelay 的间隔是前次任务的结束与下次任务的开始。
+
+### 开始执行一次 ###
+
+## 网络类 ##
+### RequestContextHolder ###
+获取request和response
+
+RequestContextHolder顾名思义,持有上下文的Request容器
+
+	
+	        //两个方法在没有使用JSF的项目中是没有区别的
+	        RequestAttributes requestAttributes = RequestContextHolder.currentRequestAttributes();
+	//                                            RequestContextHolder.getRequestAttributes();
+	        //从session里面获取对应的值
+	        String str = (String) requestAttributes.getAttribute("name",RequestAttributes.SCOPE_SESSION);
+	
+	        HttpServletRequest request = ((ServletRequestAttributes)requestAttributes).getRequest();
+	        HttpServletResponse response = ((ServletRequestAttributes)requestAttributes).getResponse();
+
+
+RequestContextHolder这个类,里面有两个ThreadLocal保存当前线程下的request
+
+[https://blog.csdn.net/u012706811/article/details/53432032](https://blog.csdn.net/u012706811/article/details/53432032)
+
+	//得到存储进去的request
+	    private static final ThreadLocal<RequestAttributes> requestAttributesHolder =
+	            new NamedThreadLocal<RequestAttributes>("Request attributes");
+	    //可被子线程继承的request
+	    private static final ThreadLocal<RequestAttributes> inheritableRequestAttributesHolder =
+	            new NamedInheritableThreadLocal<RequestAttributes>("Request context");
+
+FrameworkServlet查看到该类重写了service(),doGet(),doPost()…等方法,这些实现里面都有一个预处理方法processRequest(request, response);
+
+
+#### Environment类 ####
+
+Environment是Spring核心框架中定义的一个接口
+
+这个接口对应用程序运行环境的两个关键方面进行了建模 :
+
+profile 
+
+- 一个profile是一组Bean定义(Bean definition)的逻辑分组(logical group)。
+- 这个分组，也就是这个profile，被赋予一个命名，就是这个profile的名字。
+- 只有当一个profile处于active状态时，它对应的逻辑上组织在一起的这些Bean定义才会被注册到容器中。
+- Bean添加到profile可以通过XML定义方式或者annotation注解方式。
+- Environment对于profile所扮演的角色是用来指定哪些profile是当前活跃的/缺省活跃的。
+
+property 属性 
+
+- 一个应用的属性有很多来源: 属性文件(properties files),JVM系统属性，系统环境变量，JNDI，servlet上下文参数，临时属性对象等。
+- Environment对于property所扮演的角色是提供给使用者一个方便的服务接口用于配置属性源
+- 从属性源中获取属性
+
+### 拦截器/过滤器HandlerInterceptorAdapter的使用 ###
+preHandle在业务处理器处理请求之前被调用。预处理，可以进行编码、安全控制等处理； 
+
+postHandle在业务处理器处理请求执行完成后，生成视图之前执行。后处理（调用了Service并返回ModelAndView，但未进行页面渲染），有机会修改ModelAndView； 
+
+afterCompletion在DispatcherServlet完全处理完请求后被调用，可用于清理资源等。返回处理（已经渲染了页面），可以根据ex是否为null判断是否发生了异常，进行日志记录
+
+### MultipartFile文件保存 ###
+	MultipartFile
+	void transferTo(File dest)
+
+#### 在application.yml中配置全局参数 ####
+
+#### @ConfigurationProperties  ####
+为被注释的类自动注入property中的数据
+
+#### @ConditionalOnProperty ####
+这个注解能够控制某个configuration是否生效。具体操作是通过其两个属性name以及havingValue来实现的，其中name用来从application.properties中读取某个属性值，如果该值为空，则返回false;如果值不为空，则将该值与havingValue指定的值进行比较，如果一样则返回true;否则返回false。如果返回值为false，则该configuration不生效；为true则生效
 #### 类型不匹配拒绝 ####
 Field error in object 'user' on field 'age': rejected value [陈意]; codes typeMismatch
 
@@ -1312,6 +1528,30 @@ Field error in object 'user' on field 'age': rejected value [陈意]; codes type
 	public RestTemplate restTemplate(){
 		return builder.build();
 	}
+
+## AOP ##
+切点的织入
+
+	@Aspect
+	@Component
+	public class PermissionAspect{
+		//创建切点
+		@Pointcut("execution (* com.sheen.pc.**.controller.TaskController.*(..))"
+		            + "||execution (* com.sheen.pc.**.controller.ProcessController.*(..))")
+		public void controllerAspect(){
+		}	
+		
+		//在切点的操作
+		@Before("controllerAspect()")
+	    public void doBefore(JoinPoint joinPoint) throws Exception {
+	        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
+	                .getRequest();
+		}
+	}
+
+## 应用 ##
+### MethodInterceptor方法拦截器 ###
+
 ## MyBatis ##
 
 #### 查询中有中文，结果为空 ####
@@ -1321,6 +1561,56 @@ yml中设置字符集 url: jdbc:mysql://localhost:3306/pc?useUnicode=true&charac
 
     @Resource
     private UserDao userDao;
+
+#### 数据库字段与数据类字段的对应 使用@Results ####
+
+@Results是以@Result为元素的数组，@Result表示单条属性-字段的映射关系
+
+**@ResultMap**
+
+从SQL查询结果集到JavaBean或POJO实体的过程。
+
+  1. 通过JDBC查询得到ResultSet对象
+
+  2. 遍历ResultSet对象并将每行数据暂存到HashMap实例中，以结果集的字段名或字段别名为键，以字段值为值
+
+  3. 根据ResultMap标签的type属性通过反射实例化领域模型
+
+  4. 根据ResultMap标签的type属性和id、result等标签信息将HashMap中的键值对，填充到领域模型实例中并返回
+
+实例
+
+	@SelectProvider(type = TestSqlProvider.class, method = "getAllSql")  
+    @Options(useCache = true, flushCache = false, timeout = 10000)  
+    @Results(value = {  
+            @Result(id = true, property = "id", column = "test_id", javaType = String.class, jdbcType = JdbcType.VARCHAR),  
+            @Result(property = "testText", column = "test_text", javaType = String.class, jdbcType = JdbcType.VARCHAR) })  
+    public List<TestBean> getAll(); 
+
+动态映射
+
+	<select id="getStundent" resultMap="rm">
+	  SELECT ID, Name, JuniorHighSchool, SeniorHighSchool, during
+	    FROM TStudent
+	</select>
+	<resultMap id="rm" type="EStudent">
+	  // 若不加这句，则当将juniorHighSchool赋予给seniorHighSchool属性时，juniorHighSchool属性将为null
+	  <result column="juniorHighSchool" property="juniorHighSchool"/>
+	
+	  <discriminator column="during" javaType="_int">
+	    // 形式1：通过resultType设置动态映射信息
+	    <case value="4" resultType="EStudent">
+	      <result column="juniorHighSchool" property="seniorHighSchool"/>
+	    </case>
+	
+	   // 形式2: 通过resultMap设置动态映射信息
+	   <case value="5" resultMap="dynamicRM"/>
+	   <case value="6" resultMap="dynamicRM"/>
+	  </discriminator>
+	</resultMap>
+	<resultMap id="dynamicRM" type="EStudent">
+	  <result column="juniorHighSchool" property="seniorHighSchool"/>
+	</resultMap>
 #### yml文件 ####
 "Yet Another Markup Language"（仍是一种置标语言）
 
@@ -1446,6 +1736,11 @@ XML 格式不对
 ![](http://ww1.sinaimg.cn/large/48ceb85dgy1fqnpsbjq4cj212i0pkdwp.jpg)
 ![](http://ww1.sinaimg.cn/large/48ceb85dgy1fqnpwsjbolj20v00i6n36.jpg)
 
+## IDEA springboot 热部署 ##
+[SpringBoot配置devtools实现热部署](https://www.cnblogs.com/lspz/p/6832358.html)
+devtools的原理
+
+> 深层原理是使用了两个ClassLoader，一个Classloader加载那些不会改变的类（第三方Jar包），另一个ClassLoader加载会更改的类，称为restart ClassLoader,这样在有代码更改的时候，原来的restart ClassLoader 被丢弃，重新创建一个restart ClassLoader，由于需要加载的类相比较少，所以实现了较快的重启时间
 # 面向对象设计原则 #
 ## 单一职责原色 ##
 SRP,Single Responsibility Priciple
@@ -1766,3 +2061,23 @@ Survivor的存在意义，就是减少被送到老年代的对象，进而减少
 标准编译是被-XX:CompileThreshold=Nflag 的值所触发。Client 编译器模式下，N 默认的值 1500，而 Server 编译器模式下，N 默认的值则是 10000
 
 如果 PrintCompilation 被启用，每次一个方法（或循环）被编译，JVM 都会打印出刚刚编译过的相关信息
+
+# 测试 #
+## AB测试 ##
+将Web或App界面或流程的两个或多个版本，在同一时间维度，分别让两个或多个属性或组成成分相同（相似）的访客群组访问，收集各群组的用户体验数据和业务数据，最后分析评估出最好版本正式采用
+### AB测试的基本步骤 ###
+1.设定项目目标即AB测试的目标
+
+2.设计优化的迭代开发方案，完成新模块的开发
+
+3.确定实施的版本以及每个线上测试版本的分流比例
+
+4.按照分流比例开放线上流量进行测试
+
+5.收集实验数据进行有效性和效果判断
+
+6.根据试验结果确定发布新版本、调整分流比例继续测试或者在试验效果未达成的情况下继续优化迭代方案重新开发上线试验
+
+> AB测试强调的是同一时间维度对相似属性分组用户的测试，时间的统一性有效的规避了因为时间、季节等因素带来的影响，而属性的相似性则使得地域、性别、年龄等等其他因素对效果统计的影响降至最低
+
+**A/B测试用于验证用户体验、市场推广等是否正确，而一般的工程测试主要验证软硬件是否符合设计预期，因此AB测试与一般的工程测试分属于不同的领域**
