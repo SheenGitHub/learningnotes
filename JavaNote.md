@@ -1,4 +1,98 @@
 # Lang #
+## 注解 ##
+### Java内置注解 ### 
+- @Override 
+- @Deprecated 
+- @SuppressWarnings
+### 元注解 ###
+- @Target (CONSTRUCTOR,FIELD,LOCAL_VARIABLE,METHOD,PACKAGE,PARAMETER,TYPE)
+- @Retention (SOURCE 被编译器丢弃,CLASS 被VM丢弃,RUNTIME 可用反射读取)
+- @Documented 包含在Javadoc中
+- @Inherited 允许子类继承父类的注解
+
+### 注解的元素 ###
+注解的元素看起来就像是接口的方法
+
+### 注解处理器 ###
+继承 AbstractProcessor 接口 
+
+	public synchronized void init(ProcessingEnvironment processingEncironment)
+
+使用ProcessingEnvironment获取一些实用类以及获取选项参数
+
+- Elements getElementUtils()	返回实现Elements接口的对象，用于操作元素的工具类。
+- Filer getFiler()	返回实现Filer接口的对象，用于创建文件、类和辅助文件。
+- Messager getMessager()	返回实现Messager接口的对象，用于报告错误信息、警告提醒。
+- Map<String,String> getOptions()	返回指定的参数选项
+- Types getTypeUtils()	返回实现Types接口的对象，用于操作类型的工具类。
+
+#### 元素 ####
+Element元素是一个接口，表示一个程序元素，比如包、类或者方法。
+
+asType()可以获得元素的TypeMirror
+
+- ExecutableElement 方法
+- PackageElement 包package描述
+- TypeElement 类或接口
+- TypeParameterElement 方法的形式化参数
+- VariableElement 变量
+
+element.getKind() == ElementKind.CLASS
+
+PACKAGE,ENUM,CLASS,ANNOTATION_TYPE,INTERFACE,ENUM_CONSTANT,FIELD,PARAMETER,LOCAL_VARIABLE,METHOD,CONSTRUCTOR,TYPE_PARAMETER
+
+
+尽量避免instanceof 判断, interface 和 class混淆
+
+在注解处理过程中，我们扫描所有的Java源文件。源代码的每一个部分都是一个特定类型的Element
+
+Element代表的是源代码。TypeElement代表的是源代码中的类型元素，例如类。然而，TypeElement并不包含类本身的信息。你可以从TypeElement中获取类的名字，但是你获取不到类的信息，例如它的父类。这种信息需要通过TypeMirror获取。你可以通过调用elements.asType()获取元素的TypeMirror
+#### 类型 ####
+TypeMirror是一个接口，表示 Java 编程语言中的类型。这些类型包括基本类型、声明类型（类和接口类型）、数组类型、类型变量和 null 类型。还可以表示通配符类型参数、executable 的签名和返回类型，以及对应于包和关键字 void 的伪类型。
+
+DeclaredType.asElement()可以转化为Element
+
+- ArrayType 数组
+- DeclaredType 类、接口声明
+- ErrorType 无法建模的类、接口
+- ExecutableType 方法
+- NoType 伪类型
+- NullType null类型
+- PrimitiveType 基本类型
+- ReferenceType 引用类型
+- TypeVariable 类型变量
+- WildcardType 通配符参数
+
+TypeMirror.getKind() == TypeKind.BOOLEAN
+
+BOOLEAN,INT,LONG,FLOAT,DOUBLE,VOID,NULL,ARRAY,PACKAGE,EXECUTABLE
+
+#### 创建文件 ####
+Filer接口支持通过注解处理器创建新文件。可以创建三种文件类型：源文件、类文件和辅助资源文件
+#### 打印错误信息 ####
+Messager接口提供注解处理器用来报告错误消息、警告和其他通知的方式.
+#### 处理过程 ####
+[原文](http://hannesdorfmann.com/annotation-processing/annotationprocessing101)
+
+[翻译](https://blog.csdn.net/qfanmingyiq/article/details/75432854)
+
+**因为注解处理是在编译Java源代码之前**
+
+> 注解处理过程是一个有序的循环过程
+
+process方法提供了两个参数，第一个是我们请求处理注解类型的集合（也就是我们通过重写getSupportedAnnotationTypes方法所指定的注解类型），第二个是有关当前和上一次 循环的信息的环境。返回值表示这些注解是否由此 Processor 声明，如果返回 true，则这些注解已声明并且不要求后续 Processor 处理它们；如果返回 false，则这些注解未声明并且可能要求后续 Processor 处理它们
+
+**规则**
+
+我们先规定如下一些规则：
+
+- 只有类可以被@Factory注解，因为接口或者抽象类并不能用new操作实例化；
+- 被@Factory注解的类，必须至少提供一个公开的默认构造器（即没有参数的构造函数）。否者我们没法实例化一个对象。
+- 被@Factory注解的类必须直接或者间接的继承于type()指定的类型；
+- 具有相同的type的注解类，将被聚合在一起生成一个工厂类。这个生成的类使用Factory后缀，例如type = Meal.class，将生成MealFactory工厂类；
+- id只能是String类型，并且在同一个type组中必须唯一。
+
+**一个注解处理器任然是一个Java程序，所以我们需要使用面向对象编程、接口、设计模式，以及任何你将在其他普通Java程序中使用的技巧**
 ## enum ##
 Enum是Java提供给编译器的一个用于继承的类。枚举量的实现其实是public static final T 类型的未初始化变量，之后，会在静态代码中对枚举量进行初始化。所以，如果用枚举去实现一个单例，这样的加载时间其实有点类似于饿汉模式，并没有起到lazy-loading的作用。
 ## 内部类 ##
