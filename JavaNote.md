@@ -2453,9 +2453,9 @@ Concurrent Mark Sweep
 - 初始标记 CMS initial mark
 - 并发标记 CMS concurrent mark
 - 重新标记 CMS remark
-- 并发清楚 CMS concurrent sweep
+- 并发清除 CMS concurrent sweep
 
-初始标记、重新标记这两部仍然需要“Stop The World”。初始标记只是仅仅标记一下GC Roots能直接关联到的对象，速度很快，并发标记就是进行GC Roots Tracing的过程。而重新标记阶段则是为了修正并发标记期间因为用户程序继续运作而导致标记变动的那一部分兑现高的标记记录。这个阶段的停顿时间一般会比初始表姐阶段稍长一些，但远比并发标记的事件短。
+初始标记、重新标记这两部仍然需要“Stop The World”。初始标记只是仅仅标记一下GC Roots能直接关联到的对象，速度很快，并发标记就是进行GC Roots Tracing的过程。而重新标记阶段则是为了修正并发标记期间因为用户程序继续运作而导致标记变动的那一部分兑现高的标记记录。这个阶段的停顿时间一般会比初始标记阶段稍长一些，但远比并发标记的事件短。
 
 整个过程中耗时最长的并发标记和并发清楚过程收集器线程都可以与用户线程一起工作。总体而言，CMS收集器的内存回收过程是与用户线程并发执行的。
 
@@ -2529,8 +2529,64 @@ MinorGC时，选择在新生代腾出足够的空间给新的分配请求
 
 HSDIS的作用是让HotSpot的 -XX:+PrintAssembly指令调用它来把动态生成的本地代码还原为汇编代码输出，同时还生成大量非常有价值的注视，这样我们就可以通过输出的代码来分析问题。如果使用Product版的HotSpot，那还要额外加入一个-XX:+UnlockDiagnosticVMOptions参数
 
-java -XX:+PrintAssembly -Xcomp -XX:CompileCommand=dontinline,*Bar.sum
+java -XX:+PrintAssembly -Xcomp -XX:CompileCommand=dontinline,*Bar.sum -XX:CompileCommand=compileonly,*Bar.sum test.Bar
 
+-XComp是让虚拟机以编译模式执行这段代码，这样代码可以“偷懒”,不需要执行足够次数来预热就能触发JIT编译。两个-XX:CompileCommand意思是让编译器不要内联并且只编译sum， -XX:PrintAssembly就是输出反汇编内容。
+
+Integer.valueOf()方法基于减少对象创建次数和节省内存的考虑，[-128,127]之间的数字会被缓存，当valueOf方法传入参数在这个范围之中，将直接返回缓存的对象。可能会在引用中造成死锁。
+
+### JDK可视化工具 ###
+#### JConsole ####
+Java监视与管理控制台，是一种基于JMX的可视化监视、管理工具。它管理部分的功能是针对JMX MBean进行管理。
+#### VisualVM ####
+配置中心迁移至https://visualvm.github.io/index.html 
+
+https://visualvm.github.io/archive/uc/8u40/updates.xml.gz
+
+**BTrace动态日志跟踪**
+
+它的作用在不停止程序运行的前提下，通过HotSpot虚拟机的HotSwap技术动态加入原本不存在的调试代码。
+
+## 案例分析 ##
+### 高性能硬件上的程序部署方案 ###
+在高性能硬件上部署程序，主要有两种方式：
+
+- 通过64位JDK来使用大内存。
+- 使用若干个32位虚拟机建立逻辑集群来利用硬件资源
+
+对于用户交互性强、对停顿时间敏感的系统，可以给Java虚拟机分配超大堆的前提是有把握把应用程序的Full GC频率控制得足够低，至少要低到不会影响用户使用，譬如十几小时乃至一天才出现一次FullGC，这样可以通过深夜执行定时任务的方式触发Full GC甚至重启应用服务器来保持内存可用空间在一个稳定的水平。
+
+控制Full GC频率的关键是看应用中绝大多数对象能否符合“朝生夕灭”的原则，即大多数对象的生存时间不应太长，尤其不能有成批量的、长时间生存时间的大对象产生，这样才能保障老年代空间的稳定。
+
+#### 使用64位JDK管理超大堆内存需要面临的问题 ####
+- 内存回收导致的长时间停顿
+- 64位JDK的性能测试普遍低于32位JDK
+- 需要保证程序足够稳定，因为这种应用要是产生堆溢出几乎无法产生堆转储快照，哪怕产生了也几乎无法进行分析。
+- 相同程序64位JDK消耗的内存一般比32位JDK大，这是由于指针膨胀，以及数据类型对齐补白等因素导致的
+
+#### 使用若干32位虚拟机建立逻辑集群来利用硬盘资源 ####
+在一台物理机器上启动多个应用服务进程，每个服务器进程分配不同端口，然后再前端搭建一个负载均衡器，以反向代理的方式来分配访问请求。
+
+**缺点**
+
+- 尽量避免节点竞争全局资源，典型的是磁盘竞争
+- 很难高效利用某些资源池，譬如连接池
+- 各个节点仍然不可避免受32位的内存限制
+- 大量使用本地缓存的应用中，在逻辑集群中会造成比较大的内存浪费，因为每个逻辑点点上都有一份缓存，可考虑集中式缓存
+
+**文档服务的主要压力集中在磁盘和内存访问，CPU资源敏感度较低，因而改为CMS收集器进行垃圾回收**
+
+### 集群间同步导致的内存溢出 ###
+JBOSSCache
+
+### 堆外内存导致的溢出错误 ###
+虚拟机虽然会对Direct Memory进行回收，但是Direct Memory却不能像新生代、老年代那样，发现控件不足就通知收集器进行垃圾回收，它只能等待老年代满后Full GC，然后“顺便”帮它清理掉内存的废弃对象。否则只能一直等到抛出内存溢出异常，先catch掉，再在catch块里“大喊”一声：“System.gc()”,要是虚拟机还是不听(譬如打开了-XX:+DisableExplicitGC开关)，那就只能眼睁睁地看着堆中还有许多空闲内存，自己却不得不抛出内存溢出异常。
+
+大量NIO操作的应用和框架需要使用Direct Memory内存
+
+除了java堆和永久代之外，会占用较多内存的区域还有
+
+Direct Memory: 可通过-XX:MaxDirectMemorySize调整大小
 # 汇编指令 #
 ## 8086寄存器 ##
 - AH&AL=AX(accumulator)：累加寄存器，常用于运算;在乘除等指令中指定用来存放操作数，另外,所有的I/O指令都使用这一寄存器与外界设备传送数据。
@@ -2538,7 +2594,8 @@ java -XX:+PrintAssembly -Xcomp -XX:CompileCommand=dontinline,*Bar.sum
 - CH&CL=CX(count)：计数寄存器，常用于计数；常用于保存计算值，如在移位指令,循环(loop)和串处理指令中用作隐含的计数器.
 - DH&DL=DX(data)：数据寄存器，常用于数据传递。
 - SP（Stack Pointer）：堆栈指针，与SS配合使用，可指向目前的堆栈位置
-- BP（Base Pointer）：基址指针寄存器，可用作SS的一个相对基址位置
+- BP（Base Pointer）：基址指针寄存器，可用作
+- SS的一个相对基址位置
 - SI（Source Index）：源变址寄存器，可用来存放相对于DS段之源变址指针
 - DI（Destination Index）：目的变址寄存器，可用来存放相对于ES 段之目的变址指针
 - 指令指针IP是一个16位专用寄存器，它指向当前需要取出的指令字节，当BIU从内存中取出一个指令字节后，IP就自动加
@@ -2547,6 +2604,19 @@ java -XX:+PrintAssembly -Xcomp -XX:CompileCommand=dontinline,*Bar.sum
 - DS（Data Segment）：数据段寄存器
 - SS（Stack Segment）：堆栈段寄存器
 - ES（Extra Segment）：附加段寄存器。
+
+## x86-64的寄存器 ##
+### 64位通用寄存器（整数寄存器） ###
+R8、R9、R10、R11、R12、R13、R14、R15
+ 可作为8位（R8B~ R15B）、16位（R8W~ R15W）或 32位寄存器（R8D~R15D）使用
+
+所有GPRs都从32位扩充到64位
+
+-  ①8个32位通用寄存器 EAX、EBX、ECX、EDX、EBP、 ESP、ESI、EDI
+-   对应扩展寄存器分别为 RAX、RBX、 RCX、RDX、RBP、RSP、RSI、RDI
+-  ② 新增了EBP、ESP、ESI和EDI 的低8位寄存器：BPL、SPL 、SIL和DIL
+-  ③可兼容使用原AH、BH、CH和DH寄存器 （使原来IA-32中的每个通用寄存器都可以是8位、16位、 32位和64位，如：SIL、SI、ESI、RSI）
+
 ## 常用指令 ##
 POP 和PUSH通常可以用来交换两个寄存器的值，也可以用来保护寄存器的值
 
