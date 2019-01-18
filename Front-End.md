@@ -5185,6 +5185,9 @@ Browsersync works by injecting an asynchronous script tag right after the body t
 
 **使用了load载入新的页面，新的页面中存在body标签，browser-sync向body中注入异步标签，此时页面存在两个body标签** 
 
+### iOS中Date.parse返回NaN ###
+iOS只识别2017/03/05 不识别 2017-03-05
+
 ####Weui pullToRefresh刷新不出来 ####
  在手机上刷新即可
 
