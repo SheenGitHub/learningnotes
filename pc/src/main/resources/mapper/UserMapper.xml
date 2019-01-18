@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sheen.dao.UserDao">
+    <resultMap id="BaseResultMap" type="com.sheen.model.User">
+        <result column="ID" property="id" jdbcType="CLOB"/>
+        <result column="NAME" property="name" jdbcType="CLOB"/>
+        <result column="EMAIL" property="email" jdbcType="CLOB"/>
+    </resultMap>
+    <select id="getUserById" parameterType="java.lang.String" resultMap="BaseResultMap">
+      select ID,NAME,EMAIL FROM user WHERE ID= #{id,jdbcType=CLOB}
+    </select>
+</mapper>
