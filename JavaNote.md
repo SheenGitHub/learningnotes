@@ -2586,7 +2586,21 @@ JBOSSCache
 
 除了java堆和永久代之外，会占用较多内存的区域还有
 
-Direct Memory: 可通过-XX:MaxDirectMemorySize调整大小
+- Direct Memory: 可通过-XX:MaxDirectMemorySize调整大小，内存不足时抛出OutOfMemoryError或者OutOfMemoryError:Direct buffer memory 
+- Socket缓存区：每个Socket链接都需要Receiver和Send两个缓存区，分别占大约37KB和25KB内存，连接多的话这块内存占用也比较客观。如果无法分配，可能会抛出IOException:Too many open files异常
+- JNI代码:如果代码中使用JNI调用本地库，那本地库使用的内存也不在堆中。
+- 虚拟机和GC：虚拟机、GC的代码执行也要消耗一定的内存
+
+### 外部命令导致系统缓慢 ###
+每个用户请求的处理都需要执行一个外部shell脚本来获得系统的一些信息。执行这个shell脚本是通过Java的Runtime.getRuntime().exec()方法来调用的。虚拟机执行这个命令的过程是：首先克隆一个和当前虚拟机拥有一样环境变量的进程，再去调用这个新进程去执行外部命令，然后再退出。因此产生了大量的fork系统调用。
+
+去掉这个Shell脚本的执行，改用Java的API去获取这些信息
+
+### 服务器JVM进程崩溃 ###
+由于使用了大量异步调用Web服务，并且两遍服务速度不对等，事件越长就累积了越多Web服务没有调用完成，导致在等待的线程和Socket链接越来越多，最终在超过虚拟机的承受能力后使得虚拟机进程崩溃。解决办法：将一部调用改为生产者/消费者模式的消息队列实现后，系统恢复正常。
+
+### 不恰当数据结构导致内存占用过大 ###
+
 # 汇编指令 #
 ## 8086寄存器 ##
 - AH&AL=AX(accumulator)：累加寄存器，常用于运算;在乘除等指令中指定用来存放操作数，另外,所有的I/O指令都使用这一寄存器与外界设备传送数据。
