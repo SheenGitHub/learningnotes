@@ -1,4 +1,55 @@
 # Lang #
+## 关键字 ##
+### strictfp ###
+strictfp 关键字可应用于类、接口或方法。使用 strictfp 关键字声明一个方法时，该方法中所有的float和double表达式都严格遵守FP-strict的限制,符合IEEE-754规范。当对一个类或接口使用 strictfp 关键字时，该类中的所有代码，包括嵌套类型中的初始设定值和代码，都将严格地进行计算。严格约束意味着所有表达式的结果都必须是 IEEE 754 算法对操作数预期的结果，以单精度和双精度格式表示。
+　　如果你想让你的浮点运算更加精确，而且不会因为不同的硬件平台所执行的结果不一致的话，可以用关键字strictfp
+## 泛型 ##
+### 擦除 ###
+
+> 为什么我们往ArrayList<StringarrayList=new ArrayList<String>();所创建的数组列表arrayList中，不能使用add方法添加整形呢？不是说泛型变量Integer会在编译时候擦除变为原始类型Object吗，为什么不能存别的类型呢？既然类型擦除了，如何保证我们只能使用泛型变量限定的类型呢？
+> 
+> java是如何解决这个问题的呢？java编译器是通过先检查代码中泛型的类型，然后再进行类型擦除，在进行编译的。
+指定泛型方法
+
+	Test2.<Integer>add(1, 2)
+
+### 协变与逆变 ###
+逆变与协变用来描述类型转换（type transformation）后的继承关系，其定义：如果A、B表示类型，f(⋅)表示类型转换，≤表示继承关系（比如，A≤B表示A是由B派生出来的子类）
+
+- f(⋅)是逆变（contravariant）的，当A≤B时有f(B)≤f(A)成立；
+- f(⋅)是协变（covariant）的，当A≤B时有f(A)≤f(B)成立；
+- f(⋅)是不变（invariant）的，当A≤B时上述两个式子均不成立，即f(A)与f(B)相互之间没有继承关系。
+
+#### PECS ####
+producer-extends, consumer-super（PECS）
+
+从数据流来看，extends是限制数据来源的（生产者），而super是限制数据流入的（消费者）。
+
+#### 自限定的类型 ####
+	class SelfBounded<T extends SelfBounded<T>> {
+
+ 自限定类型的本质就是：基类用子类代替其参数。这意味着泛型基类变成了一种其所有子类的公共功能模版，但是在所产生的类中将使用确切类型而不是基类型。因此，Subtype中，传递给set()的参数和从get() 返回的类型都确切是Subtype。
+
+#### 自限定与协变 ####
+自限定类型的价值在于它们可以产生协变参数类型——方法参数类型会随子类而变化。其实自限定还可以产生协变返回类型，但是这并不重要，**因为JDK1.5引入了协变返回类型**
+
+在非泛型代码中，参数类型不能随子类型发生变化。方法只能重载不能重写
+
+	interface SelfBoundSetter<T extends SelfBoundSetter<T>> {
+	    void set(T args);
+	}
+	
+	interface Setter extends SelfBoundSetter<Setter> {}
+	
+	public class SelfBoundAndCovariantArguments {
+	    void testA(Setter s1, Setter s2, SelfBoundSetter sbs) {
+	        s1.set(s2);
+	        s1.set(sbs);  // 编译错误
+	    }
+	}
+
+#### 捕获转换 ####
+捕获转换只有在这样的情况下可以工作：即在方法内部，你需要使用确切的类型。
 ## 注解 ##
 ### Java内置注解 ### 
 - @Override 
@@ -2708,7 +2759,103 @@ CONSTANT\_Utf8\_info u1 tag 1 u2 length 1 u1 bytes length
 字段表集合中不会列出从超类或者父类接口中继承而来的字段，但有可能列出原本Java代码之中不存在的字段，譬如内部类为了保持对外部类的访问性，会自动添加指向外部类实例的字段。另外，在Java语言中字段是无法重载的，两个字段你的数据类型、修饰符不管是否相同，都必须使用不同的名称，但对于字节码来讲，如果两个字段的描述符不一致，那么字段重名就是合法的。
 ![](http://ww1.sinaimg.cn/large/48ceb85dly1fzhvkogd4ej20p006utba.jpg)
 
+#### 方法表集合 ####
+Class文件存储格式对方法的描述u字段的描述机会采用了完全一致的方式
 
+方法表的访问标志中没有ACC_VOLATILE标志和ACC_TRANSIENT标志，与之相对的，synchronized、native、strictfp和abstract关键字可以修饰方法，所以方法表的访问标志中增加了ACC_SYNCHRONIZED、ACC_NATIVE、ACC_STRICTFP和ACC_ABSTRACT标志。
+
+方法里的代码，经过编译器编译成字节码指令后，存放在属性表集合中一个名叫"Code"的属性里面，属性表是Class文件中最具有扩展性的数据项目。
+
+与字段表集合相对应的，如果父类方法再子类中没有被重写(Override)，方法表集合中就不会出现来自父类的方法信息。但同样的，有可能出现由编译器自动添加的方法，最典型的便是类构造器<clinit>方法和实例构造器<init>方法。在Java语言中，要重载(Overload)一个方法，除了要与原方法具有相同的简单名称之外，还必须要求拥有一个与原方法不同的特征签名。特征签名就是一个方法中各个参数在常量池中的字段符号引用的集合，也就是因为返回值不会包含在特征签名中，因此Java语言里是无法仅仅依靠放回值的不同对一个已有的方法进行重载的。但在Class文件格式中，特征签名的范围更大一些，只要描述符不是完全一致的两个方法也可以共存。也就是说，如果两个方法有相同的名称和特征签名，但返回值不同，那么也是可以合法共存于一个Class文件中的。
+
+#### 属性表集合 ####
+属性表集合不要求各个属性表有严格顺序，而且只要不与已有属性重复，任何人实现的编译器都可以向属性表中写入自己定义的属性信息，Java虚拟机运行时会忽略掉它不认识的属性。
+
+![](http://ww1.sinaimg.cn/large/48ceb85dly1fzimjnlqurj20oq07h77p.jpg)
+![](http://ww1.sinaimg.cn/large/48ceb85dly1fzimjujd7uj20or0pan9v.jpg)
+![](http://ww1.sinaimg.cn/large/48ceb85dly1fzimjzka2bj20oo069whz.jpg)
+
+*属性表结构*
+
+对于每个属性，它的名称需要从常量池中引用一个CONSTANT_Utf8_info常量来表示，而属性值的结构则完全是自定义的，只需要通过一个u4长度属性去说明属性值所占用的位数即可。
+
+![](http://ww1.sinaimg.cn/large/48ceb85dly1fzis5j4ay8j20p3050dhc.jpg)
+
+
+*Code表结构*
+
+![](http://ww1.sinaimg.cn/large/48ceb85dly1fzis66v4zpj20og0ai42k.jpg)
+
+attribute_name_index是一项指向CONSTANT_Utf8_info型常量，常量值固定为"Code"，它代表该属性的属性名称, attribute_length知识了属性值的长度。 max_stack代表了操作数栈(Operand Stacks)深度的最大值。在方法执行的任意时刻，操作数栈都不会超过这个深度。虚拟机运行的时候需要根据这个值来分配栈帧(Stack Frame)中的操作栈深度。max_locals代表了局部变量表所需的存储空间。在这里，max_locals的单位是Slot，Slot是虚拟机为局部变量分配内存所使用的最小单位。对于byte、char、float、int、short、boolean和returnAddress等长度不超过32位的数据类型，每个局部变量占1个Slot，而double和long这种64位数据类型则需要两个Slot来存放。方法参数（包括实例方法中的隐藏参数“this”）、显示处理器的参数（Exception Handler Parameter，就是try-catch语句中catch所定义的异常）、方法体中定义的局部变量都需要局部变量表来存放。
+
+并不是方法中用到了多少个局部变量，就把这些局部变量所占Slot之和作为max_locals的值，原因是局部变量表所占的Slot可以被其他变量所使用，Javac编译器会根据变量的作用域来分配Slot给各个变量使用，然后计算max_locals的大小。
+
+code_length和code用来存储Java源程序编译后生成的字节码指令。code_length代表字节码长度，code是用于存储字节码指令的一系列字节流，每个指令就是一个u1类型的单字节，当虚拟机读到code中的一个字节码时，就可以对应找出这个字节码代表是什么指令。并且可以知道这条指令后面是否需要跟随参数，以及参数应当如何理解，一共可以表达256条指令。
+
+关于code_length，虽然它是一个u4类型的长度，但虚拟机规范中明确限制了一个方法不允许超过65535条字节码指令，即它实际上只使用了u2的长度。如果超过这个限制，Javac编译器也会拒绝编译。
+
+翻译"2A B7 00 0A B1"的过程为：
+
+1. 读入2A，查得0x2A对应的指令为aload_0,这个指令的含义是将第0个Slot中卫reference类型的本地变量推送到操作数栈
+2. 读入B7，查表得0xB7对应的指令时invokespecial,这条指令的作用是以栈顶的reference所指向的对象作为方法接收者，调用此对象的实例构造器、private方法或者它的父方法。这个方法有一个u2类型的参数说明具体调用哪一个方法，它指向常量池CONSTANT_Methodref_info类型常量，即此方法的方法符号引用
+3. 读入00 0A,这是invokespecial的参数，查常量池0x000A对应的常量为实例构造函数<init>的符号引用
+4. 读入B1，查表得0xB1对应的指令为return，含义是返回此方法，并且返回值为void。这条指令执行后，当前方法结束。
+
+字节码指令之后的是这个方法的异常处理表集合。这些字段的含义为：如果当字节码在第start_pc行到第end_pc行(不包含)之间出现了catch_type或者其子类的异常(catch_type为指向一个CONSTANT_Class_info型常量的索引)，则转到第handler_pc行继续进行处理。当catch_type的值为0时，代表任意异常情况都需要转向handler_pc处进行处理。
+
+字节码中的“行”是一种形象的描述，指的是字节码相对于方法体开始的偏移量，而不是Java源码的行号。JDK1.4.2之前的Javac采用jsr和ret指令来实现finally语句，但1.4.2之后已经改为编译器自动在每段可能的分支路径之后都将finally语句块的内容荣誉生成一遍来实现finally语义。JDK1.7中，已经完全禁止Class文件中出现jsr和ret指令，如果遇到这两条指令，虚拟机会在类加载的字节码校验阶段抛出异常。
+
+*Exception属性*
+
+Exceptions属性的作用是列举出方法栈宏可能抛出的受查异常(Checked Exception)，也就是方法描述时在throws关键字后面列举的异常。
+
+*LineNumberTable属性*
+
+LineNumberTable用于描述Java源码行号与字节码行号(偏移量)之间的对应关系，默认会生成在Class文件中，可以在Javac中分别是用-g:none或-g:lines选项来取消或要求生成这项信息。
+
+line_number_table是一个数量为line_number_table_length、类型为line_number_info的集合，line_number_info表包括start_pc和line_number两个u2类型的数据项，前置是字节码行号，后者是Java源码行号。
+
+*LocalVariableTable属性*
+
+LocalVariableTable 属性用于描述栈帧中局部变量表中的变量与Java源代码中定义的变量之间的关系，也不是必须的属性，但默认生成在Class文件之中，可以在Javac中分别使用-g:none或-g:vars选项来取消或者要求生成这项信息。如果没有生成这项属性，最大的麻烦就是其他人引用这个方法时，所有的参数名称都会消失，IDE将会使用诸如arg0、arg1之类的占位符代替原有的参数名，这对程序运行没有影响，但会对代码编写带来较大不便。而且在调试期间无法根据参数名从上下文中获得参数值。
+
+local_variable_info代表了一个栈帧与源码中的局部变量的关联。
+
+在JDK中引入泛型之后，增加加了一个LocalVariableTypeTable，仅仅是把记录的字段描述符的descriptor_index替换成了字段的特征签名(Signature),对于非泛型类型来说，描述符和特征签名能描述的信息是基本一致的，但是泛型引入之后，由于描述符中泛型的参数化类型被擦除，描述符就不能准确地描述泛型类型了，因此出现了LocalVariableTypeTable
+
+*SourceFile属性*
+
+关闭，抛出异常时，对战中将不会显示出错代码所属的文件名(Unknown Source ?)
+
+*ConstantValue属性*
+
+ConstantValue 属性的作用是通知虚拟机自动为静态变量赋值，只有被static关键字修饰的变量(类变量)才可以使用这项属性。 对于非static类型的变量(也就是实例变量)的赋值是在实例构造器<init>方法中进行的；而对于类变量，则有两种方式可以选择：在类构造器<clinit>方法中或者使用ConstantValue属性。JDK1.7编译器的选择是如果同时使用final和static来修饰一个变量，并且这个常量的数据类型为基本类型或者String，就生成ConstantValue来进行初始化，如果这个变量没有被final修饰或者并非基本类型，就会在<clinit>方法中进行初始化。
+
+*InnerClasses属性*
+
+记录内部类和宿主类之间的关联，如果一个类定义了内部类，那编译器会为它以及它锁包含的内类生成InnerClasses属性。
+
+*Deprecated及Synthetic属性* 
+
+都属于标志类型的布尔属性，只存在有和没有的区别，没有属性值的概念
+
+Synthetic属性代表此字段或者方法并不是由Java源代码直接产生的，而是由编译器自动添加的，典型的就是 Bridge Method。所有非用户代码产生的类、方法及字段都应当至少设置Synthetic属性和ACC_SYNTHETIC标志中的一项，唯一的例外是实例构造器<init>方法和类构造器<clinit>方法
+
+*StackMapTable属性*
+
+JDK1.6发布增加到Class文件规范中，是一个复杂的变长属性，位于Code属性的属性表中，这个属性会在虚拟机类加载的字节码验证阶段被新类型检查器使用，目的在于代替以前比较消耗性能的基于数据流分析的类型退到验证器。省略了运行期通过数据流分析去确认字节码行为逻辑性的步骤，而是在编译阶段将一些列的验证类型直接记录在Class文件之中，通过检查这些验证类型代替类型推导的过程，从而大幅提升字节码验证的性能。
+
+一个方法的Code属性最多只能有一个StackMapTable属性，否则将抛出ClassFormatError 异常。
+
+*Signature属性*
+
+使用擦除的缺点就是运行期无法像C#等有真泛型支持的语言那样，将泛型类型域用户定义的普通类型同等对待，例如运行期做反射时无法获得泛型信息。Signature属性就是为了弥补这个缺陷而增设的，现在Java的反射API能够获取泛型类型，最终的数据来源也就是这个属性。
+
+如果当前的Signature属性是类文件的属性，则这个结构表示类签名，如果当前的Signature属性是方法表的属性，则这个结构表示方法类型的签名，如果当前Signature属性表字段表的属性，那么结构表示字段类型签名。
+
+*BootstrapMethods属性*
+
+这个属性用于保存invokedynamic指令引用的引导方法限定符。如果某个类文件结构的常量池中曾经出现过CONSTANT_InvokeDynamic_info类型的常量，那么这个类文件的属性表中必须存在一个明确的BootstrapMethods属性，即使多个，并且最多页只有一个。
 # 汇编指令 #
 ## 8086寄存器 ##
 - AH&AL=AX(accumulator)：累加寄存器，常用于运算;在乘除等指令中指定用来存放操作数，另外,所有的I/O指令都使用这一寄存器与外界设备传送数据。
