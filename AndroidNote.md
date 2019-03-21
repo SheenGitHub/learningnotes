@@ -185,3 +185,6 @@ dependencies 中加入
 
 ### 通过异步网络请求的添加的List中存在null的项目导致的问题 ###
 使用synchronized obj加锁 或者使用synchronizedList 
+
+#### 监听器不起作用 ####
+可能监听事件在其他地方重新设置了监听器setXXXListener

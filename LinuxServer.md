@@ -333,3 +333,103 @@ CentOS7使用firewalld打开关闭防火墙与端口
 - firewall-cmd --zone= public --remove-port=80/tcp --permanent
 
 
+# C/C++ #
+
+## 指针 ##
+### 指向类成员函数的函数指针 ###
+基本上要注意的有两点：
+
+①函数指针赋值要使用 &
+
+②使用.*(实例对象)或者->*（实例对象指针）调用类成员函数指针所指向的函数
+
+	A a;
+	B b;
+	void (A::*ptr)(int) = &A::setA;
+	A* pa = &a;
+	(pa->*ptr)(1000);
+	(a.*ptr)(10000);
+
+
+
+## 运算符重载 ##
+->和* 运算符重载
+
+	Image* ImagePtr::operator->(){
+		return LoadImage();
+	}
+	
+	Image& ImagePtr::operator* (){
+		return *LoadImage();
+	}
+	
+	ImagePtr image = ImagePtr("anImageFileName");
+	image->Draw(Point(50, 100));
+	//(image.operator->())->Draw(Point(50, 100))
+
+成员访问运算符和间接引用运算符的重载
+
+## 虚函数 ##
+包含纯虚函数的类称为抽象类
+
+### 虚函数表 ###
+
+![](http://ww1.sinaimg.cn/large/48ceb85dly1g19b7q057lj20bo04tq34.jpg)
+
+## 模板 ##
+	template <class Receiver>
+	class SimpleCommand:public Command{
+	public:
+		typedef void (Receiver::* Action)();
+		
+		SimpleCommand(Receiver* r, Action a) :
+			_receiver(r), _action(a){}
+		
+		virtual void Execute();
+	private:
+		Action _action;
+		Receiver* _receiver;
+	};
+	
+	template <class Receiver>
+	void SimpleCommand<Receiver>::Execute(){
+		(_receiver->*action)();
+	}
+	
+	MyClass* receiver = new MyClass;
+	
+	Command* aCommand = new SimpleCommand<MyClass>(receiver, &MyClass::Action);
+	
+	aCommand->Execute();
+
+命令模式中简单命令的应用
+
+# 设计模式 #
+## 代理模式 ##
+#### 意图 ####
+为其他对象提供一种代理以控制对这个对象的访问
+#### 动机 ####
+对一个对象进行访问控制的一个原因是为了只有在我们确实需要这个对象时才对它进行创建和初始化。
+#### 相关模式 ####
+Decorator 为对象添加一个或多个功能，但代理则控制对对象的访问。
+
+Remote Proxy不包含对实体的直接引用，而只是一个间接的引用，Virtual Proxy开始的时候使用一个间接引用，例如一个文件名
+
+## 命令模式 ##
+#### 意图 ####
+将一个请求封装为一个对象，从而可以用不同的请求对客户进行参数化
+#### 动机 ####
+只有工具箱对象的应用知道该由哪个对象做哪个操作，而工具箱的设计者无法知道请求的接受者或执行的操作。
+
+#### 实用性 ####
+Command模式是回调机制的一个面向对象的替代品，可以封装一组动作
+
+#### 效果 ####
+Command模式将调用操作的对象与知道如何实现该操作的对象解耦
+
+## 享元模式 ##
+#### 意图 ####
+运用共享技术有效地支持大量细粒度的对象
+#### 动机 ####
+Flyweight模式对那些因为数量太大而难以用对象表示的概念和实体进行建模
+
