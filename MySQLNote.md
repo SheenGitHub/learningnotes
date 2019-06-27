@@ -401,16 +401,36 @@ PARTITION BY
 User Defined Function
 
 # 字符集和校对规则 #
+字符集是指一种从二进制编码到某类字符符号的映射。“校对”是指一组用于某个字符集的排序规则。
+
+**只有基于字符的值才真正的“有”字符集的概念**
+
+#### 默认设置 ####
+MySQL服务器有默认的字符集和校对规则，每个数据库也有自己的默认值，每个表也有自己的默认值。
+
+- 创建数据库的时候，将根据服务器上的character_set_server来设定来设定该数据库的默认字符集。
+- 创建表的时候，将根据数据库的字符集设置指定这个表的字符集设置。
+- 创建列的时候，将根据表的设置指定列的字符集设置。
+
 一个表的默认字符集设置无法影响在这个表中某个列的值。只有创建列而没有为列指定字符集的时候，表的默认字符集才有作用
 
-- character_set_client
-- character_set_connection
-- character_set_result
-- character_set_database
-- character_set_server
+- character_set_client 服务器假设客户端以此来传输数据，以此解析转义序列
+- character_set_connection 收到客户端SQL，先将其转化成此字符集，并以此决定如何将数据转换成字符串
+- character_set_result 将数据返回给客户端时，将其转换为此格式
+- character_set_database 默认值改变，这个值也会改变 和 server相同，使用LOAD DATA INFILE时按此解析
+- character_set_server 默认值
+- character_set_filesystem
+- character_set_system
+- character_set_dir /usr/share/mysql/charsets/
+
+可以使用SET NAMES或者SET CHARACTER SET语句来改变上面的设置，在服务器上使用这个命令只能改变服务器端的设置。
+
+### 校对 ###
+比较的两个字符串的字符集不同，先将其转成同一个字符集再进行比较。
 
 只有排序查询要求的字符集与服务器数据的字符集相同的时候，才能使用索引进行排序
 
+大小写敏感校对规则的前缀分别是_cs、_ci、_bin,大小写敏感和二进制校对的不同之处在于，二进制校对规则直接使用字符的字节进行比较。
 # 全文索引 #
 # XA #
 # 查询缓存 #
@@ -421,3 +441,20 @@ InnoDB 使用日志来减少提交事务时的开销。
 
 InnoDB用日志把随机I/O变成顺序I/O。
 
+
+# Q&A #
+#### 查看技巧 ####
+\G 结尾，竖直查看表
+
+desc查看表结构
+
+#### MySQL导出数据库结构出现Cannot load from mysql.proc错误的解决方法 ####
+从mysql5.5的版本开始，proc这张表中的comment字段的列属性已经由char(64)改为text类型，我们需要更改一下数据类型：
+
+	ALTER TABLE `proc`
+	
+	MODIFY COLUMN `comment`  text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL AFTER `sql_mode`;
+
+以上无效
+
+**mysql_upgrade -uroot -p 即可**

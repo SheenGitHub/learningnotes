@@ -3711,3 +3711,47 @@ POP 和PUSH通常可以用来交换两个寄存器的值，也可以用来保护
 
 保护寄存器：push ax；push cx；….中间有很多执行的代码…pop cx;pop ax;
 
+# Java Web #
+## JSP ##
+JSP本身就是一个Servlet
+
+
+### request ###
+#### jsp中的request.getContextPath() ####
+	<c:set var="ctx" value="${pageContext.request.contextPath}"/>
+	
+	<%
+	    String path = request.getContextPath();
+	    String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+path+"/";
+	%>
+
+ <%=request.getContextPath()%>是为了解决相对路径的问题，可返回站点的根路径
+
+**但在JSP文件里,通过request.getContextPath()得到的路径却为空,为什么?**
+
+你在context中没有配置path属性，所以你的工程文件就是在根目录下，相当于path=""
+
+**得到工程文件的实际物理路径，可通过：<%=request.getRealPath("/")%>**
+
+request.getScheme();
+返回的协议名称,默认是http
+
+request.getServerName()
+返回的是你浏览器中显示的主机名，你自己试一下就知道了
+
+getServerPort()
+获取服务器端口号
+
+#### JSP页面设置全局变量 ####
+	创建JSP页面common.jsp:
+	
+	<%@ page language="java" pageEncoding="UTF-8"%>
+	
+	<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+	<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt"%>
+	<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn"%>
+	<c:set var="cognosPath" value="http://10.103.117.11/cognos10/cgi-bin/cognos.cgi" />
+	
+	
+	
+	在需要的页面通过：<%@ include file="/adf/common/jsp/taglibs.jsp"%>引入全局页面；

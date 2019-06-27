@@ -74,6 +74,39 @@ HTMLCollection而言，可以向方括号中传入数值或字符串形式的索
 ### body ###
 浏览器在遇到body标签才开始呈现内容，head中的js加载会延迟页面加载 
 
+### video ###
+- controls : 为网页中的音频显示标准的HTML5控制器。
+- autoplay : 使音频自动播放。
+- loop : 使音频自动重复播放
+
+可以用 &lt;source&gt; 标签来指定多个文件
+
+[https://developer.mozilla.org/en-US/docs/Learn/HTML/Multimedia_and_embedding/Video_and_audio_content](https://developer.mozilla.org/en-US/docs/Learn/HTML/Multimedia_and_embedding/Video_and_audio_content)
+
+#### 媒体事件 ####
+- abort	 在播放被终止时触发,例如, 当播放中的视频重新开始播放时会触发这个事件。
+- canplay	在媒体数据已经有足够的数据（至少播放数帧）可供播放时触发。这个事件对应CAN_PLAY的readyState。
+- canplaythrough	在媒体的readyState变为CAN_PLAY_THROUGH时触发，表明媒体可以在保持当前的下载速度的情况下不被中断地播放完毕。注意：手动设置currentTime会使得firefox触发一次canplaythrough事件，其他浏览器或许不会如此。
+- durationchange	元信息已载入或已改变，表明媒体的长度发生了改变。例如，在媒体已被加载足够的长度从而得知总长度时会触发这个事件。
+- emptied	媒体被清空（初始化）时触发。
+- ended	播放结束时触发。
+- error	在发生错误时触发。元素的error属性会包含更多信息。参阅Error handling获得详细信息。
+- loadeddata	媒体的第一帧已经加载完毕。
+- loadedmetadata	媒体的元数据已经加载完毕，现在所有的属性包含了它们应有的有效信息。
+- loadstart	在媒体开始加载时触发。
+- mozaudioavailable	当音频数据缓存并交给音频层处理时
+- pause	播放暂停时触发。
+- play	在媒体回放被暂停后再次开始时触发。即，在一次暂停事件后恢复媒体回放。
+- playing	在媒体开始播放时触发（不论是初次播放、在暂停后恢复、或是在结束后重新开始）。
+- progress	告知媒体相关部分的下载进度时周期性地触发。有关媒体当前已下载总计的信息可以在元素的buffered属性中获取到。
+- ratechange	在回放速率变化时触发。
+- seeked	在跳跃操作完成时触发。
+- seeking	在跳跃操作开始时触发。
+- stalled	在尝试获取媒体数据，但数据不可用时触发。
+- suspend	在媒体资源加载终止时触发，这可能是因为下载已完成或因为其他原因暂停。
+- timeupdate	元素的currentTime属性表示的时间已经改变。
+- volumechange	在音频音量改变时触发（既可以是volume属性改变，也可以是muted属性改变）.。
+- waiting	在一个待执行的操作（如回放）因等待另一个操作（如跳跃或下载）被延迟时触发。
 ### href使用 ###
 [a标签中href=""的几种用法](http://blog.csdn.net/u010297791/article/details/52784879)
 
@@ -1779,7 +1812,7 @@ JavaScript 中没有指针，在JavaScript 中变量不可能成为指向
 简单值（即标量基本类型值，scalar primitive）总是通过值复制的方式来赋值/ 传递
 
 复合值（compound value）——对象（包括数组和封装对象，参见第3 章）和函数，则总
-是通过引用复制的方式来赋值/ 传递
+是通过**引用复制**的方式来赋值/ 传递
 
 由于引用指向的是值本身而非变量，所以一个引用无法更改另一个引用的指向
 
@@ -1873,6 +1906,10 @@ JSON.stringify(..) 在对象中遇到undefined、function 和symbol 时会自动
 	}
 	JSON.stringify(a,(k,v)=>{if(k!=='c') return v;},3);
 
+[1,2]+[3,4] = '1,23,4'
+
+因为数组的valueOf() 操作无法得到简单基本类型值，于是它转而调用toString()。
+
 #### ToNumber ####
 **其中true 转换为1，false 转换为0。undefined 转换为NaN，null 转换为0**
 
@@ -1915,7 +1952,7 @@ parseInt 针对字符串，第一个字符决定基数(x,X,0)
 向parseInt(..) 传递非字符串，此时JavaScript
 会将参数强制类型转换为它能够处理的字符串。
 
-parseInt(1/0,19) === 18
+parseInt(1/0,19) === 18 | parseInt(Infinity, 19)
 
 19为基数的有效数字是 0-9,a-i;
 
@@ -2009,7 +2046,7 @@ a.valueOf() 每次调用都产生副作用
 	[] == ![] // true
 
 ，""、"\n"（或者" " 等其他空格组合）等空字符串被ToNumber 强制类型转换
-为0。
+为0。这样处理总没有问题了吧，不然你要怎么办？
 
 > 类型转换总会出现一些特殊情况，并非只有强制类型转换，任何编程语言都是如此。问题
 > 出在我们的臆断（有时或许碰巧猜对了？！），但这并不能成为诟病强制类型转换机制的
@@ -4186,6 +4223,8 @@ position:absolute 的元素的 width x%，与父元素的父元素有关，脱�
 ## float ##
 > float元素脱离里定位的标准流，随后的标准流元素将忽略该元素，按前一个标准流元素的位置定位。
 
+#### float 和 absolute都会使元素inline-block化 ####
+
 ### float参数 ###
 left,right
 决定流动的方向
@@ -4203,9 +4242,11 @@ left,right
 ### static ###
 默认值
 
-div有非static的postion属性，默认宽度为0，div里面有内容，会被内容撑起
+**div有非static的postion属性，默认宽度为0，div里面有内容，会被内容撑起**
 
-同上，div有float:left, float:right等样式，div默认宽度为0，会被内部内容撑起
+未定位的div宽度时100%；
+
+**同上，div有float:left, float:right等样式，div默认宽度为0，会被内部内容撑起**
 ### absolute ###
 > 脱离文档流，将与其他文档处于不同的层级
 > 若父元素不是relative定位，将相对于整个页面定位，默认位置是其在文档流中的定位
@@ -4217,7 +4258,7 @@ div有非static的postion属性，默认宽度为0，div里面有内容，会被
 #### 自动伸缩 ####
 当width为auto时，根据left，right自动伸缩，相对于第一个有定位属性的祖先
 
-> 如果 width 值为 auto 此时如果我们设置 left 和 right 都为0，则该元素会填充满其相对的元素，如果此时我们将宽度设置为固定值，这是绝对定位元素会优先取 left 值作为定位标志
+> **如果 width 值为 auto 此时如果我们设置 left 和 right 都为0，则该元素会填充满其相对的元素**，如果此时我们将宽度设置为固定值，这是绝对定位元素会优先取 left 值作为定位标志
 
 **将margin设为auto，lef和right值相等，绝对定位元素会居中，垂直方向也是一样的(bottom,top)**
 
@@ -4374,11 +4415,15 @@ border-radius:边框圆角
 > 
 > background-repeat:repeat no-repeat;
 > 
-> background-size: 背景大小
+> background-size: 背景大小 cover覆盖 contain一个方向顶格
 > 
 > background-origin:[content-box|padding-box|border-box]
 > background-clip:背景的绘制区域（应该是针对图片内的坐标）
+> background-position: 属性设置背景图像的起始位置
+> object-fit： CSS 属性指定可替换元素的内容应该如何适应到其使用的高度和宽度确定的框 contain|cover|fill|none|scale-down
 
+## Table ##
+border-collapse: collapse
 ## 渐变 ##
 
 - radial-gradient:径向渐变
@@ -4388,7 +4433,7 @@ border-radius:边框圆角
 - text-shadow:文字阴影
 - box-shadow:盒子阴影，适用于div
 - text-overflow:ellipsis(...) clip(裁剪字)
-- white-space:nowrap;
+- white-space:nowrap;pre保留空格
 - word-wrap:break-work 换行,分裂一个字
 - word-break: keep-all 保持单词不拆分， break-all 拆分单词
 
@@ -4430,6 +4475,96 @@ border-radius:边框圆角
 - column-span: 1|all 跨越多少列
 - column-width  列的宽度
 
+## 属性继承 ##
+### 无继承性的属性 ###
+1、display：规定元素应该生成的框的类型
+
+2、文本属性：
+
+vertical-align：垂直文本对齐
+
+text-decoration：规定添加到文本的装饰
+
+text-shadow：文本阴影效果
+
+white-space：空白符的处理
+
+unicode-bidi：设置文本的方向
+
+3、盒子模型的属性：width、height、margin 、margin-top、margin-right、margin-bottom、margin-left、border、border-style、border-top-style、border-right-style、border-bottom-style、border-left-style、border-width、border-top-width、border-right-right、border-bottom-width、border-left-width、border-color、border-top-color、border-right-color、border-bottom-color、border-left-color、border-top、border-right、border-bottom、border-left、padding、padding-top、padding-right、padding-bottom、padding-left
+
+4、背景属性：background、background-color、background-image、background-repeat、background-position、background-attachment
+
+5、定位属性：float、clear、position、top、right、bottom、left、min-width、min-height、max-width、max-height、overflow、clip、z-index
+
+6、生成内容属性：content、counter-reset、counter-increment
+
+7、轮廓样式属性：outline-style、outline-width、outline-color、outline
+
+8、页面样式属性：size、page-break-before、page-break-after
+
+9、声音样式属性：pause-before、pause-after、pause、cue-before、cue-after、cue、play-during
+### 可继承属性 ###
+1、字体系列属性
+
+font：组合字体
+
+font-family：规定元素的字体系列
+
+font-weight：设置字体的粗细
+
+font-size：设置字体的尺寸
+
+font-style：定义字体的风格
+
+font-variant：设置小型大写字母的字体显示文本，这意味着所有的小写字母均会被转换为大写，但是所有使用小型大写字体的字母与其余文本相比，其字体尺寸更小。
+
+font-stretch：对当前的 font-family 进行伸缩变形。所有主流浏览器都不支持。
+
+font-size-adjust：为某个元素规定一个 aspect 值，这样就可以保持首选字体的 x-height。
+
+2、文本系列属性
+
+text-indent：文本缩进
+
+text-align：文本水平对齐
+
+line-height：行高
+
+word-spacing：增加或减少单词间的空白（即字间隔）
+
+letter-spacing：增加或减少字符间的空白（字符间距）
+
+text-transform：控制文本大小写
+
+direction：规定文本的书写方向
+
+color：文本颜色
+
+3、元素可见性：visibility
+
+4、表格布局属性：caption-side、border-collapse、border-spacing、empty-cells、table-layout
+
+5、列表布局属性：list-style-type、list-style-image、list-style-position、list-style
+
+6、生成内容属性：quotes
+
+7、光标属性：cursor
+
+8、页面样式属性：page、page-break-inside、windows、orphans
+
+9、声音样式属性：speak、speak-punctuation、speak-numeral、speak-header、speech-rate、volume、voice-family、pitch、pitch-range、stress、richness、、azimuth、elevation
+
+### 所有元素可以继承的属性 ###
+1、元素可见性：visibility
+
+2、光标属性：cursor
+### 内联元素可以继承的属性 ###
+1、字体系列属性
+
+2、除text-indent、text-align之外的文本系列属性
+### 块级元素可以继承的属性 ###
+1、text-indent、text-align
 ## 用户界面 ##
 resize: [none both horizontal vertical]
 box-size: content-box 应用在内容框 border-box 应用在整个盒（包括边框内边距） inherit从父元素继承
@@ -4437,6 +4572,7 @@ outline-offset 轮廓距离
 outline 轮廓样式
 max-with：100% 响应屏幕变化
 filter:grayscale(100%)图片滤镜
+
 
 ## 动画例子 ##
 [modal动画](http://www.runoob.com/try/try.php?filename=trycss_image_modal_js)
@@ -4467,6 +4603,9 @@ filter:grayscale(100%)图片滤镜
 
 **即便定义!important，继承里的特殊性也只有0**
 > 权重顺序为：继承=>HTML普通选择符=>类选择符=>style元素=>!important
+
+
+ID (#id) > Class (.class) > Type (例如 header)
 
 ### 层叠 ###
 
@@ -4542,6 +4681,10 @@ run-in框的行为如下：
 - position为absolute或fixed
 - display为inline-block, table-cell, table-caption, flex, inline-flex
 - overflow不为visible
+
+生成新的BFC，位置仍然从原先的位置开始排，后继的Block元素会跟着之前的元素
+
+对p使用overflow:hidden;生成一个新的BFC，不被float元素遮盖，可以解决文字环绕的问题；
 ### div ###
 div默认占满一行
 
@@ -5026,6 +5169,35 @@ sass局部文件的文件名以下划线开头。这样，sass就不会在编译
 以class="seriousError" 修饰的html元素最终的展示效果就好像是class="seriousError error"。
 
 **.seriousError不仅会继承.error自身的所有样式，任何跟.error有关的组合选择器样式也会被.seriousError以组合选择器的形式继承**
+## AntDesign ##
+#### antDesign样式无法生效 ####
+
+AntDesign手动引入 "antd/dist/antd.css"
+可参考在index.html中引入
+
+*使用 babel-plugin-import*
+
+	npm install babel-plugin-import --save-dev
+
+可在package.json的babel中加入
+
+	// .babelrc or babel-loader option
+	{
+	  "plugins": [
+	    ["import", {
+	      "libraryName": "antd",
+	      "libraryDirectory": "es",
+	      "style": "css" // `style: true` 会加载 less 文件
+	    }]
+	  ]
+	}
+## CSS方案 ##
+#### 竖直居中 ####
+	& .vertCenter {
+	    position: absolute;
+	    top: 50%;
+	    transform: translate(0, -50%);
+	  }
 # 万维网 #
 ## 备案查询 ##
 
@@ -5587,3 +5759,157 @@ However, there is an additional overriding condition on the preceding rules: a s
 - iPhone6 Plus 398
 - Huawei P9 344
 
+# Node #
+
+#### 更新node版本： ####
+先清除npm缓存：npm cache clean -f
+
+然后安装n模块：npm install -g n
+
+升级node.js到最新稳定版：n stable
+
+如果是mac 升级出现错误 在命令前面家sudo
+
+# Ajax #
+## 四种常见的 POST 提交数据方式 ##
+协议规定 POST 提交的数据必须放在消息主体（entity-body）中，但协议并没有规定数据必须使用什么编码方式
+
+服务端通常是根据请求头（headers）中的 Content-Type 字段来获知请求中的消息主体是用何种方式编码
+
+### application/x-www-form-urlencoded ###
+如果不设置 enctype 属性，默认
+
+> POST http://www.example.com HTTP/1.1
+> Content-Type: application/x-www-form-urlencoded;charset=utf-8
+> 
+> title=test&sub%5B%5D=1&sub%5B%5D=2&sub%5B%5D=3
+
+### multipart/form-data ###
+必须让 <form> 表单的 enctype 等于 multipart/form-data
+
+> POST http://www.example.com HTTP/1.1
+> Content-Type:multipart/form-data; boundary=----WebKitFormBoundaryrGKCBY7qhFd3TrwA
+> 
+> ------WebKitFormBoundaryrGKCBY7qhFd3TrwA
+> Content-Disposition: form-data; name="text"
+> 
+> title
+> ------WebKitFormBoundaryrGKCBY7qhFd3TrwA
+> Content-Disposition: form-data; name="file"; filename="chrome.png"
+> Content-Type: image/png
+> 
+> PNG ... content of chrome.png ...
+> ------WebKitFormBoundaryrGKCBY7qhFd3TrwA--
+
+上面提到的这两种 POST 数据的方式，都是浏览器原生支持的，而且现阶段标准中原生 <form> 表单也只支持这两种方式
+
+### application/json ###
+告诉服务端消息主体是序列化后的 JSON 字符串
+
+> var data = {'title':'test', 'sub' : [1,2,3]};
+> $http.post(url, data).success(function(result) {
+>     ...
+> });
+
+最终发送的请求是：
+
+> POST http://www.example.com HTTP/1.1 
+> Content-Type: application/json;charset=utf-8
+> 
+> {"title":"test","sub":[1,2,3]}
+
+### text/xml ###
+POST http://www.example.com HTTP/1.1 
+Content-Type: text/xml
+
+	<?xml version="1.0"?>
+	<methodCall>
+	    <methodName>examples.getStateName</methodName>
+	    <params>
+	        <param>
+	            <value><i4>41</i4></value>
+	        </param>
+	    </params>
+	</methodCall>
+# Vue #
+## Props ##
+不要试图在组件内修改Props，在组件内Props是不可更改的，从父组件传递修改子组件props的函数，在子组件内调用函数可以修改父组件属性，从而更新子组件。
+
+# 浏览器兼容性 #
+querySelectorAll()的结果是NodeList，在IE上不支持forEach
+
+classlist在IE上不支持
+
+：visited在 IE Firefox上不支持
+
+img{ content:url}在 IE Firefox上不支持
+
+没有src的img在Firefox Chrome上会显示边框，建议改用 div{display:inline-block;}
+
+# JS混淆 #
+	false       =>  ![]
+	true        =>  !![]
+	undefined   =>  [][[]]
+	NaN         =>  +[![]]
+	0           =>  +[]
+	1           =>  +!+[]
+	2           =>  !+[]+!+[]
+	10          =>  [+!+[]]+[+[]]
+	Array       =>  []
+	Number      =>  +[]
+	String      =>  []+[]
+	Boolean     =>  ![]
+	Function    =>  []["filter"]
+	eval        =>  []["filter"]["constructor"]( CODE )()
+	window      =>  []["filter"]["constructor"]("return this")()
+
+# Q&A #
+#### 提交文件到服务器没反应 ####
+musicBook 写成了musicbook Springboot没有解析该字段
+
+#### div默认高度和宽度 ####
+浏览器一般默认解释为内容的高度，而不是100%。但是只要为html和body设置高度为100%就可以了：html,body{height:100%;}
+
+Html级元素默认宽度是100%，即整行；但是高度并不是100%，而仅仅是一行而已。
+
+### 水平垂直居中 ###
+[https://div.io/topic/1155](https://div.io/topic/1155)
+
+	position:absolute;
+	top:50%;
+	left:50%;
+	transform:translate(-50%,-50%);
+
+**text-align属性对应用了position:absloute/fixed声明的元素无效！**
+
+在FireFox浏览器，以及貌似IE6/IE7下，标签内似乎有不占据任何空间的匿名文字节点元素，于是，图片就跟在这个“隐形”的节点元素之后显示，而这个节点因为由于受text-align:center;声明影响居中显示了，于是，紧跟其后的inline水平的图片元素就对着中垂线显示了！
+
+而其他浏览器，如Chrome浏览器，标签内貌似很干净，因为应用了absolute属性值的图片前面没有可以依靠的元素，因此，左对齐显示了。
+
+**text-align属性虽然可以实现absolute元素的水平居中对齐，但是，并不是直接对absolute元素起的作用，而是absolute元素之前的inline/inline-block水平的元素**
+
+absolute是相对于第一个非static元素
+
+#### element-ui el-menu 右侧有1px的border ####
+&lt;ul role="menubar" class="el-menu" style="border-right-width:0px"&gt;
+
+#### 文字不被识别为 :last-child ####
+给文字加上&lt;span&gt;标签
+#### 父元素设置min-height子元素高度设置100%取不到值 ####
+解决方法：给父元素加绝对定位，然后子元素加相对定位，这样子元素的高度就会根据父元素的高度进行计算
+
+- 第一种是父级有显性高度，即写了具体值
+- 第二种就是自身绝对定位，父级相对定位脱离文档流
+
+子元素绝对定位是计算父元素的 padding 值的
+
+
+#### 如果CSS支持了父选择器，会有什么后果？ ####
+后果之一，就是原先的一次渲染被破坏，子元素能够影响父元素的渲染，于是乎，“死循环”开始了，页面渲染会出现各种各样的死循环，现有的很多CSS规则会被颠覆，无限宽度反复渲染等问题就会出现。这就是为什么父选择器呼声那么高，却迟迟不支持的原因。
+#### padding设置50%造成的padding循环错误 ####
+CSS中没有死循环的说法
+#### CSS中height:100%和height:inherit的异同 ####
+在absolute定位中，inherit相对DOM中的父元素，否则是定位了的父元素
+
+#### Error in v-on handler: "TypeError: handler.apply is not a function" ####
+method被赋值了，可能原因 Vue中的method和data重名了，导致给data赋值的时候将方法覆盖了
