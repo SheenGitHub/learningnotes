@@ -1,0 +1,220 @@
+var canvas  = document.getElementById('canvas'),
+    context = canvas.getContext('2d'),
+
+    resetButton    = document.getElementById('resetButton'),
+    negativeButton = document.getElementById('negativeButton'),
+    greyButton     = document.getElementById('greyButton'),
+    embossButton   = document.getElementById('embossButton'), 
+
+    image = new Image(),
+    imageData,
+    imageDataCopy = context.createImageData(canvas.width, canvas.height);
+
+    mousedown = {},
+    rubberbandRectangle = {},
+    dragging = false;
+
+// Functions ............................................
+function windowToCanvas(canvas, x, y){
+  var canvasRectangle = canvas.getBoundingClientRect();
+  return {
+    x : x - canvasRectangle.left,
+    y : y - canvasRectangle.top
+  };
+}
+
+function copyCanvasPixels() {
+  var i = 0;
+  for (i=0; i < 3; i++) {
+    imageDataCopy.data[i] = 255- imageData.data[i];
+  }
+
+  for (i=3; i < imageData.data.length -4; i+= 4) {
+    imageDataCopy.data[i] = imageData.data[i]/2;
+    imageDataCopy.data[i+1] = imageData.data[i+1];
+    imageDataCopy.data[i+2] = imageData.data[i+2];
+    imageDataCopy.data[i+3] = imageData.data[i+3];
+  }
+}
+
+function captureCanvasPixels() {
+  imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  copyCanvasPixels();
+}
+//获取橡皮框中的图像
+// function captureRubberbandPixels() { 
+//   imageData = context.getImageData( rubberbandRectangle.left, 
+//                                     rubberbandRectangle.top, 
+//                                     rubberbandRectangle.width, 
+//                                     rubberbandRectangle.height);
+// }
+
+function restoreRubberbandPixels() {
+  var deviceWidthOverCSSPixels = imageData.width / canvas.width,
+      deviceHeightOverCSSPixels = imageData.height / canvas.height;
+
+  context.putImageData(imageData, 0, 0);
+
+  context.putImageData( imageDataCopy, 0, 0,
+                        rubberbandRectangle.left + context.lineWidth,
+                        rubberbandRectangle.top + context.lineWidth,
+                        (rubberbandRectangle.width - 2 * context.lineWidth) * deviceWidthOverCSSPixels,
+                        (rubberbandRectangle.height - 2 * context.lineWidth) * deviceHeightOverCSSPixels);
+}
+
+function drawRubberband() {
+  context.strokeRect( rubberbandRectangle.left   + context.lineWidth,
+                      rubberbandRectangle.top    + context.lineWidth,
+                      rubberbandRectangle.width  - 2 * context.lineWidth,
+                      rubberbandRectangle.height - 2 * context.lineWidth);
+}
+
+function setRubberbandRectangle(x, y) {
+  rubberbandRectangle.left   = Math.min(x, mousedown.x);
+  rubberbandRectangle.top    = Math.min(y, mousedown.y);
+  rubberbandRectangle.width  = Math.abs(x - mousedown.x);
+  rubberbandRectangle.height = Math.abs(y - mousedown.y);
+}
+
+// function updateRubberband() {
+//   captureRubberbandPixels();
+//   drawRubberband();
+// }
+
+function rubberbandStart(x, y) {
+  mousedown.x = x;
+  mousedown.y = y;
+
+  rubberbandRectangle.left  = mousedown.x;
+  rubberbandRectangle.top = mousedown.y;
+  rubberbandRectangle.width = 0;
+  rubberbandRectangle.height = 0;
+  
+  dragging = true;
+
+  captureCanvasPixels();
+}
+
+function rubberbandStretch(x, y) {
+  if (rubberbandRectangle.width > 2 * context.lineWidth && 
+      rubberbandRectangle.height > 2 * context.lineWidth) {
+      if (imageData !== undefined) {
+        restoreRubberbandPixels();
+      }
+  }
+
+  setRubberbandRectangle(x, y);
+
+  if (rubberbandRectangle.width > 2 * context.lineWidth && 
+      rubberbandRectangle.height > 2 * context.lineWidth) {
+      drawRubberband();
+  }
+}
+
+function rubberbandEnd() {
+  context.putImageData(imageData, 0, 0);
+  context.drawImage(canvas,
+                    rubberbandRectangle.left + context.lineWidth * 2,
+                    rubberbandRectangle.top + context.lineWidth * 2,
+                    rubberbandRectangle.width - 4 * context.lineWidth,
+                    rubberbandRectangle.height - 4 * context.lineWidth,
+                    0, 0, canvas.width, canvas.height);
+  dragging  = false;
+  imageData = undefined;
+}
+
+canvas.onmousedown = function (e) {
+  var loc = windowToCanvas(canvas, e.clientX, e.clientY);
+  e.preventDefault();
+  rubberbandStart(loc.x, loc.y);
+}
+
+canvas.onmousemove = function (e) {
+  var loc;
+
+  if (dragging) {
+    loc = windowToCanvas(canvas, e.clientX, e.clientY);
+    rubberbandStretch(loc.x, loc.y);
+  }
+};
+
+canvas.onmouseup = function (e) {
+  rubberbandEnd();
+}
+
+image.src = 'images/countrypath.jpg';
+image.onload = function () {
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+}
+
+resetButton.onclick = function (e) {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+}
+
+negativeButton.onclick = function (e) {
+  var imageData = context.getImageData(0, 0, canvas.width, canvas.height),
+          data = imageData.data;
+  for( i=0; i<= data.length -4; i+=4 ){
+    data[i] = 255 - data[i];
+    data[i+1] = 255 - data[i+1];
+    data[i+2] = 255 - data[i+2];
+  }
+
+  context.putImageData(imageData, 0, 0);
+}
+
+greyButton.onclick = function (e) {
+  var imageData = context.getImageData(0, 0, canvas.width, canvas.height),
+          data = imageData.data;
+  for( i=0; i<= data.length -4; i+=4 ){
+    average = (data[i] + data[i+1] + data[i+2])/3;
+    data[i] = average;
+    data[i+1] = average;
+    data[i+2] = average;
+  }
+
+  context.putImageData(imageData, 0, 0);
+}
+
+embossButton.onclick = function (e) {
+  var imageData, data, length, width, index = 3;
+      imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      data      = imageData.data;
+      width     = imageData.width;
+      length    = data.length;
+
+  for ( i=0; i< length ; i++ ) {
+    // If we won't overrun the bounds of the array
+    if (i <= length - width*4) {
+      // If it's not an alpha
+      if ((i+1) %4 !== 0) {
+        // If it's the last pixel in the row, there is not pixel
+        // to the right, so copy previous pixel's value
+        if ( (i+4) % (width*4) === 0) {
+          data[i]   = data[i-4];
+          data[i+1] = data[i-3];
+          data[i+2] = data[i-2];
+          data[i+3] = data[i-1]; 
+          i += 4;
+        } 
+        else { // Not the last pixel in the row
+          data[i] = 255 / 2              // Average value
+                    + 2*data[i]          // Current pixel
+                    - data[i+4]          // Next Pixel
+                    - data[i+width*4];   // Pixel underneath
+        }
+      }
+    }
+    else { //Last row, no pixels underneath, so copy pixel above
+      if ((i+1) % 4 !== 0) {
+        data[i] = data[i-width*4];
+      }
+    }
+  }
+
+  context.putImageData(imageData, 0, 0);
+}
+
+context.strokeStyle = 'navy';
+context.lineWidth = 1.0;
