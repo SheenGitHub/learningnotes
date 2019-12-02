@@ -1,4 +1,13 @@
 # HTML #
+## Canvas ##
+### 图像 ###
+drawImage
+
+drawImage(img) 会按照默认的大小进行平铺
+
+drawImage(img, dx, dy, dw, dh) 会将图像完整地绘制到指定位置上，并根据目标区域的大小进行缩放
+
+drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)会将部分图像绘制到指定的位置上，并根据目标区域的大小进行缩放
 ## DOM ##
 ### Node ###
 #### nodeType ####
@@ -1805,6 +1814,25 @@ void 并不改变表达式的结果，
 近取整”（round-to-nearest）模式来决定最后的结果
 
 对负零进行字符串化会返回"0",反过来将其从字符串转换为数字，得到的结果是准确的
+### 正则表达式 ###
+正则类进入使用状态，首先要确定目标私服穿的起始搜索位置。它是字符串的起始字符，或者由正则表达式的lastIndex属性指定(lastIndex只作为exec和test方法的起始搜索位置，当且仅当/g时)，在匹配失败后，此位置在最后一次匹配的起始位置的下一个字符的位置。
+
+如果正则表示式所有的可能路径都没有匹配到，正则表达式会回到起始位置，然后从下一个字符重新尝试。
+
+#### 回溯 ####
+当遇到量词和分支时，需要决策下一步如何处理。
+
+贪婪(*)和惰性(*?)版本的正则表达式是等价的，但是它们的匹配过程并不相同。贪婪的量词可能会一直匹配到词尾，然后再向前回溯。
+
+JavaScript没有选择点号匹配换行在内的任意字符。
+
+具体化减少回溯，考虑其它标签的存在
+
+在NFA匹配时候，是根据正则表达式来匹配文本的；而在DFA匹配时候，采用的是用文本来匹配正则表达式的方式
+
+独占模式 不回溯，非捕获组(?:)
+
+
 ### 值和引用 ###
 JavaScript 中没有指针，在JavaScript 中变量不可能成为指向
 另一个变量的引用。
@@ -1988,6 +2016,39 @@ a + "" 会对a 调用valueOf() 方法，然后通过ToString 抽象
 符号不能够被强制类型转换为数字（显式和隐式都会产生错误），但可以被强制类型转换
 为布尔值（显式和隐式结果都是true）。
 
+#### toPrimitive ####
+
+*toPrimitive(input,preferedType?)*
+
+    input是输入的值，preferedType是期望转换的类型，他可以是字符串，也可以是数字。
+
+    如果转换的类型是number，会执行以下步骤：
+
+     1. 如果input是原始值，直接返回这个值；
+
+     2. 否则，如果input是对象，调用input.valueOf()，如果结果是原始值，返回结果；
+
+     3. 否则，调用input.toString()。如果结果是原始值，返回结果；
+
+     4. 否则，抛出错误。
+
+     如果转换的类型是String，2和3会交换执行，即先执行toString()方法。
+
+    你也可以省略preferedType，此时，日期会被认为是字符串，而其他的值会被当做Number。
+
+加号操作符会将preferedType看成Number，调用ES内部的toPrimitive(input，Number)方法，得到空字符串
+
+>[]+{}
+>"[object Object]"
+
+最终会调用双方的toString()方法，再做字符串加法
+
+
+>{}+[]
+>0
+
+但是空对象加空数组就不一样了，加号运算符的定义是这样的：如果其中一个是字符串，另一个也会被转换为字符串，否则两个运算数都被转换为数字。而同时，javascript有这样的特性，如果{}既可以被认为是代码块，又可以被认为是对象字面量，那么js会把他当做代码块来看待。
+
 #### 宽松相等和严格相等 ####
 == 允许在相等比较中进行强制类型转换，而=== 不允许
 
@@ -2041,12 +2102,44 @@ null 和undefined 不能够被封装（boxed），Object(null)
 
 a.valueOf() 每次调用都产生副作用
 
+- "0" == null; // false
+- "0" == undefined; // false
+- "0" == false; // true -晕！
+- "0" == NaN; // false
+- "0" == 0; // true
+- "0" == ""; // false
+- false == null; // false
+- false == undefined; // false
+- false == NaN; // false
+- false == 0; // true -晕！
+- false == ""; // true -晕！
+- false == []; // true -晕！
+- false == {}; // false
+- "" == null; // false
+- "" == undefined; // false
+- "" == NaN; // false
+- "" == 0; // true -晕！
+- "" == []; // true -晕！
+- "" == {}; // false
+- 0 == null; // false
+- 0 == undefined; // false
+- 0 == NaN; // false
+- 0 == []; // true -晕！
+- 0 == {}; // false
+
 > 不要有这样的想法，觉得“编程语言应该阻止我们犯错误”。
 
 	[] == ![] // true
 
+    2 == [2]; // true
+    "" == [null]; // true
+
+    0 == "\n"; // true
+
 ，""、"\n"（或者" " 等其他空格组合）等空字符串被ToNumber 强制类型转换
 为0。这样处理总没有问题了吧，不然你要怎么办？
+
+
 
 > 类型转换总会出现一些特殊情况，并非只有强制类型转换，任何编程语言都是如此。问题
 > 出在我们的臆断（有时或许碰巧猜对了？！），但这并不能成为诟病强制类型转换机制的
@@ -3957,7 +4050,184 @@ JavaScript只有词法作用域，简单明了。
 **主要区别：词法作用域是在写代码或者说定义时确定的，而动态作用域是在运行时确定
 的。（this 也是！)**
 ## 性能 ##
+浏览器在解析到body标签之前不会渲染页面的任何部分
 
+每个文件必须等到前一个文件下载并执行完成才会开始下载（script下载允许并行）
+
+内嵌脚本放在引用外联样式表的link标签之后会导致页面阻塞去等待样式表的下载；建议不要把内嵌脚本紧跟在link标签后
+
+大型网站和网络应用需要依赖数个JavaScript文件，可以把多个文件合成一个，这样只要引用一个script标签，就可以减少性能消耗
+
+减少JavaScript文件大小并限制HTTP请求数仅仅是创建响应迅速的Web应用的第一步。尽管下载单个较大的JavaScript文件只产生一次HTTP请求，却会锁死浏览器一大段时间。
+
+#### 非阻塞脚本 ####
+defer属性指明本元素所含的脚本不会修改DOM；对应的JavaScript文件将在页面解析到script标签时开始下载，但并不会执行，直到DOM加载完成(onload事件被出发前)，无论是内嵌或是外链的都是如此
+
+async加载完成后自动执行，defer需要等待页面完成后执行；
+
+#### 动态脚本 ####
+文件在该元素被添加到页面时开始下载；文件的下载不会阻塞页面其他进程。甚至可以将代码放在页面head区域而不影响页面的其它部分
+
+把新建的script标签添加到head标签比添加到body里更保险，尤其是在页面加载过程中执行代码时更是如此；当body中的内容没有完全加载时，IE可能会抛出一个操作已终止的错误信息
+
+使用动态脚本节点下载文件时，返回的代码通常会立刻执行(Firefox和opera会等待其他动态脚本执行完毕)
+
+IE中 script元素提供一个readyState属性 uninitialized loading loaded interactive complete
+
+只有Firefox和Opera保证脚本会按照你指定的顺序执行
+
+#### XMLHttpRequest脚本注入 ####
+可以加载JavaScript但不立刻执行；在所有主流浏览器中都能正常工作；
+
+
+### 函数对象 ###
+内部属性[[Scope]]包含一个函数被创建的作用域中对象的集合，这个集合被称为函数的作用域链，它决定哪些数据能被函数访问。
+
+当执行环境被创建时，它的作用域链初始化为当前运行函数的[[Scope]]属性的对象。会创建完成一个活动对象，作为函数运行时的变量对象，包含所有的局部变量，命名变量，参数集合以及this，然后此对象被推入作用域链的最前端。当执行环境被销毁，活动对象也随之销毁。
+在函数中读写局部变量总是最快的，而读写全局变量总是最慢的。
+
+如果某个跨作用域的值在函数中被引用一次以上，那么就把它存储到局部变量里。比如用局部变量存储document
+
+执行with语句时，执行环境的作用域链临时被改变了。一个新的变量对象被创建，这个对象被推入作用域链的首位。try-catch也有同样的效果，在catch代码内部，函数所有局部变量将会被放在第二个作用域链对象中。
+
+### 动态作用域 ###
+with，try-catch或是eval()函数都被认为是动态作用域，无法通过静态分析检测出来
+
+### 闭包 ###
+当函数执行时，一个包含了变量id以及其他数据的活动对象被创建，它成为执行环境作用域链中的第一个对象，而全局对象紧随其后。当闭包被创建时，它的[[Scope]]属性被初始化为这些对象。由于引入了闭包，函数的活动对象的引用仍然存在于闭包的[[Scope]]属性汇总，因此活动对象无法被销毁。这意味着脚本中的闭包与非闭包函数相比，需要更多的内存开销。尤其在IE中有大量非原生的JavaScript对象来实现DOM对象。
+
+当闭包代码执行时，会创建一个执行环境，它的作用域链与属性[[Scope]]中所引用的两个相同的作用域链将会被一起初始化，然后一个活动对象为闭包自身所创建。频繁的跨作用域访问会带来性能问题。可以考虑局部变量。
+
+### 对象成员 ###
+JavaScript的对象是基于原型的；原型对象为所有对象实例所共享；
+
+由此，对象可以有两种成员类型：实例成员(own成员)和原型成员
+
+> Object或Array的实例，会自动拥有一个Object实例作为原型
+> 
+> hasOwnProperty只返回实例成员，in操作符既搜索实例也搜索原型
+
+定义一个函数F，就会存在一个F.prototype， 令 P = F.prototype,P.constructor就是F本身，在P上添加的成员会在用new F产生的对象的原型链上；P的原型属性(内部属性__proto__)是一个Object实例；令 b = new F; b的原型属性(__proto__)就是Book.prototype;不同的F实例共享同一个原型链；他们有各自的实例属性，而其他部分都继承自原型；
+
+搜索实例成员比成员字面量或局部变量读取数据代价更高，再加上遍历原型链带来的开销，这让性能问题更为严重。
+
+成员嵌套越深，读取速度就会越慢
+JavaScript的命名空间，比如YUI使用的技术，是导致频繁访问嵌套属性的起因之一。
+
+*把一个对象方法保存在局部变量会导致this无法绑定到window，而this的改变会使JavaScript引擎无法正确解析它的对象成员，进而导致程序出错*
+
+### DOM编程 ###
+DOM是一个独立于语言，用于操作XML和HTML文档的程序接口
+
+Chrom中的DOM是使用WebKit中的WebCore库来渲染页面，但JavaScript引擎是他们自己研发的V8，DOM和JavaScript两个相互独立的功能通过接口连接，就像连个岛屿间的收费桥梁，尽量减少访问DOM的次数。(如for循环)
+
+**innerHTML和DOM原生方法的效率对比**
+
+HTML集合，getElementsByNames 以假定实时态存在，与文档保持着连接，会重复执行查询过程，效率很低；
+
+	var alldivs = document.getElementsByTagNames('div');
+	for(var i = 0; i< allDivs.length; i++){
+		document.body.appendChild(document.createElement('div'));
+	}
+
+以上代码会产生死循环；
+
+一个集合的length读取比一个普通数据的length读取要慢很多；
+
+可考虑toArray方法；拷贝元素到数组； 访问DOM员尽量考虑局部变量保存；nextSibling方法更有优势；
+
+区分元素节点的属性和不区分的(区分文本和注释)
+
+- children childNodes
+- childElementCount childNodes.length
+- firstElementChild firstChild
+- lastElementChild lastChild
+- nextElementSibling nextSibling
+- previousElementSibling previousSibling
+
+document.querySelectorAll返回的不是HTML集合，因此返回的节点不会对应实时的文档接口。
+
+#### 重绘与重排 ####
+DOM树 表示页面结构
+
+渲染树 表示DOM节点如何显示
+
+> DOM树中的每一个需要显示的节点在渲染树中至少存在一个对应的节点(隐藏的DOM元素咋渲染树中没有对应的节点)，渲染树中的节点被称为帧(frames)或盒(boxes)，理解成符合CSS模型的定义，理解页面元素为一个具有padding,margin,borders和position的盒子。一旦DOM树和渲染树构建完成，浏览器就开始显示(绘制paint)页面元素
+
+当DOM的变化影响了元素的集合属性(宽和高),浏览器需要重新计算元素的几何属性，浏览器会使渲染树中受影响的部分失效，并重新构造渲染树，这个过程称为重排(reflow),完成重排和，浏览器会重新绘制受影响的部分到屏幕中，该过程重围重绘(repaint)。
+
+并不是所有的DOM变化都会影响几何属性(例如颜色),这种情况只会发生一次重绘，因为元素的布局没有改变。
+
+*重排何时发生*
+
+- 添加或删除可见的DOM元素(把DOM操作放在不可见的元素中)
+- 元素位置改变(考虑position定位减少影响)
+- 元素尺寸改变
+- 内容改变(文本或图片呗不同尺寸的图片替代)
+- 页面渲染器初始化
+- 浏览器窗口尺寸改变
+
+渲染树变化的排队与刷新，获取布局信息的操作会导致队列刷新
+
+![20180104085724397.png](http://ww1.sinaimg.cn/large/48ceb85dly1g9ez1ev25zg20gx0gqweo.jpg)
+
+- offsetTop,offsetLeft,offsetWidth,offsetHeight
+- scrollTop,scrollLeft,scrollWidth,scrollHeight
+- clientTop,clientLeft,clientWidth,clientHeight
+- getComputedStyle()(currentStyle in IE)
+
+以上属性和方法需要返回最新的布局信息，因此浏览器不得不执行渲染队列中的待处理变化并触发重排已返回正确的值，在修改样式的过程中最好避免使用上面列出的属性，它们都会率先你渲染队列，即使你在获取最近未发生改变的或最新改变无关的布局信息。
+
+*最小化重绘和重排*
+
+为了减少发生次数，应该合并多次对DOM和样式的改变，然后一次处理掉；现在的浏览器为此做了优化
+
+使用cssText一次修改所有样式 el.style.cssText+= '',或者一次性修改class而不是内联的样式，不过class需要检查级联样式
+
+*批量修改DOM*
+
+1. 使元素脱离文档流
+2. 对其应用多重改变
+3. 把元素带回文档中
+
+三种基本方法可以使DOM脱离文档
+
+- 隐藏元素，应用修改，重新显示
+- 使用文档片段(document frament),在当前DOM之外构建一个子树，再把它拷贝会文档
+- 将原始文档拷贝到一个脱离文档的节点中，修改副本，完成后再替换原始元素
+
+尽量推荐第二个方案；
+
+*让元素脱离动画流*
+
+一个顶部的动画推移整个余下的部分，会导致昂贵的大规模重排，让用户感到页面一顿一顿。渲染树中需要重新计算的节点越多，情况就越糟糕。
+
+1. 使用绝对位置定位页面上的动画元素，使其脱离文档流。
+2. 让元素动起来。当它扩大时，会临时覆盖部分页面。但这只是页面一个小区域的重绘过程，不会产生重排并重绘页面的大部分部分。
+3. 当动画结束时恢复定位元素，从而智慧下移一次文档的其他元素。
+
+ie上避免使用:hover
+
+#### 事件委托 ####
+使用事件委托，只需给外层元素绑定一个处理器，这样就可以处理在其子元素上触发的所有事件
+
+	//浏览器阻止默认行为并取消冒泡
+	if(typeof e.preventDefault === 'function'){
+		e.preventDefault();
+		e.stopPropagation();
+	} else {
+		e.returnValue  = false;
+		e.cancelBubble = true;
+	}
+
+控制条件中非零数会自动转换成true，而零值等同于false
+
+	for(var i=items.length:i--;){
+		process(items[i]);
+	}
+
+### 代码优化 ###
+减少迭代次数 Duff's Device 循环体展开技术
 ## jquery ##
 ### jQuery.ajax ###
 [API 文档](http://api.jquery.com/jquery.ajax/)
@@ -4390,6 +4660,8 @@ display:flex
 > 
 > justify-content:center;
 
+#### Flex IE兼容 ####
+flex-basis会忽略 box-sizing:border-box;
 
 ## 屏幕大小响应 ##
 
@@ -4402,7 +4674,40 @@ font-weight:设置粗细，但也与字体有关
 font-family:设置字体
 
 ## 边框属性 ##
-border-image: 设置边框图像 url() stretch/round
+### border ###
+全写是 border-width, border-style, border-color
+### border-image ###
+存在属性时，可以替换border-style
+
+全写是  border-image-source, border-image-slice, border-image-width, border-image-outset,  border-image-repeat
+
+#### border-image-source ####
+设置图片源或者颜色样式linear-gradient
+
+如果是none，则或使用border-style来展示border
+#### border-image-slice ####
+![](https://mdn.mozillademos.org/files/3814/border-image-slice.png)
+
+- 1-4区是角区域，每个部分在最终的边框图像中都只使用一次
+- 5-8区是边区域，在最终的边框图像中会重复，拉伸或者有其他的改变，又border-image-repeat来决定
+- 9区是中间区域，默认不适用，但是当fill被set的时候会被当成背景图使用
+
+*值*
+
+- 数字，代表图像的像素或矢量图的坐标
+- 百分比，代表源图中的百分比
+- fill
+
+#### border-image-width ####
+边框的宽度
+#### border-image-outset ####
+代表边框外侧偏离border-box的距离
+#### border-image-repeat ####
+代表边区域如何展示和适应
+
+*值* stretch repeat round space
+
+
 
 border-shadow:边框阴影
 
@@ -4530,6 +4835,11 @@ text-indent：文本缩进
 text-align：文本水平对齐
 
 line-height：行高
+> 
+> div中文字的高度由line-height产生
+> line-height的值使单行文字垂直居中对齐
+> 对于块级元素，CSS属性line-height指定了元素内部line-boxes的最小高度。
+> 对于非替代行内元素，line-height用于计算line box的高度。
 
 word-spacing：增加或减少单词间的空白（即字间隔）
 
@@ -4971,6 +5281,8 @@ IE
 	    flex-shrink:0;//子项目不可以缩小，以超出父高度滚动
     }
 
+### 嵌套内部部分滑动 ###
+外部设置scroll，内部也设置scroll，内部高度将不会超过外部，使外部不会产生滑动，问题是会在网页端产生两条滑动条。手机APP端将不会看到条状的滑动条
 ### 边框重叠 ###
 使用负margin，margin-right:-1px;
 
@@ -5361,163 +5673,6 @@ _(dataList.list).groupBy(item=>item.lc).map((items,lc)=>{return {lc:lc, items:it
 - /node_modules/moduleB/package.json (if it specifies a "main" property)
 - /node_modules/moduleB/index.js
 
-# Q&A #
-> TypeError: cannot read property 'dataXXXXX' of null · Issue  -Browser-sync
-
-Browsersync works by injecting an asynchronous script tag right after the body tag during initial request. In order for this to work properly the body tag must be present. Alternatively you can provide a custom rule for the snippet using snippetOptions
-
-**使用了load载入新的页面，新的页面中存在body标签，browser-sync向body中注入异步标签，此时页面存在两个body标签** 
-
-### iOS中Date.parse返回NaN ###
-iOS只识别2017/03/05 不识别 2017-03-05
-
-####Weui pullToRefresh刷新不出来 ####
- 在手机上刷新即可
-
-#### 子元素使用css float 导致父元素没有高度 ####
-- 对父级设置固定高度 
-- 对父级div标签闭合div前加一个clear清除浮动对象
-- 只需要对父级加一个overflow:hidden样式即可
-
-#### jquery 点击在safari上失效 ####
-[jquery中on绑定click事件在苹果手机失效的问题](https://blog.csdn.net/yuexiage1/article/details/51612496)
-
-因为是动态添加的内容，所以想要使用click事件，需要给他用on绑定一下：
-
-	$(document).on("click",".next_button",function(){
-	    alert();
-	});
-
-苹果有这么个设置： 
-对于点击的对象，拥有cursor:pointer这个样式的设置，也就是说，鼠标放上去，能够出现“手”型的图标才被认作可以使用点击事件，增加样式
-
-	<style>
-	    .next_button{
-	        cursor:pointer
-	    }
-	</style>
-
-#### ios上input disabled 不显示文字 ####
-	input:disabled, textarea:diabled {
-	    -webkit-text-fill-color: #000;
-	    -webkit-opacity: 1;
-	    color: #000;
-	}
-
-#### jquery发送application/json格式数据 ####
-jquery将请求分为两次，第一为options(不会带上cookie)，第二次才是真实的post
-
-springboot设置 spring.mvc.dispatch-options-request=true
-
-#### 父元素 width：100vh, flex布局，justify-content:center,子元素不居中 ####
-改成width:100%; 可能是因为子元素的位置计算使用了vh；
-
-#### iOS HTML5 无法定位 ####
-IOS系统在10以上版本考虑到安全问题禁止用户在http协议下定位，要想定位必须将http协议升级成https协议
-
-微信公众号的浏览器版本等同于android的chrome浏览器,高德定位为http
-
-微信企业号的浏览器版本等同于ios的safari浏览器, 高德定位为https
-
-
-ios 系统访问定位 需要满足以下两点：
-
-1、需要使用JS API的高精度定位功能，在iOS 11上，请通过https访问定位。
-
-2、您的个人（或企业）网站在iOS 11系统下也请您调整成https形式对终端用户提供。
-
-#### line-height,em,font-size的关系 ####
-#### 页面刷新或离开时的提示框 ####
-	window.onbeforeunload = function() {
-		// 兼容IE8和Firefox 4之前的版本
-		  if (e) {
-		    e.returnValue = '关闭提示';
-		  }
-	
-		return thewordtoshow；
-	}
-
-#### 网页路径问题 ####
-被多个页面使用的模块，不要使用相对路径 "../../xxx/xxx"，
-
-使用相对于主机名的路径 "/xxx/xxx"
-
-#### JS自动插入分号 ####
-- empty statement
-- var statement
-- expression statement
-- do-while statement
-- continue statement
-- break statement
-- return statement
-- throw statement
-
-Three cases are described:
-
-When a token (LineTerminator or }) is encountered that is not allowed by the grammar, a semicolon is inserted before it if:
-
-1. The token is separated from the previous token by at least one LineTerminator.
-The token is }
-e.g.:
-
-	{ 1
-	2 } 3
-is transformed to
-
-	{ 1
-	;2 ;} 3;
-The NumericLiteral 1 meets the first condition, the following token is a line terminator.
-The 2 meets the second condition, the following token is }.
-
-2. When the end of the input stream of tokens is encountered and the parser is unable to parse the input token stream as a single complete Program, then a semicolon is automatically inserted at the end of the input stream.
-
-	e.g.:
-	
-		a = b
-		++c
-	is transformed to:
-	
-		a = b;
-		++c;
-3. This case occurs when a token is allowed by some production of the grammar, but the production is a restricted production, a semicolon is automatically inserted before the restricted token.
-
-
-	UpdateExpression :
-	    LeftHandSideExpression [no LineTerminator here] ++
-	    LeftHandSideExpression [no LineTerminator here] --
-	
-	ContinueStatement :
-	    continue ;
-	    continue [no LineTerminator here] LabelIdentifier ;
-	
-	BreakStatement :
-	    break ;
-	    break [no LineTerminator here] LabelIdentifier ;
-	
-	ReturnStatement :
-	    return ;
-	    return [no LineTerminator here] Expression ;
-	
-	ThrowStatement :
-	    throw [no LineTerminator here] Expression ; 
-	
-	ArrowFunction :
-	    ArrowParameters [no LineTerminator here] => ConciseBody
-	
-	YieldExpression :
-	    yield [no LineTerminator here] * AssignmentExpression
-	    yield [no LineTerminator here] AssignmentExpression
-
-7.9.1 Rules of Automatic Semicolon Insertion
-There are three basic rules of semicolon insertion:
-
-- When, as the program is parsed from left to right, a token (called the offending token) is encountered that is not allowed by any production of the grammar, then a semicolon is automatically inserted before the offending token if one or more of the following conditions is true:
-- The offending token is separated from the previous token by at least one LineTerminator.
-- The offending token is }.
-- When, as the program is parsed from left to right, the end of the input stream of tokens is encountered and the parser is unable to parse the input token stream as a single complete ECMAScript Program, then a semicolon is automatically inserted at the end of the input stream.
-- When, as the program is parsed from left to right, a token is encountered that is allowed by some production of the grammar, but the production is a restricted production and the token would be the first token for a terminal or nonterminal immediately following the annotation "[no LineTerminator here]" within the restricted production (and therefore such a token is called a restricted token), and the restricted token is separated from the previous token by at least one LineTerminator, then a semicolon is automatically inserted before the restricted token.
-
-However, there is an additional overriding condition on the preceding rules: a semicolon is never inserted automatically if the semicolon would then be parsed as an empty statement or if that semicolon would become one of the two semicolons in the header of a for statement (see 12.6.3).
 
 # React #
 ## JSX元素 ##
@@ -5835,6 +5990,55 @@ Content-Type: text/xml
 ## Props ##
 不要试图在组件内修改Props，在组件内Props是不可更改的，从父组件传递修改子组件props的函数，在子组件内调用函数可以修改父组件属性，从而更新子组件。
 
+## 组件继承 ##
+### extend ### 
+> 可以扩展 Vue 构造器，从而用预定义选项创建可复用的组件构造器
+
+	let BaseComponent = Vue.extend(baseOptions);
+	//基于基础组件BaseComponent,再扩展新逻辑.
+	new BaseComponent({
+	    created(){
+	        //do something
+	        console.log('onCreated-2');
+	    }
+	    //其他自定义逻辑
+	});
+
+### mixins ###
+> mixins 选项接受一个混合对象的数组。这些混合实例对象可以像正常的实例对象一样包含选项,他们将在 Vue.extend() 里最终选择使用相同的选项合并逻辑合并。
+
+	new Vue({
+	    mixins: [baseOptions],
+	    created(){
+	        //do something
+	        console.log('onCreated-2');
+	    }
+	    //其他自定义逻辑
+	});
+
+### extends ###
+
+> 这和 mixins 类似，区别在于，组件自身的选项会比要扩展的源组件具有更高的优先级.
+
+new Vue({
+    extends: baseOptions,
+    created(){
+        //do something
+        console.log('onCreated-2');
+    }
+    //其他自定义逻辑
+});
+
+> 从结果上看,三种方式都能实现需求,但是形式却有不同.
+> 
+> Vue.extend
+> 
+> Vue.extend只是创建一个构造器,他是为了创建可复用的组件.
+> 
+> mixins,extends
+> 
+> 而mixins和extends是为了拓展组件.
+> 
 # 浏览器兼容性 #
 querySelectorAll()的结果是NodeList，在IE上不支持forEach
 
@@ -5864,6 +6068,19 @@ img{ content:url}在 IE Firefox上不支持
 	window      =>  []["filter"]["constructor"]("return this")()
 
 # Q&A #
+#### 百度地图自定义图层的点击 ####
+多个自定义图层的父元素的z-index不同，会影响加入的元素的触发
+
+#### 百度地图检测地图的点击 ####
+判断点击了地图，但没有点击其他覆盖物，检测地图点击事件的overlay，没有覆盖物时e.overlay为null，自定义覆盖也为null，需要在覆盖物内阻止事件的传递
+
+点击自定义覆盖物后，marker点击失效
+
+	SquareOverlay.prototype.addEventListener = function(event,fun){
+	    this._div['on'+event] = fun;
+	}
+
+
 #### 提交文件到服务器没反应 ####
 musicBook 写成了musicbook Springboot没有解析该字段
 
@@ -5913,3 +6130,196 @@ CSS中没有死循环的说法
 
 #### Error in v-on handler: "TypeError: handler.apply is not a function" ####
 method被赋值了，可能原因 Vue中的method和data重名了，导致给data赋值的时候将方法覆盖了
+
+
+#### > TypeError: cannot read property 'dataXXXXX' of null · Issue  -Browser-sync ####
+
+Browsersync works by injecting an asynchronous script tag right after the body tag during initial request. In order for this to work properly the body tag must be present. Alternatively you can provide a custom rule for the snippet using snippetOptions
+
+**使用了load载入新的页面，新的页面中存在body标签，browser-sync向body中注入异步标签，此时页面存在两个body标签** 
+
+#### flex布局下的与span高度为父元素的高度 ####
+flex的align-content默认为stretch，故撑开
+#### Error: Couldn't find preset "es2015" relative to directory "/root" ####
+
+安装preset 不要加-g
+
+npm install --save-dev babel-preset-es2015
+
+.babelrc配置 
+
+	{
+	    "presets": [
+	      "es2015"
+	    ],
+	    "plugins": []
+	}
+#### iOS中Date.parse返回NaN ####
+iOS只识别2017/03/05 不识别 2017-03-05
+
+####Weui pullToRefresh刷新不出来 ####
+ 在手机上刷新即可
+
+#### 子元素使用css float 导致父元素没有高度 ####
+- 对父级设置固定高度 
+- 对父级div标签闭合div前加一个clear清除浮动对象
+- 只需要对父级加一个overflow:hidden样式即可
+
+#### jquery 点击在safari上失效 ####
+[jquery中on绑定click事件在苹果手机失效的问题](https://blog.csdn.net/yuexiage1/article/details/51612496)
+
+因为是动态添加的内容，所以想要使用click事件，需要给他用on绑定一下：
+
+	$(document).on("click",".next_button",function(){
+	    alert();
+	});
+
+苹果有这么个设置： 
+对于点击的对象，拥有cursor:pointer这个样式的设置，也就是说，鼠标放上去，能够出现“手”型的图标才被认作可以使用点击事件，增加样式
+
+	<style>
+	    .next_button{
+	        cursor:pointer
+	    }
+	</style>
+
+#### ios上input disabled 不显示文字 ####
+	input:disabled, textarea:diabled {
+	    -webkit-text-fill-color: #000;
+	    -webkit-opacity: 1;
+	    color: #000;
+	}
+
+#### jquery发送application/json格式数据 ####
+jquery将请求分为两次，第一为options(不会带上cookie)，第二次才是真实的post
+
+springboot设置 spring.mvc.dispatch-options-request=true
+
+#### 父元素 width：100vh, flex布局，justify-content:center,子元素不居中 ####
+改成width:100%; 可能是因为子元素的位置计算使用了vh；
+
+#### iOS HTML5 无法定位 ####
+IOS系统在10以上版本考虑到安全问题禁止用户在http协议下定位，要想定位必须将http协议升级成https协议
+
+微信公众号的浏览器版本等同于android的chrome浏览器,高德定位为http
+
+微信企业号的浏览器版本等同于ios的safari浏览器, 高德定位为https
+
+
+ios 系统访问定位 需要满足以下两点：
+
+1、需要使用JS API的高精度定位功能，在iOS 11上，请通过https访问定位。
+
+2、您的个人（或企业）网站在iOS 11系统下也请您调整成https形式对终端用户提供。
+
+#### line-height,em,font-size的关系 ####
+#### 页面刷新或离开时的提示框 ####
+	window.onbeforeunload = function() {
+		// 兼容IE8和Firefox 4之前的版本
+		  if (e) {
+		    e.returnValue = '关闭提示';
+		  }
+	
+		return thewordtoshow；
+	}
+
+#### 网页路径问题 ####
+被多个页面使用的模块，不要使用相对路径 "../../xxx/xxx"，
+
+使用相对于主机名的路径 "/xxx/xxx"
+
+#### JS自动插入分号 ####
+- empty statement
+- var statement
+- expression statement
+- do-while statement
+- continue statement
+- break statement
+- return statement
+- throw statement
+
+Three cases are described:
+
+When a token (LineTerminator or }) is encountered that is not allowed by the grammar, a semicolon is inserted before it if:
+
+1. The token is separated from the previous token by at least one LineTerminator.
+The token is }
+e.g.:
+
+	{ 1
+	2 } 3
+is transformed to
+
+	{ 1
+	;2 ;} 3;
+The NumericLiteral 1 meets the first condition, the following token is a line terminator.
+The 2 meets the second condition, the following token is }.
+
+2. When the end of the input stream of tokens is encountered and the parser is unable to parse the input token stream as a single complete Program, then a semicolon is automatically inserted at the end of the input stream.
+
+	e.g.:
+	
+		a = b
+		++c
+	is transformed to:
+	
+		a = b;
+		++c;
+3. This case occurs when a token is allowed by some production of the grammar, but the production is a restricted production, a semicolon is automatically inserted before the restricted token.
+
+
+	UpdateExpression :
+	    LeftHandSideExpression [no LineTerminator here] ++
+	    LeftHandSideExpression [no LineTerminator here] --
+	
+	ContinueStatement :
+	    continue ;
+	    continue [no LineTerminator here] LabelIdentifier ;
+	
+	BreakStatement :
+	    break ;
+	    break [no LineTerminator here] LabelIdentifier ;
+	
+	ReturnStatement :
+	    return ;
+	    return [no LineTerminator here] Expression ;
+	
+	ThrowStatement :
+	    throw [no LineTerminator here] Expression ; 
+	
+	ArrowFunction :
+	    ArrowParameters [no LineTerminator here] => ConciseBody
+	
+	YieldExpression :
+	    yield [no LineTerminator here] * AssignmentExpression
+	    yield [no LineTerminator here] AssignmentExpression
+
+7.9.1 Rules of Automatic Semicolon Insertion
+There are three basic rules of semicolon insertion:
+
+- When, as the program is parsed from left to right, a token (called the offending token) is encountered that is not allowed by any production of the grammar, then a semicolon is automatically inserted before the offending token if one or more of the following conditions is true:
+- The offending token is separated from the previous token by at least one LineTerminator.
+- The offending token is }.
+- When, as the program is parsed from left to right, the end of the input stream of tokens is encountered and the parser is unable to parse the input token stream as a single complete ECMAScript Program, then a semicolon is automatically inserted at the end of the input stream.
+- When, as the program is parsed from left to right, a token is encountered that is allowed by some production of the grammar, but the production is a restricted production and the token would be the first token for a terminal or nonterminal immediately following the annotation "[no LineTerminator here]" within the restricted production (and therefore such a token is called a restricted token), and the restricted token is separated from the previous token by at least one LineTerminator, then a semicolon is automatically inserted before the restricted token.
+
+However, there is an additional overriding condition on the preceding rules: a semicolon is never inserted automatically if the semicolon would then be parsed as an empty statement or if that semicolon would become one of the two semicolons in the header of a for statement (see 12.6.3).
+
+#### jquery点击事件无效 ####
+jquery点击事件无效，父元素的mousedown事件一直有效，跟随鼠标移动的图片的大小只能保持固定值才有效；
+
+鼠标点一直位于图片上，所有的点击事件效果都发生在绝对定位的图标上，不会再传给子元素。
+## 视频宽度 ##
+视频宽度引起的问题总结
+
+#### 设定视频父容器高度为固定高度； ####
+video元素会因为内容的高度来决定video元素本身的宽高
+
+#### 设置兄弟元素的flex-shrink：0； ####
+video元素的伸展会导致兄弟元素的收缩，在flex布局中设置flex-shrink：0，保持非视频部分不收缩；但是设置的部分必须在flex中的顺序靠前，否则位于flex-grow：1的元素之后将没有效果；
+
+#### 设定video的高度 width：100%；height：100%； ####
+在父容器的高度固定的情况下，设置100%是安全的，使得视频可以充满整个容器
+
+#### 设置object-fit：contain； ####
+考虑视频实际大小小于容器的情况；视频较小时，scale-down使得视频保持原有大小，而无法充满整个容器；fill无法保持视频长宽比；cover使得视频不能完整实现；

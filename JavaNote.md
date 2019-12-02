@@ -3755,3 +3755,30 @@ getServerPort()
 	
 	
 	在需要的页面通过：<%@ include file="/adf/common/jsp/taglibs.jsp"%>引入全局页面；
+
+# Q&A #
+#### SpringBoot项目的The temporary upload location ***is not valid 问题 ####
+
+原因是：springboot启动之后会在 /tmp 目录创建文件夹等内容，上传文件夹在那里是不存在的 。
+
+解决方案：在配置文件中添加上传文件的临时目录：
+
+spring:
+  servlet:
+    multipart:
+      enabled: true
+      location: /hello/tempuploadfiles
+ 
+
+ 或者在启动参数上面添加JVM的参数指定临时文件夹：
+
+-Djava.io.tmpdir=temp
+
+或者
+
+	@Bean
+	MultipartConfigElement multipartConfigElement() {
+		MultipartConfigFactory factory = new MultipartConfigFactory();
+		factory.setLocation("/app/tmp");
+		return factory.createMultipartConfig();
+	}
