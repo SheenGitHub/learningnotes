@@ -3875,7 +3875,20 @@ document.createEvent(event)
 - HTMLEvent 一般化的HTML事件
 
 target.dispatch(event)
+### Passive Event Listeners ###
+> Passive Event Listeners是Chrome提出的一个新的浏览器特性：Web开发者通过一个新的属性passive来告诉浏览器，当前页面内注册的事件监听器内部是否会调用preventDefault函数来阻止事件的默认行为，以便浏览器根据这个信息更好地做出决策来优化页面性能。当属性passive的值为true的时候，代表该监听器内部不会调用preventDefault函数来阻止默认滑动行为，Chrome浏览器称这类型的监听器为被动（passive）监听器。目前Chrome主要利用该特性来优化页面的滑动性能，所以Passive Event Listeners特性当前仅支持mousewheel/touch相关事件。
 
+#### Chrome浏览器的一些概念 ####
+1. 绘制（Paint）：将绘制操作转换成为图像的过程（比如软件模式下经过光栅化生成位图，硬件模式下经过光栅化生成纹理）。在Chrome中，绘制分为两部分实现：绘制操作记录部分（main-thread side）和绘制实现部分（impl-side）。绘制记录部分将绘制操作记录到SKPicture中，绘制实现部分负责将SKPicture进行光栅化转成图像；
+1. 图层（Paint Layer）：在Chrome中，页面的绘制是分层绘制的，页面内容变化的时候，浏览器仅需要重新绘制内容变化的图层，没有变化的图层不需要重新绘制；
+1. 合成（Composite）：将绘制好的图层图像混合在一起生成一张最终的图像显示在屏幕上的过程；
+1. 渲染（Render）：可以简单认为渲染等价于绘制+合成；
+1. UI线程（UI Thread）：浏览器的主线程，负责接收到系统派发给浏览器窗口的事件、资源下载等；
+1. 内核线程（Main/Render Thread）：Blink内核及V8引擎运行的线程，如DOM树构建、元素布局、绘制（main-thread side）、JavaScript执行等逻辑在该线程中执行；
+1. 合成线程（Compositor Thread）：负责图像合成的线程，如绘制（impl-side），合成等逻辑在该线程中执行。
+
+#### 事件快速处理 ####
+在Chrome中，这类可以不经过内核线程就能快速处理的输入事件为手势输入事件（滑动、捏合），手势输入事件是由用户连续的普通输入事件组合产生，如连续的mousewheel/touchmove事件可能会生成GestureScrollBegin/GestureScrollUpdate等手势事件。手势输入事件可以直接在已经渲染好的内容快照上操作，如滑动手势事件，直接对页面已经渲染好的内容快照进行滑动展示即可。由于线程化渲染框架的支持，手势输入事件可以不经过内核线程，直接由合成线程在内容快照上直接处理，所以即使此时内核线程在忙碌，用户的手势输入事件也可以马上得到响应。
 ## 表单 ##
 <form>元素对应JavaScript中的HTMLFormElement类型
 
@@ -4454,6 +4467,7 @@ iframe的contentWindow引用改窗体的window对象
 
 窗体的window对象用frameElement来获取窗体的iframe元素
 
+iframe底边的白底去除 display:block；或者vertical-align:bottom;
 **window其实是全局对象的一个代理**
 # CSS #
 **用父类来影响子类元素，大概是CSS影响CSS的一个最强大的功能**
@@ -4480,6 +4494,63 @@ pt:点（Points）。绝对长度单位 1in=72pt=2.54cm=96px=6pc
 pc:派卡（Picas）。绝对长度单位。相当于我国新四号铅字的尺寸
 px:相对长度单位。像素（Pixels）
 
+## css特性支持 ##
+语法支持
+
+	@supports(text-shadow: 0 0 0.3em gray){
+		h1 {
+			color: transparent;
+			text-shadow: 0 0 .3em gray;
+		}
+	}
+
+属性支持
+	
+	function testProperty(property){
+		var root = document.documentElement;
+		if (property in root.style){
+			root.classList.add(property.toLowerCase());
+			return true;
+		}
+		root.classList.add('no' + propery.toLowerCase());
+		return false;
+	}
+
+属性值支持
+
+	function testValue(id, value, property){
+		var dummy = document.createElement('p');
+		dummy.style[property] = value;
+	
+		if(dummy.style[property]){
+			root.classList.add(id);
+			return true;
+		}
+		root.classList.add('no-' + id);
+		return false;
+	}
+## CSS变量 ##
+	:root {
+	   --color: blue;
+	   --COLOR: red;
+	}
+
+#### 使用js切换变量 ####
+root.style.setProperty("--bg-text", "black");
+#### html中使用变量 ####
+&lt;html style="--size: 600px"&gt;
+
+## 裁剪 ##
+clip-path
+
+	img {
+		clip-path:polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+		transition: 1s clip-path;
+	}
+	
+	img:hover {
+		clip-path:polygon(0 0, 100% 0, 100% 100%, 0 100%);
+	}
 ## width ##
 100% 只与父元素有关，与屏幕无关
 
@@ -4716,16 +4787,50 @@ border-radius:边框圆角
 ## 背景 ##
 > background:url()
 > 
-> background-position:[left top];
+> background-position:[left top],可以为多个background-image设置多组postion;
 > 
-> background-repeat:repeat no-repeat;
+> background-repeat:repeat no-repeat，默认是repeat;
 > 
 > background-size: 背景大小 cover覆盖 contain一个方向顶格
 > 
 > background-origin:[content-box|padding-box|border-box]
-> background-clip:背景的绘制区域（应该是针对图片内的坐标）
-> background-position: 属性设置背景图像的起始位置
+> background-clip:[border-box padding-box content-box text]背景的绘制区域（应该是针对图片内的坐标）
+> background-position: 属性设置背景图像的起始位置 background-position的百分比值引起的偏移是基于 (width-backgroundSize)[该width是基于backgroundOrigin]
 > object-fit： CSS 属性指定可替换元素的内容应该如何适应到其使用的高度和宽度确定的框 contain|cover|fill|none|scale-down
+> background-image:可以设置多张图片，第一张靠近用户，background-color绘制在background之下
+
+#### 蚂蚁行军边框 ####
+	@keyframes ants { to {background-position:100%}} //backgroun-position的移动导致斜线条纹的移动
+	
+	.marching-ants {
+		padding: 1em;
+		border: 1px solid transparent; //边框变为1
+		background:
+		linear-gradient(white, white) padding-box,//padding-box白色背景遮掩整体条纹
+		repeating-linear-gradient(-45deg,
+		  black 0 25%, white 0 50%) 0/.6em .6em; //构造斜线的条纹 background-position 为 0 center;
+		animation:ants 12s linear infinite;
+	}
+
+## css animation ##
+@keyframes 定义各个时间的css状态 to/from , percentage%,...
+
+animation-delay 设置延时
+animation-direction 动画运行完成后反向运行还是重新回到开始位置 [normal reverse alternate]
+animation-duration 动画周期时长
+animation-interation-count 动画重复次数 可以infinite
+animation-name 指定可以frame关键帧的名称
+animation-play-state 允许暂定和恢复动画
+animation-fill-mode 
+
+## 边框 ##
+> border-image 设置边框图片
+> border-image-source 图源
+> border-image-repeat 设置边框9个区的缩放
+> border-image-slice 设置边框9个区从背景image中截取的大小
+> border-image-outset 边框image对边框的偏离，不能小于0
+> 
+> outline 可以模拟边框，但是不能为圆角，圆角border可以通过box-shadow来模拟遮掩空白处
 
 ## Table ##
 border-collapse: collapse
@@ -4755,6 +4860,17 @@ border-collapse: collapse
 - :before  向元素之前添加内容
 - :after 在该元素之后添加内容
 
+## CSS滤镜 ##
+	filter: blur(5px);
+	filter: brightness(0.4);
+	filter: contrast(200%);
+	filter: drop-shadow(16px 16px 20px blue);
+	filter: grayscale(50%);
+	filter: hue-rotate(90deg);
+	filter: invert(75%);
+	filter: opacity(25%);
+	filter: saturate(30%);
+	filter: sepia(60%);
 ## CSS3字体 ##
 ### @font-face ###
 
@@ -5510,6 +5626,173 @@ AntDesign手动引入 "antd/dist/antd.css"
 	    top: 50%;
 	    transform: translate(0, -50%);
 	  }
+## 设计 ##
+
+> 建议读者不要使用以rem或者小程序rpx来实现等比缩放为主的布局手段，而使用面向逻辑像素px为主，面向等比缩放的vx和vxxx（vw/vh/vmax/vmin）为辅助的布局单位，搭配一些flex等布局手段
+> 同样观看距离情况下，大屏看的更多而不是大屏看的更大的设计最佳实践来进行布局，并且以这种最佳实践作为理论依据来传递给设计师 ---知乎猫5号
+
+**px是viewport像素，不是物理像素，不是逻辑像素，不是渲染像素**
+
+![r.jpg](http://ww1.sinaimg.cn/large/48ceb85dly1g9llssnlz7j20lx0oqmz9.jpg)
+
+- 物理像素（physical pixel）就是反映显示屏的硬件条件，反映的就是显示屏内部led灯的数量
+- 渲染像素（render pixel），则是在系统内部对物理像素的分配进行再一次的调整，在pc上，渲染像素其实就是设置里边的分辨率。对于显示设备，系统为显示设备提供渲染尺寸
+- 逻辑像素/点（device point / device pixel / point ），是为了调和距离不一样导致的差异，将所有设备根据距离，透视缩放到一个相等水平的观看距离之后得到的尺寸，是一个抽象的概念，这个单位就是ios开发的px，安卓开发的dp。
+- ppi（pixel per inch） 每英寸像素，指的是屏幕在每英寸的物理像素，更高的ppi意味着屏幕的清晰度更佳
+
+> 所谓高分屏，其实就是指ppi大于同类设备的屏幕。比如对于桌面设备，大于96ppi。对于移动设备，大于160ppi
+> 
+> 所谓视网膜屏，其实就是指在该观看距离内超出人类的辨认能力的屏幕。比如对于桌面设备，大于192ppi。对于移动设备大于326ppi
+
+逻辑像素长度 = 物理像素长度 * 160 / ppi
+
+- dpr （device point ratio / device pixel ratio） 渲染像素与逻辑像素的比例。由于渲染像素一般等于逻辑像素，如果ppi是以160为基准的话，那么 dpr = ppi / 160多少倍屏或者多少x（三倍屏，3x，意思就是3dpr），一般来说就是说的是这个值
+
+> viewport像素又是什么，它本质是DIP（Device Independent Pixels），中文意思设备无关像素，是与上述所有像素都无绝对逻辑关系的一个单位。其实是浏览器内部对逻辑像素进行再处理的结果，简单来理解就是调整逻辑像素的缩放来达到适应设备的一个中间层
+
+**对于pc，viewport是不生效的，所以在pc上，px其实就是逻辑像素（chrome）**
+
+面向逻辑像素开发的基本开发流程
+
+1. 在head 设置width=device-width的viewport
+2. 在css中使用px
+3. 在适当的场景使用flex布局，或者配合vw进行自适应
+4. 在跨设备类型的时候（pc <-> 手机 <-> 平板）使用媒体查询
+5. 在跨设备类型如果交互差异太大的情况，考虑分开项目开发那么
+
+
+> viewport width=device-width是什么意思，其实就是让viewport的尺寸等于逻辑像素的尺寸
+
+# SVG #
+- SVG 指可伸缩矢量图形 (Scalable Vector Graphics)
+- SVG 用来定义用于网络的基于矢量的图形
+- SVG 使用 XML 格式定义图形
+- SVG 图像在放大或改变尺寸的情况下其图形质量不会有所损失
+- SVG 是万维网联盟的标准
+- SVG 与诸如 DOM 和 XSL 之类的 W3C 标准是一个整体
+
+## SVG形状 ##
+### 矩形 rect ### 
+	rect width="300" height="100"
+	style="fill:rgb(0,0,255);stroke-width:1;
+	stroke:rgb(0,0,0)"
+
+rx 和 ry 属性可使矩形产生圆角
+
+### 圆形 circle ###
+	circle cx="100" cy="50" r="40" stroke="black"
+	stroke-width="2" fill="red"
+### 椭圆 ellipse ###
+	ellipse cx="300" cy="150" rx="200" ry="80"
+	style="fill:rgb(200,100,50);
+	stroke:rgb(0,0,100);stroke-width:2"
+
+- cx 属性定义圆点的 x 坐标
+- cy 属性定义圆点的 y 坐标
+- rx 属性定义水平半径
+- ry 属性定义垂直半径
+
+
+### 线 line ###
+	line x1="0" y1="0" x2="300" y2="300"
+	style="stroke:rgb(99,99,99);stroke-width:2"
+
+- x1 属性在 x 轴定义线条的开始
+- y1 属性在 y 轴定义线条的开始
+- x2 属性在 x 轴定义线条的结束
+- y2 属性在 y 轴定义线条的结束
+
+### 折线 polyline ###
+	polyline points="0,0 0,20 20,20 20,40 40,40 40,60"
+	style="fill:white;stroke:red;stroke-width:2"
+### 多边形 polygon ###
+	polygon points="220,100 300,210 170,250"
+	style="fill:#cccccc;
+	stroke:#000000;stroke-width:1"
+
+- points 属性定义多边形每个角的 x 和 y 坐标
+### 路径 path ###
+- M = moveto
+- L = lineto
+- H = horizontal lineto
+- V = vertical lineto
+- C = curveto
+- S = smooth curveto
+- Q = quadratic Belzier curve
+- T = smooth quadratic Belzier curveto
+- A = elliptical Arc
+- Z = closepath
+
+## SVG滤镜 ##
+- feBlend
+- feColorMatrix
+- feComponentTransfer
+- feComposite
+- feConvolveMatrix
+- feDiffuseLighting
+- feDisplacementMap
+- feFlood
+### feGaussianBlur ###
+	<defs>
+	<filter id="Gaussian_Blur">
+	<feGaussianBlur in="SourceGraphic" stdDeviation="3" />
+	</filter>
+	</defs>
+	
+	<ellipse cx="200" cy="150" rx="70" ry="40"
+	style="fill:#ff0000;stroke:#000000;
+	stroke-width:2;filter:url(#Gaussian_Blur)"/>
+
+- feImage
+- feMerge
+- feMorphology
+- feOffset
+- feSpecularLighting
+- feTile
+- feTurbulence
+- feDistantLight
+- fePointLight
+- feSpotLight
+
+## SVG 渐变 ##
+- 线性渐变
+- 放射性渐变
+
+### 线性渐变 ###
+linearGradient 可用来定义 SVG 的线性渐变。
+
+- 当 y1 和 y2 相等，而 x1 和 x2 不同时，可创建水平渐变
+- 当 x1 和 x2 相等，而 y1 和 y2 不同时，可创建垂直渐变
+- 当 x1 和 x2 不同，且 y1 和 y2 不同时，可创建角形渐变
+
+	<defs>
+	<linearGradient id="orange_red" x1="0%" y1="0%" x2="100%" y2="0%">
+	<stop offset="0%" style="stop-color:rgb(255,255,0);
+	stop-opacity:1"/>
+	<stop offset="100%" style="stop-color:rgb(255,0,0);
+	stop-opacity:1"/>
+	</linearGradient>
+	</defs>
+	
+	<ellipse cx="200" cy="190" rx="85" ry="55"
+	style="fill:url(#orange_red)"/>
+
+### 放射性渐变 ###
+
+	<defs>
+	<radialGradient id="grey_blue" cx="50%" cy="50%" r="50%"
+	fx="50%" fy="50%">
+	<stop offset="0%" style="stop-color:rgb(200,200,200);
+	stop-opacity:0"/>
+	<stop offset="100%" style="stop-color:rgb(0,0,255);
+	stop-opacity:1"/>
+	</radialGradient>
+	</defs>
+	
+	<ellipse cx="230" cy="200" rx="110" ry="100"
+	style="fill:url(#grey_blue)"/>
+
+&lt;radialGradient&gt; 标签的 id 属性可为渐变定义一个唯一的名称，fill:url(#grey_blue) 属性把 ellipse 元素链接到此渐变，cx、cy 和 r 属性定义外圈，而 fx 和 fy 定义内圈 渐变的颜色范围可由两种或多种颜色组成。每种颜色通过一个 &lt;stop&gt; 标签来规定。offset 属性用来定义渐变的开始和结束位置。
 # 万维网 #
 ## 备案查询 ##
 
