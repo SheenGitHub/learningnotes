@@ -3769,8 +3769,10 @@ Firefox支持一个 DOMMouseScroll事件滚轮信息保存在detail中，是3的
 
 - keydown:当键盘按下任意键时触发，如果按住不放，会重复触发此事件；
 - keypress:当键盘按下字符键时触发，如果按住不放，会重复触发此事件；
-- keyup:当键盘释放时触发；
+- keyup:当键盘释放时触发； div无法添加keyup事件，因为无法获取焦点，可以添加tabindex，
 - textInput：将文本显示给用户之间拦截文本，文本插入文本框之前会触发textInput；
+
+tabindex：为负时，无法通过键盘tab来聚焦；为0时，通过键盘tab来聚焦；tab为正时，会根据值的大小一次获得焦点；通过添加tabindex可以获取失焦事件
 
 textInput：inputMethod，表示文本输入到文本框中的方式
 
@@ -4469,6 +4471,77 @@ iframe的contentWindow引用改窗体的window对象
 
 iframe底边的白底去除 display:block；或者vertical-align:bottom;
 **window其实是全局对象的一个代理**
+
+## 函数防抖与函数节流 ##
+### 函数防抖（debounce） ###
+> 函数防抖，就是指触发事件后在 n 秒内函数只能执行一次，如果在 n 秒内又触发了事件，则会重新计算函数执行时间。
+
+打个比方，坐公交，司机需要等最后一个人进入才能关门。每次进入一个人，司机就会多等待几秒再关门。
+
+#### 应用场景 ####
+连续的事件，只需触发一次回调的场景有：
+
+- 搜索框搜索输入。只需用户最后一次输入完，再发送请求
+- 手机号、邮箱验证输入检测
+- 窗口大小Resize。只需窗口调整完成后，计算窗口大小。防止重复渲染。
+
+#### 简单实现 ####
+	const _.debounce = (func, wait) => {
+	  let timer;
+	
+	  return () => {
+	    clearTimeout(timer);
+	    timer = setTimeout(func, wait);
+	  };
+	};
+
+函数防抖在执行目标方法时，会等待一段时间。当又执行相同方法时，若前一个定时任务未执行完，则 clear 掉定时任务，重新定时。
+### 函数节流（throttle） ###
+> 限制一个函数在一定时间内只能执行一次。
+
+举个例子，乘坐地铁，过闸机时，每个人进入后3秒后门关闭，等待下一个人进入。
+
+#### 应用场景 ####
+间隔一段时间执行一次回调的场景有：
+
+- 滚动加载，加载更多或滚到底部监听
+- 谷歌搜索框，搜索联想功能
+- 高频点击提交，表单重复提交
+
+#### 简单实现 ####
+**setTimeout版**
+
+	const _.throttle = (func, wait) => {
+	  let timer;
+	
+	  return () => {
+	    if (timer) {
+	      return;
+	    }
+	
+	    timer = setTimeout(() => {
+	      func();
+	      timer = null;
+	    }, wait);
+	  };
+	};
+
+函数节流的目的，是为了限制函数一段时间内只能执行一次。因此，通过使用定时任务，延时方法执行。在延时的时间内，方法若被触发，则直接退出方法。从而，实现函数一段时间内只执行一次。
+
+**时间戳版**
+
+	const throttle = (func, wait) => {
+	  let last = 0;
+	  return () => {
+	    const current_time = +new Date();
+	    if (current_time - last > wait) {
+	      func.apply(this, arguments);
+	      last = +new Date();
+	    }
+	  };
+	};
+
+通过比对上一次执行时间与本次执行时间的时间差与间隔时间的大小关系，来判断是否执行函数。若时间差大于间隔时间，则立刻执行一次函数。并更新上一次执行时间。
 # CSS #
 **用父类来影响子类元素，大概是CSS影响CSS的一个最强大的功能**
 
@@ -4846,6 +4919,10 @@ border-collapse: collapse
 - white-space:nowrap;pre保留空格
 - word-wrap:break-work 换行,分裂一个字
 - word-break: keep-all 保持单词不拆分， break-all 拆分单词
+
+box-shadow叠在元素之上，重叠的部分被裁剪，所以元素设置为半透明是看不到底层的阴影的，这与text-shadow不同，text-shadow不会裁剪阴影
+
+
 
 > **阴影第三个参数 模糊度，越大越模糊**
 > 
