@@ -1,3 +1,4 @@
+
 # HTML #
 ## Canvas ##
 ### 图像 ###
@@ -4634,6 +4635,20 @@ position:absolute 的元素的 width x%，与父元素的父元素有关，脱�
 > - -o-*        Opera
 > - -moz-*      Firefox
 
+
+## direction ##
+决定文本方向
+
+direction:ltr|rtl;
+
+### bidi(双向文字)与RTL布局总结 ###
+在现代计算机应用中，最常用来处理双向文字的算法是 Unicode 双向算法（Unicode Bidirectional Algorithm），在后面的文章中我们将 Unicode 双向算法简称为 bidi 算法。
+
+我们的web产品中使用的字符都属于unicode字符，而unicode字符的方向属性总共包含三类：强字符、中性字符、弱字符。
+
+- 强字符的方向属性是确定的，与上下文的bidi属性无关，而且强字符在bidi算法中可能会对其前后的中性字符产生影响。大部分的字符都属于强字符，比如拉丁字符、汉字、阿拉伯字符。
+- 中性字符的方向性并不确定，受其上下文的bidi属性影响（前后的强字符）。比如大部分的标点符号（“-”，“[]”，"()"等）跟空格。
+- 弱字符的方向性是确定的，但不会对其上下文的bidi属性产生影响。比如数字以及跟数字相关的符号。
 ## float ##
 > float元素脱离里定位的标准流，随后的标准流元素将忽略该元素，按前一个标准流元素的位置定位。
 
@@ -5195,6 +5210,139 @@ div默认占满一行
 
 > 因为BFC内部的元素和外部的元素绝对不会互相影响，因此， 当BFC外部存在浮动时，它不应该影响BFC内部Box的布局，BFC会通过变窄，而不与浮动有重叠。同样的，当BFC内部有浮动时，为了不影响外部元素的布局，BFC计算高度时会包括浮动的高度。避免margin重叠也是这样的一个道理。
 
+## 行内格式化上下文(Inline formatting contexts) ##
+- 在一个行内格式化上下文中，盒是一个接一个水平放置的，从包含块的顶部开始
+- 这些盒之间的水平margin，border和padding都有效
+- 盒可能以不同的方式竖直对齐：以它们的底部或者顶部对齐，或者以它们里面的文本的基线对齐
+
+### 行盒(line box) ###
+
+- 包含来自同一行的盒的矩形区域叫做行盒(line box)
+- line box的宽度由包含块和float情况决定,一般来说,line box的宽度等于包含块两边之间的宽度,**然而float可以插入到包含块和行盒边之间,如果有float,那么line box的宽度会比没有float时小** float占据了原本属于行盒的控件，float不属于行盒的空间,text-align在float占据空间之后的剩余空间进行计算，text-align决定了自身包含的行盒内的元素如何对齐
+- line box的高度由line-height决定,而line box之间的高度各不相同(比如只含文本的line box高度与包含图片的line box高度之间)
+- line box的高度能够容纳它包含的所有盒,当盒的高度小于行盒的高度(例如,如果盒是baseline对齐)时,盒的竖直对齐方式由vertical-align属性决定//vertical-align决定了自身和其他元素的对齐方式
+- 当一行的行内级盒的总宽度小于它们所在的line box的宽度时，它们在行盒里的水平分布由text-align属性决定。如果该属性值为justify，用户代理可能会拉伸行内盒（不包括inline-table和inline-block盒）里的空白和字（间距）
+
+### 行内盒(inline box) ###
+
+- 一个inline box是一个（特殊的）行内级盒，其内容参与了它的包含行内格式化上下文
+- 当一个inline box超出一个line box的宽度时，它会被分成几个盒，并且这些盒会跨多line box分布。如果一个inline-block无法分割（例如，如果该inline box含有一个单个字符，或者特定语言的单词分隔规则不允许在该inline box里分隔，或如果该inline box受到了一个值为nowrap或者pre的white-space的影响），那么该inline box会从line box溢出
+- 当一个inline box被分割后，margin，border和padding在发生分割的地方（或者在任何分割处，如果有多处的话）不会有可视化效果
+- 同一个line box里的inline box也可能因为双向（bidirectional）文本处理而被分割成几个盒
+- 需要盛放（hold）一个行内格式化上下文中的行内级内容时，创建一个line box。不含文本、保留空白符（preserved white space）、margin，padding或者border非0的行内元素、其它流内内容（例如，图片，inline block或者inline table），并且不以保留换行符（preserved newline）结束的line box必须被当作一个0高度的line box，为了确定它里面所有元素的位置，而其它时候（for any other purpose）必须当它不存在
+
+### 行高 ###
+![line-height.png](http://ww1.sinaimg.cn/large/48ceb85dly1gcs25kvyflj20go0a0q3h.jpg)
+
+line-height不是相邻文本行间上一个baseline与下一文本行baseline之间的距离,而是line box的高度,也就是相邻文本行间底线的距离
+
+决定line box高度的是line-height值,但是实际上是content area以及vertical spacing决定的,line-height=content area+vertical spacing
+
+需要注意的是,content area不等于font-size,只有在simsun(宋体)下,两者相等
+
+- 计算line box中每个行内级盒的高度时,对于可替换元素,inline-block元素和inline-table元素,这个值就是其margin box的高度;对于inline box,这个值是其line-height
+- 行内级盒是根据其vertical-align属性竖直对齐的.如果它们是top或者bottom对齐,它们必须对齐得让line box高度最小化.如果这样的盒足够高,存在多个解,而CSS 2.1没有定义line box基线的位置
+- line box高度是最高的盒的top与最低的盒的bottom之间的距离
+
+当行高为数字或百分比时，会根据font-size来进行计算
+
+符合以下任一条件即会生成一个IFC
+
+- 块级元素中仅包含内联级别元素
+
+形成条件非常简单，需要注意的是当IFC中有块级元素插入时，会产生两个匿名块将父元素分割开来，产生两个IFC
+
+IFC布局规则
+
+- 子元素水平方向横向排列，并且垂直方向起点为元素顶部。
+- 子元素只会计算横向样式空间，【padding、border、margin】，**垂直方向样式空间不会被计算**，【padding、border、margin】。
+- 在垂直方向上，子元素会以不同形式来对齐（vertical-align）
+- 能把在一行上的框都完全包含进去的一个矩形区域，被称为该行的行框（line box）。行框的宽度是由包含块（containing box）和与其中的浮动来决定。
+- IFC中的“line box”一般左右边贴紧其包含块，但float元素会优先排列。
+- IFC中的“line box”高度由 CSS 行高计算规则来确定，同个IFC下的多个line box高度可能会不同。
+- 当 inline-level boxes的总宽度少于包含它们的line box时，其水平渲染规则由 text-align 属性值来决定。
+- 当一个“inline box”超过父元素的宽度时，它会被分割成多个boxes，这些 oxes 分布在多个“line box”中。如果子元素未设置强制换行的情况下，“inline box”将不可被分割，将会溢出父元素。
+
+**很多时候，上下间距不生效可以使用IFC来解释**
+
+#### 图片去除缝隙的解决方案 ####
+
+- 图片display:block
+- 图片vertical-align:bottom
+- 父元素设置line-height:0 原因是当line-height:0时,行盒的基线会上移
+
+ 可替换元素的基线取决于marginbox的底部
+
+float优先级
+![articlex.png](http://ww1.sinaimg.cn/large/48ceb85dly1gcrb0o0lwuj20b4041aan.jpg)
+
+## vertical-align ##
+vertical-align用来指定行内元素（inline）或表格单元格（table-cell）元素的垂直对齐方式。也就是说，**对于块级元素，vertical-align是不起作用的**
+
+vertical-align的属性值可以归为以下4类：
+
+- 线类，如 baseline、top、middle、bottom；
+- 文本类，如 text-top、text-bottom；
+- 上标下标类，如 sub、super；
+- 数值百分比类，如 10px、1em、5%；
+
+### 线类 ###
+
+baseline，baseline为vertical-align的默认值，其意思是指基线对齐，所谓基线，指的是字母x的下边缘
+
+如果一个inline-block元素，里面没有内联元素，或者overflow不是visible，则该元素的基线是其margin底边缘如果一个inline-block元素，里面没有内联元素，或者overflow不是visible，则**该元素的基线是其margin底边缘**；
+
+top，对于内联元素，指的是元素的顶部和当前行框盒子的顶部对齐；对于table-cell元素，指的是元素的顶padding边缘和表格行的顶部对齐。
+
+### 文本类 ###
+
+text-top，指的是盒子的顶部和父级内容区域的顶部对齐。
+
+text-bottom，指的是盒子的底部和父级内容区域的底部对齐
+
+### 数值百分比类 ###
+
+vertical-align是支持数值的，并且兼容性也非常好，但大部分开发人员却不知道vertical-align支持数值。对于数值，正值表示由基线往上偏移，负值表示由基线往下偏移。而百分比则是基于line-height来计算的，百分比用得比较少，因为line-height一般都是开发人员给出的，这时候数值就可以精确定位元素，不需要再使用百分比再去计算一遍。
+
+### vertical-align起作用的前提 ###
+
+vertical-align起作用是有前提条件的，这个前提条件就是：只能应用于内联元素以及display值为table-cell的元素。在css中，有些css属性是会改变元素的display值的，例如float和position: absolute，一旦设置了这两个属性之一，元素的display值就是变为block，因此，vertical-align也就失去了作用。
+
+父元素没有line-height或者line-height很小，也可能会使vertical-align不起作用
+
+### line-height ###
+行高是作用在每一个行框盒子(line-box)上的，而行框盒子则是由内联盒子组成
+
+对于块级元素和替换元素，行高是无法决定最终高度的，只能决定行框盒子的最小高度。
+
+每一个行框盒子都有一个看不见的节点，该节点继承了line-height;*内联元素是会继承父元素的line-height的；*
+
+如果元素本身有line-height，父元素的实际高度/line-height由内部元素的line-height和vertical-align计算而得
+
+x-height指的就是字母x的高度，ex是一个尺寸单位，其大小是相对字母x的来计算的，即1ex就表示1个字母x的高度
+
+行距的计算为：line-height - em-box，em-box指的是1em的大小，因此行距可以表示为：line-height - font-size
+
+span也继承了line-height: 32px，但两者的font-size不一样，这就导致了"strut"的font-size比较小，而span的font-size比较大，也就是说它们的基线不在同一位置上，"strut"偏上一点，而span默认又是基线对齐，为此，span总体会往上移以便跟"strut"基线对齐，.box元素就是这样被撑高了。
+
+而解决方案可以有以下几种：
+
+- span元素不使用基线对齐，可以改为top对齐
+- span元素块状化
+- line-height设置为0
+- font-size设置为0
+
+### 行高与图片 ###
+我们知道了图片是基于baseline对齐的,所以行高影响的是文本的高度,而不是图片的高度
+
+图片去除缝隙的解决方案
+
+- 图片display:block
+- 图片vertical-align:bottom
+- 父元素设置line-height:0 原因是当line-height:0时,行盒的基线会上移
+
+&lt;!DOCTYPE html&gt; 会影响line-height的呈现//没有标签，line-height无法撑起没有直接文字的容器；
+
 ## 移动端显示 ##
 在移动端显示太小，需要添加以下元数据，使页面适应设备
 
@@ -5740,6 +5888,65 @@ AntDesign手动引入 "antd/dist/antd.css"
 
 > viewport width=device-width是什么意思，其实就是让viewport的尺寸等于逻辑像素的尺寸
 
+## 屏幕适配 ##
+web app简单原则：文字流式，控件弹性，图片等比缩放。
+
+### 网易适配 ###
+375*680的比320*680的导航栏明显要高。能够达到这种效果的根本原因就是因为网易页面里除了font-size之外的其它css尺寸都使用了rem作为单位
+
+最根本的原因在于，网易页面上html的font-size不是预先通过媒介查询在css里定义好的，而是通过js计算出来的
+
+拿网易来说，它的设计稿应该是基于iphone4或者iphone5来的，所以它的设计稿竖直放时的横向分辨率为640px；为了计算方便，取一个100px的font-size为参照，那么body元素的宽度就可以设置为width: 6.4rem，于是html的font-size=deviceWidth / 6.4。这个deviceWidth就是viewport设置中的那个deviceWidth
+
+这个deviceWidth通过document.documentElement.clientWidth就能取到了，所以当页面的dom ready后，做的第一件事情就是：
+
+document.documentElement.style.fontSize = document.documentElement.clientWidth / 6.4 + 'px';
+
+font-size可能需要额外的媒介查询，并且font-size不能使用rem，如网易的设置：
+@media screen and (max-width:321px){
+    .m-navlist{font-size:15px}
+}
+
+@media screen and (min-width:321px) and (max-width:400px){
+    .m-navlist{font-size:16px}
+}
+
+@media screen and (min-width:400px){
+    .m-navlist{font-size:18px}
+}
+
+device-width的计算公式为：设备的物理分辨率/(devicePixelRatio * scale)
+
+比较网易与淘宝的做法
+共同点：
+
+- 都能适配所有的手机设备，对于pad，网易与淘宝都会跳转到pc页面，不再使用触屏版的页面
+- 都需要动态设置html的font-size
+- 布局时各元素的尺寸值都是根据设计稿标注的尺寸计算出来，由于html的font-size是动态调整的，所以能够做到不同分辨率下页面布局呈现等比变化
+- 容器元素的font-size都不用rem，需要额外地对font-size做媒介查询
+- 都能应用于尺寸不同的设计稿，只要按以上总结的方法去用就可以了
+
+不同点
+
+- 淘宝的设计稿是基于750的横向分辨率，网易的设计稿是基于640的横向分辨率，还要强调的是，虽然设计稿不同，但是最终的结果是一致的，设计稿的尺寸一个公司设计人员的工作标准，每个公司不一样而已
+- 淘宝还需要动态设置viewport的scale，网易不用
+- 最重要的区别就是：网易的做法，rem值很好计算，淘宝的做法肯定得用计算器才能用好了 。不过要是你使用了less和sass这样的css处理器，就好办多了，以淘宝跟less举例，我们可以这样编写less：
+
+
+	//定义一个变量和一个mixin
+
+	@baseFontSize: 75; //基于视觉稿横屏尺寸/100得出的基准font-size
+	.px2rem(@name, @px){
+	    @{name}: @px / @baseFontSize * 1rem;
+	}
+	//使用示例：
+	.container {
+	    .px2rem(height, 240);
+	}
+	//less翻译结果：
+	.container {
+	    height: 3.2rem;
+	}
 # SVG #
 - SVG 指可伸缩矢量图形 (Scalable Vector Graphics)
 - SVG 用来定义用于网络的基于矢量的图形
@@ -6303,7 +6510,8 @@ _(dataList.list).groupBy(item=>item.lc).map((items,lc)=>{return {lc:lc, items:it
 必须让 <form> 表单的 enctype 等于 multipart/form-data
 
 > POST http://www.example.com HTTP/1.1
-> Content-Type:multipart/form-data; boundary=----WebKitFormBoundaryrGKCBY7qhFd3TrwA
+> Content-Type:multipart/form-data; boundary=----WebKitFormBoundaryrGKCBY7qhFd3Tr
+> wA
 > 
 > ------WebKitFormBoundaryrGKCBY7qhFd3TrwA
 > Content-Disposition: form-data; name="text"
@@ -6683,3 +6891,13 @@ video元素的伸展会导致兄弟元素的收缩，在flex布局中设置flex-
 
 #### 设置object-fit：contain； ####
 考虑视频实际大小小于容器的情况；视频较小时，scale-down使得视频保持原有大小，而无法充满整个容器；fill无法保持视频长宽比；cover使得视频不能完整实现；
+
+#### 内容超出预定宽度，产生换行问题 ####
+可以设置长度，并设置css
+	white-space:nowrap;
+	overflow:hidden;
+	text-overflow:ellipsis;
+
+在flex中，摆在首位的元素默认不换行，可以直接设置
+	overflow:hidden;
+	text-overflow:ellipsis;
