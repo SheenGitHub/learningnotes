@@ -1,4 +1,3 @@
-
 # HTML #
 ## Canvas ##
 ### 图像 ###
@@ -341,8 +340,6 @@ Object类型是所有的实例的基础
 #### 属性的赋值器（setter）和取值器（getter） ####
 > 如果对象的方法使用了取值函数（getter）和存值函数（setter），则name属性不是在该方法上面，而是该方法的属性的描述对象的get和set属性上面，返回值是方法名前加上get和set
 ####  ####
-属性名表达式如果是一个对象，默认情况下会自动将对象转为字符串[object Object]
-
 属性名表达式如果是一个对象，默认情况下会自动将对象转为字符串[object Object]
 
 #### method name ####
@@ -1461,6 +1458,19 @@ Array 或RegExp。没有class ..extends 语法时，想实现这一点是非常�
 	person1.__proto__ == Object.getPrototypeOf(person1)
 
 **缺点:省略了为构造函数传递初始化参数这一环节，结果所有实例在默认情况下都取得了相同的值**
+
+Function才有 prototype， 对象内部属性[[Prototype]]即__proto__
+
+函数和函数的原型通过prototype和constructor互指
+
+通过函数生成的对象有一个内部指针([[Prototype]])指向其构造函数的原型，通过isProtoTypeOf可以查看
+
+函数的原型对象最初只包含constructor属性，这个原型的__proto__指向一个对象new Object();
+
+delete obj.prop,可以使得恢复对原型链上prop的访问（属性屏蔽）
+
+重写原型对象切断了现有原型和之前已经存在的对象之间的联系，它们引用的仍然是最初的原型。
+
 ### 使用构造函数和原型模式 ###
 
 	function Person(name,age,job){
@@ -3147,6 +3157,19 @@ ES6中
     });
 
 
+
+### TypedArray ###
+
+> ArrayBuffer对象代表储存二进制数据的一段内存，它不能直接读写，只能通过视图（TypedArray视图和DataView视图)来读写，视图的作用是以指定格式解读二进制数据
+
+	const buffer = new ArrayBuffer(12);
+	
+	const x1 = new Int32Array(buffer);
+	x1[0] = 1;
+	const x2 = new Uint8Array(buffer);
+	x2[0]  = 2;
+	
+	x1[0] // 2
 ## CPS（Continuation Programming Style） ##
 > 我们在学习函数时只了解了一半事实，因为我们基于一个错误的假定：函数只能将结果返回到它的调用端
 
@@ -4065,6 +4088,41 @@ JavaScript只有词法作用域，简单明了。
 
 **主要区别：词法作用域是在写代码或者说定义时确定的，而动态作用域是在运行时确定
 的。（this 也是！)**
+## 异常 ##
+	window.onerror = function(message, source, lineno, colno, error) { ... }
+
+- message：错误信息（字符串）。可用于HTML onerror=""处理程序中的event。
+- source：发生错误的脚本URL（字符串）
+- lineno：发生错误的行号（数字）
+- colno：发生错误的列号（数字）
+- error：Error对象（对象）
+- 若该函数返回true，则阻止执行默认事件处理函数。
+
+	window.addEventListener('error', function(event) { ... })
+
+ErrorEvent 类型的event包含有关事件和错误的所有信息
+
+element.onerror = function(event) { ... }
+
+> 当加载自不同域（协议、域名、端口三者任一不同）的脚本中发生语法(?)错误时，为避免信息泄露，语法错误的细节将不会报告，而代之简单的"Script error."。
+
+结论：如果想通过onerror函数收集不同域的js错误，我们需要做两件事：
+
+1. 相关的js文件上加上Access-Control-Allow-Origin:*的response header
+1. 引用相关的js文件时加上crossorigin属性
+
+### 捕获未处理的promise异常 ###
+
+如何捕获那些未处理的Promise错误。由于没有使用catch方法捕获错误，当asyncFunc()函数reject时，抛出的错误则没有被处理
+
+#### unhandledrejection ####
+监听unhandledrejection事件，即可捕获到未处理的Promise错误
+
+	window.addEventListener('unhandledrejection', event => ···);
+
+promise: reject的Promise这个事件是PromiseRejectionEvent实例，它有2个最重要的属性：
+
+reason: Promise的reject值
 ## 性能 ##
 浏览器在解析到body标签之前不会渲染页面的任何部分
 
@@ -4244,6 +4302,7 @@ ie上避免使用:hover
 
 ### 代码优化 ###
 减少迭代次数 Duff's Device 循环体展开技术
+
 ## jquery ##
 ### jQuery.ajax ###
 [API 文档](http://api.jquery.com/jquery.ajax/)
@@ -5104,6 +5163,7 @@ filter:grayscale(100%)图片滤镜
 - transition-timing-function;
 - transition-delay;
 
+要有明确的起始终止数值transition才会起效，例如auto这种transition就无法生效
 ## CSS3 动画 ##
 
 ## CSS规则执行顺序 ##
@@ -6290,6 +6350,14 @@ _(dataList.list).groupBy(item=>item.lc).map((items,lc)=>{return {lc:lc, items:it
 	  }
 	}
 
+## 高阶组件 ##
+高阶组件是参数为组件，返回值为新组件的函数
+
+	const EnhancedComponent = higherOrderComponent(WrappedComponent);
+
+组件是将 props 转换为 UI，而高阶组件是将组件转换为另一个组件
+
+
 ### ES6的模块导出 ###
 
 	// 写法一
@@ -6606,7 +6674,39 @@ new Vue({
 > mixins,extends
 > 
 > 而mixins和extends是为了拓展组件.
-> 
+
+## Vuex ## 
+
+### 简单store ###
+	var store = {
+	  debug: true,
+	  state: {
+	    message: 'Hello!'
+	  },
+	  setMessageAction (newValue) {
+	    if (this.debug) console.log('setMessageAction triggered with', newValue)
+	    this.state.message = newValue
+	  },
+	  clearMessageAction () {
+	    if (this.debug) console.log('clearMessageAction triggered')
+	    this.state.message = ''
+	  }
+	}
+	var vmA = new Vue({
+	  data: {
+	    privateState: {},
+	    sharedState: store.state
+	  }
+	})
+	
+	var vmB = new Vue({
+	  data: {
+	    privateState: {},
+	    sharedState: store.state
+	  }
+	})
+
+
 # 浏览器兼容性 #
 querySelectorAll()的结果是NodeList，在IE上不支持forEach
 
