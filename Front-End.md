@@ -796,6 +796,56 @@ var s = "𠮷"；
 ### Class ###
 Function的语法糖
 
+#### 类的等价实现 ####
+	let PersonType2 = (function(){
+		"use strict";
+		
+		const PersonType2 = function(name) {
+			if (typof new.target === 'undefined'){
+				throw new Error("必须通过关键字new调用构造函数");
+			}
+		}
+		
+		Object.defineProperty(PersonType2.prototype, "sayName",{
+			value: function(){
+				if (typeof new.target !== 'undefined') {
+					throw new Error("不可使用关键字new调用该方法");
+				}
+				console.log(this.name);
+			},
+			enumerable: false,
+			writable: true,
+			configurable:true,
+		});
+		
+		return PersonType2;
+	})();
+
+#### 继承的等价实现 ####
+*寄生组合式继承*
+
+	function Rectangle(length, width) {
+		this.length = length;
+		this.width  = width;
+	}
+	
+	Rectangel.prototype.getArea = function() {
+		return this.length * this.width;
+	};
+	
+	function Square(length) {
+		Rectangle.call(this, length, length);
+	}
+	
+	Square.prototype = Object.create(Rectangle.prototype, {
+		constructor : {
+			value: Square,
+			enumerable: true,
+			writable: true,
+			configurable: true
+		}
+	});
+
 类的内部所有定义的方法，都是不可枚举的（non-enumerable）
 
 类必须使用new调用，否则会报错。这是它跟普通构造函数的一个主要区别，后者不用new也可以执行。
@@ -1762,6 +1812,42 @@ JavaScript 有七种内置类型：
 	// ..
 
 ### 数组 ###
+
+#### 用代理创建数组 ####
+	function toUint32(value){
+	    return Math.floor(Math.abs(Number(value)))%Math.pow(2,32);
+	}
+	
+	function isArrayIndex(key){
+	    let numbericKey = toUint32(key);
+	    return String(numbericKey) == key && numbericKey < (Math.pow(2,32) -1);
+	}
+	
+	class MyArray{
+	    constructor(length = 0) {
+	        this.length = length;
+	        return new Proxy(this,{
+	            set(trapTarget, key, value){
+	                let currentLength = Reflect.get(trapTarget, 'length');
+	                    
+	                if(isArrayIndex(key)){
+	                    let numbericKey = Number(key);
+	                    if(numbericKey >= currentLength) {
+	                        Reflect.set(trapTarget, 'length', numbericKey+1);
+	                    }
+	                }else if(key==='length'){
+	                    if(value < currentLength){
+	                        for(let index = currentLength-1;index >= value;index--){
+	                            Reflect.deleteProperty(trapTarget, index);
+	                        }
+	                    }
+	                }
+	                return Reflect.set(trapTarget, key, value);
+	            }
+	        })
+	    }
+	}
+
 “稀疏”数组
 
 如果字符串键值能够被强制类型转换为十进制数字的话，它
@@ -6456,6 +6542,40 @@ _(dataList.list).groupBy(item=>item.lc).map((items,lc)=>{return {lc:lc, items:it
 
 - 算法不会尝试匹配不同节点类型的子树。如果你发现在有类似输出的两个不同节点类型中相互切换，你可能需要将其转化成同种类型，事实上，我们没有在其中发现问题。
 - keys 应该是稳定的、可预测的并且是唯一的。不稳定的 key (类似于 Math.random() 函数的结果)可能会产生非常多的组件实例并且 DOM 节点也会非必要性的重新创建。这将会造成极大的性能损失和组件内state的丢失。
+
+## Redux ##
+减少reducer中的switch
+
+#### 原代码 ####
+	function todoApp(state = initialState, action){
+		swtich(action.type) {
+			//或者{...state,...newState}
+			case SET_VISIBLITY_FILTER:
+				return Object.assign({},state, {
+					visiblityFilter:action.filter
+				})
+			default:
+				return state
+		}
+	}
+#### Reducers生成器 ####
+	export const todos = createReducer([], {
+		[ActionTypes.ADD_TODO](state, action){
+			let text = action.text.trim();
+			return [...state,text]
+		}
+	})
+	
+	function ceateReducer(initialState, handlers){
+		return function reducer(state = initialState, action){
+			if(handlers.hasOwnProperty(action.type)){
+				return handlers[action.type](state, action);
+			} else {
+				return state;
+			}
+		}
+	}
+
 # Webpack #
 分离css，js配置
 
