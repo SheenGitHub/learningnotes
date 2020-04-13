@@ -195,6 +195,32 @@ textContent innerHTML 返回纯文本内容
 	    document.title = '页面可见';
 	  }
 	});
+### 离线缓存 ###
+> 离线缓存是HTML5新引入的技术，能够让你的Web应用程序指定哪些文件可以缓存在本地，使得你的网络断开时依然可以通过本地的缓存来进行访问浏览。
+
+#### HTML 5 应用程序缓存的好处： ####
+
+离线浏览 – 用户可在应用离线时使用它们。
+
+速度 – 已缓存资源加载得更快。
+
+减少服务器负载 – 浏览器将只从服务器下载更新过或更改过的资源。
+
+浏览器支持：所有主流浏览器均支持应用程序缓存，除了 Internet Explorer。对于移动端来说浏览器不是问题。
+
+#### 使用方法 ####
+manifest文件的后缀名必须为.appcache
+
+manifest 文件可分为三个部分：
+
+CACHE MANIFEST – 在此标题下列出的文件将在首次下载后进行缓存
+
+NETWORK – 在此标题下列出的文件需要与服务器的连接，且不会被缓存
+
+FALLBACK – 在此标题下列出的文件规定当页面无法访问时的回退页面（比如 404 页面）
+
+#### 监听事件 ####
+updateready
 # JavaScript #
 ## 严格模式 ##
 ES6的模块自动采用严格模式
@@ -845,6 +871,33 @@ Function的语法糖
 			configurable: true
 		}
 	});
+
+#### flvjs中的Babel装换ES5实现 ####
+	var _createClass = function () { 
+		function defineProperties(target, props) { 
+			for (var i = 0; i < props.length; i++) { 
+				var descriptor = props[i];
+				 descriptor.enumerable = descriptor.enumerable || false; 
+				 descriptor.configurable = true; 
+				 if ("value" in descriptor) descriptor.writable = true; 
+				 Object.defineProperty(target, descriptor.key, descriptor); 
+			 } 
+		 } 
+		 
+		 return function (Constructor, protoProps, staticProps) { 
+			 if (protoProps) defineProperties(Constructor.prototype, protoProps); 
+			 if (staticProps) defineProperties(Constructor, staticProps); 
+			return Constructor; 
+		}; 
+	 }(); 
+
+#### Babel中的类保证检查 ####
+	function _classCallCheck(instance, Constructor) 
+	{
+		if (!(instance instanceof Constructor)) {
+			throw new TypeError("Cannot call a class as a function");
+		}
+	}
 
 类的内部所有定义的方法，都是不可枚举的（non-enumerable）
 
