@@ -185,7 +185,7 @@ ambiguous
 如果某个属性在语法分析树结点N上的值是由N的子结点以及N本身的属性值确定的，那么这个属性成为综合属性(synthesized attribute)。综合属性只要遍历一次就可以计算出属性值,相对应的叫"继承"属性，需要由结点本身、父结点以及兄弟结点上的属性值决定。
 
 ### 简单语法制导定义 ###
-要得到代表产生式头部的非终结符号的翻译结果的字符串，只需要将产生式体中各非终结符号的翻译结果按照它们在非终结符号中的出现顺序连接起来，并在其中穿插一些附加的串即可。具有这个性质的语法制导定义成为简单语法制导定义。
+要得到代表产生式头部的非终结符号的翻译结果的字符串，只需要将产生式体中各非终结符号的翻译结果按照它们在非终结符号中的出现顺序连接起来，并在其中穿插一些附加的串即可。具有这个性质的语法制导定义成为**简单语法制导定义**。
 
 产生式 expr->expr1 + term
 
@@ -219,7 +219,249 @@ ambiguous
 
 如果有两个产生式A->α和A->β, 我们就必须考虑相应的FIRST集合,如果我们不考虑ε产生式，**预测分析法**要求FIRST(α)和FIRST(β)不想交，那么就可以用向前看符号来确定改使用哪个产生式。
 
+*预测分析器的伪代码*
+	
+	void stmt(){
+		switch(lookhead){
+			case expr:
+				match(expr);match(';');break;
+			case if:
+				match(if);match('(');match(expr);match(')');stmt();
+				break;
+			case for:
+				match(for);match('(');
+				optexpr();match(';');optexpr();match(';');optexpr();
+				match(')');stmt();break;
+			case other:
+				match(other);break;
+			default:
+				report('syntax error');
+		}
+	}
+	
+	void optexpr(){
+		if( lookhead == expr ) match(expr);
+	}
+	
+	void match(){
+		if( lookhead == t ) lookhead = nextTerminal;
+		else report('syntax error');
+	}
 
+### 何时使用ε产生式 ###
+optexpr 被调用，其过程体中的代码：
+
+	if( lookhead == expr ) match(expr);
+
+lookhead符号';'与终结符号expr不匹配。因此不能以expr为体的产生式，该过程没有没有改变向前看符号，也没有做任何其他操作就返回了。不做任何操作就对应用ε产生式的情形；如果向前看符号不在FIRST(expr)产生式中，我们就使用ε产生式。
+
+### 设计一个预测分析器 ###
+对于文法的任何非终结符号，它的各个产生式的FIRST集合互不相交。如果我们有一个翻译方案，即一个增加语义动作的文法，那么我们就可以将这些语义动作当作此语法分析器的过程的一部分执行。
+
+构造方法：
+
+1. 先不考虑产生式中的动作，构造一个预测分析器
+1. 将翻译方案中的动作拷贝到语法分析器中。如果一个动作出现在产生式p中的文法符号X的后面，则该动作就被拷贝到到p的代码中X的实现之后。否则，如果该动作出现在一个产生式的开否，那么它就被拷贝到该产生式体的实现代码之前。
+
+### 左递归 ###
+递归下降语法分析器有可能进入无线循环。当出现所示的产生式时，分析器就会出现无限循环。第二次调用产生式的过程和第一次调用时一样，并不断循环。
+
+	expr->expr + term
+
+消除左递归，考虑产生式
+
+	A -> Aα | β
+
+其中α和β是不以A开头的终结符/非终结符的序列，
+
+A->Aα的右部的最左符号是A本身，非终结符号A和它的产生式就被称为左递归(left recursive),不断应用这个产生式就会将A的右边生成一个a的序列。最终将A替换为β时可以得到β后面有0到多个α的序列
+
+如下产生式可达到一样的效果
+
+	A->βR
+	R->αR|e
+
+非终结符R和它的产生式是R->αR是右递归的。对于包含了左结合运算符(比如减法)的表达式的翻译就变得较为困难。
+ 
+## 简单表达式的翻译器 ##
+
+*翻译为后缀表示形式的动作*
+
+	expr -> expr + term { print('+') }
+		  | expr - term { print('-') }
+	      | term
+	
+	term -> 0 { print('0') }
+		 -> 1 { print('1') }
+		 -> 2 { print('2') }
+		 ...
+	   	 -> 9 { print('9') }
+
+### 抽象语法和具体语法 ###
+在一个表达式的抽象语法树中，每个内部结点代表一个运算符，该结点的子结点代表这个运算符的运算分量。
+
+在抽象语法树中，内部结点代表的是函数构造；而在语法分析树中，内部结点代表的是非终结符号。
+
+文法中有部分是辅助符号，抽象语法树(abstract syntax tree)中，通常不需要这些辅助符号，有时语法分析树成为具体语法树(concrete syntax tree),相应的文法成为该语言的具体语法(concrete syntax)。
+
+	令 A = expr
+   	  α = + term {print('+')}
+	  β = - term {print('-')}
+	  γ = term
+
+进行左递归消除转换
+
+	A-> γR
+	R-> αR|ε 
+
+![捕获.PNG](http://ww1.sinaimg.cn/large/48ceb85dly1ge3gpcddptj20c506udfr.jpg)
+
+*翻译方案伪代码*
+
+	void expr(){
+		term();rest();
+	}
+	
+	void rest(){
+		if( lookhead == '+' ){
+			match('+');term();print('+');rest();
+		}
+		else if( lookhead == '-' ) {
+			match('-');term();print('-');rest();
+		}
+		else{}/*不对输入做任何处理*/
+	}
+	
+	void term() {
+		if( lookhead 是一个数位) {
+			t = lookhead; match(lookhead); print(t);
+		}
+		else report('语法错误');
+	}
+
+如果一个过程体中执行的最后一条语句时对该过程的递归调用，那么这个调用就被称为尾递归。
+
+*消除尾递归*
+
+	void rest() {
+		while( true ) {
+			if( lookhead == '+' ){
+				match('+');term();print('+');continue;
+			}
+			else if ( lookhead == '-' ) {
+				match('-');term();print('-');continue;
+			}
+			break;
+		}
+	}
+
+*中缀表达式转后缀表达式的Java代码*
+
+	import java.io.*;
+	class Parser {
+	    static int lookhead;
+	
+	    public Parser() throws IOException {
+	        lookhead = System.in.read();
+	    }
+	
+	    void expr() throws IOException{
+	        term();
+	        while (true) {
+	            if( lookhead == '+' ){
+	                match('+'); term();System.out.write('+');
+	            }
+	            else if( lookhead == '-' ) {
+	                match('-'); term();System.out.write('-');
+	            }
+	            else return;
+	        }
+	    }
+	
+	    void term() throws  IOException {
+	        if(Character.isDigit((char)lookhead)) {
+	            System.out.write((char)lookhead);
+	            match(lookhead);
+	        }
+	        else throw new Error("syntax error");
+	    }
+	
+	    void match(int t) throws IOException {
+	        if( lookhead == t ) lookhead = System.in.read();
+	        else throw new Error("Syntax error");
+	    }
+	}
+	public class Postfix {
+	    public static void main(String[] args) throws IOException {
+	        Parser parser = new Parser();
+	        parser.expr();
+	        System.out.write('\n');
+	    }
+	}
+
+### 预读 ###
+在决定向语法分析器返回哪个词法单元之前，语法分析器可能需要预先读入一些字符。例如读入> 之后必须预先读下一个字符，如果下一个字符是=那么这个序列代表大于等于的词法单元词素。像*这样的运算符不需要预读就能够识别。
+
+一个通用预选读取的方法就是使用输入缓冲区。
+
+### 常量 ###
+将字符组成整数并计算它的数值的工作通常由词法分析器完成，在语法分析和翻译过程中可以将数字当做一个单元进行处理。
+
+可以创建一个代表整形的终结符号,比如num,也可以将整数常量语法加入到文法中,将输入32+28+59转换成序列<num,31><+><num,28><+><num,59>,这里终结符号+没有属性，它的元组就是<+>
+
+### 关键字和标识符 ###
+语言的文法通常把标识符当做终结符号进行处理。
+
+只有一个字符串不是关键字时它才能组成一个标识符。
+
+用一个表来保存字符串，解决单一表示的字符串和保留字问题
+
+*词法分析器代码*
+
+	public class Lexer {
+	    public int line = 1;
+	    private char peek = ' ';
+	    private Hashtable words = new Hashtable();
+	    void reserve(Word t){
+	        words.put(t.lexeme, t);
+	    }
+	    public Lexer(){
+	        reserve(new Word(Tag.TRUE, "true"));
+	        reserve(new Word(Tag.FALSE, "false"));
+	    }
+	    public Token scan() throws IOException{
+	        for(;; peek = (char)System.in.read()){
+	            if(peek == ' ' || peek == '\t') continue;
+	            else if( peek == '\n') line = line + 1;
+	            else break;
+	        }
+	
+	        if(Character.isDigit(peek)){
+	            int v = 0;
+	            do {
+	                v = 10*v + Character.digit(peek, 10);
+	                peek = (char)System.in.read();
+	            }while(Character.isDigit(peek));
+	            return new Num(v);
+	        }
+	        if(Character.isLetter(peek)){
+	            StringBuffer b = new StringBuffer();
+	            do{
+	                b.append(peek);
+	                peek = (char)System.in.read();
+	            }while (Character.isLetter(peek));
+	            String s = b.toString();
+	            Word w = (Word)words.get(s);
+	            if( w != null )return w;
+	            w = new Word(Tag.ID, s);
+	            words.put(s, w);
+	            return w;
+	        }
+	        Token t = new Token(peek);
+	        peek = ' ';
+	        return t;
+	    }
+	}
 
 
 # 希腊字母表 #
