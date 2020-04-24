@@ -462,7 +462,101 @@ A->Aα的右部的最左符号是A本身，非终结符号A和它的产生式就
 	        return t;
 	    }
 	}
+## 符号表 ##
+Symbol Table
 
+符号表是一种供编译器用于保存有关源程序构造的各种信息的数据结构。这些信息在编译器的分析阶段被逐步收集并放入符号表，它们在综合阶段用于生成目标代码。
 
+术语"标识符x的作用域"实际上指的是x的某个声明的作用域。术语作用域(scope)本身是指一个或多个声明起作用的程序部分。
+
+当stmts能生成一个程序块时，下面的规则会产生嵌套的块
+
+	block -> '{' decls stmts '}'
+
+*符号表的优化*
+
+> 块的符号表实现可以利用作用域的最近嵌套规则。嵌套的结果确保可应用的符号表形成一个栈。在栈的顶部是当前的符号表。栈中这个表的下方是包含这个块的各个块的符号表。因此符号表可按照类似栈的方式来分配和释放。
+> 
+> 有些编译器维护一个散列表表来存放可访问的符号表条目。这样的散列表要支持常量时间的查询，但是在进入和离开块时需要插入和删除相应的条目。
+
+语句块的最近嵌套(most-closely)规则是说，一个标识符x在最近声明的作用域中。也就是说从x出现的块开始，从内向外检查各个块查找到的第一个对x的声明。
+
+实现语句块的最近嵌套规则时，可以将符号表链接起来，也就是使得内嵌语句块的符号表指向外围语句块的符号表。
+
+![捕获.PNG](http://ww1.sinaimg.cn/large/48ceb85dly1ge4mnfp4mrj206e04b3yb.jpg)
+
+	public class Env {
+		private Hashtable table;
+		protected Env prev;
+
+		public Env(Env p){
+			table = new Hashtable();
+			prev = p;
+		}
+	}
+
+	//prev代表上一层的环境
+
+从效果看，一个符号表的作用是将信息从声明的地方传递到实际使用的地方。
+
+处理:
+
+{int x; char y; { bool y; x; y;} x; y;}
+
+输出
+
+{{ x:int; y:bool; } x:int; y:char;}
+
+	program ->          		{top=null;}
+				block
+
+	  block ->  '{'     		{saved = top;
+						 		 top = new Env(top);
+						 		 print("{ ");}
+				decls stms '}'  {top = saved;
+								 print("} ");}
+
+	  decls -> decls dcl
+			|  ε
+	
+	   decl -> type id;          { s = new Symbol;
+								   s.type = type.lexeme;
+								   top.put(id.lexeme, s);}
+	
+	  stmts -> stmts stmt
+			|  ε
+	
+	   stmt -> block
+			|  factor			 { print("; ");}
+	
+	 factor -> id                { s = top.get(id.lexeme);
+								   print(id.lexeme);
+								   print(":");
+								   print(s.type);}
+  
+## 生成中间代码 ##
+编译器的前端构造出源程序的中间表示，而后端根据这个中间表示生成目标程序。
+
+两种中间形式:
+
+- 树形结构，包括语法分析树和(抽象)语法树。
+- 线性表示形式，特别是"三地址代码"
+
+抽象语法树:在语法分析过程中，将创建抽象语法树的结点来表示有意义的程序构造。随着分析的进行，信息以与结点相关的属性的形式被添加到这些结点上。
+
+三地址代码:由基本程序步骤组成的序列。如果我们想对代码做出显著的优化，就需要这种表示形式。
+
+静态检查:确保一些特定类型的程序错误，包括类型不匹配，能在编译过程中被检测并报告。
+
+*为表达式和语句构造抽象语法树*
+
+program -> block              { return block.n; }
+
+  block -> '{' stmts '}'      { block.n = stmts.n; }
+
+  stmts -> stmts1 stmt        { stmts.n = new Seq(stmts1.n, stmt.n) }
+		| ε
+
+   stmt -> expr;               
 # 希腊字母表 #
 αβγδεζηθικλμνξοπρστυφχψω
