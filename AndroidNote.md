@@ -110,18 +110,183 @@ Setting->Build,Execution,Deployment->Gradle->Use local gradle distribution
 
 #### 不能resolve高德的依赖 ####
 估计是翻墙的原因，privoxy状态不稳定的时候就会报错
+
+# TensorFlow Lite #
+[https://tensorflow.google.cn/lite/guide](https://tensorflow.google.cn/lite/guide)
+
+TensorFlow Lite is a set of tools to help developers run TensorFlow models on mobile, embedded, and IoT devices. It enables on-device machine learning inference with low latency and a small binary size.
+
+TensorFlow Lite consists of two main components:
+
+- The TensorFlow Lite interpreter, which runs specially optimized models on many different hardware types, including mobile phones, embedded Linux devices, and microcontrollers.
+- The TensorFlow Lite converter, which converts TensorFlow models into an efficient form for use by the interpreter, and can introduce optimizations to improve binary size and performance.
+
+#### Machine learning at the edge ####
+
+TensorFlow Lite is designed to make it easy to perform machine learning on devices, "at the edge" of the network, instead of sending data back and forth from a server. For developers, performing machine learning on-device can help improve:
+
+- Latency: there's no round-trip to a server
+- Privacy: no data needs to leave the device
+- Connectivity: an Internet connection isn't required
+- Power consumption: network connections are power hungry
+
+#### Key features ####
+
+- Interpreter tuned for on-device ML, supporting a set of core operators that are optimized for on-device applications, and with a small binary size.
+- Diverse platform support, covering Android and iOS devices, embedded Linux, and microcontrollers, making use of platform APIs for accelerated inference.
+- APIs for multiple languages including Java, Swift, Objective-C, C++, and Python.
+- High performance, with hardware acceleration on supported devices, device-optimized kernels, and pre-fused activations and biases.
+- Model optimization tools, including quantization, that can reduce size and increase performance of models without sacrificing accuracy.
+- Efficient model format, using a FlatBuffer that is optimized for small size and portability.
+- Pre-trained models for common machine learning tasks that can be customized to your application.
+
+## TensorFlow Lite Android 图像分类 ##
+
+### 获取相机输入 ### 
+CameraActivity.java中定义了获取相机输入的函数，还可以获取用户UI偏好。
+### 分类器 ###
+Classfier包括了处理相机输入和运行推断的主要复杂逻辑。
+
+Classfier实现了静态方法create，根据提供的模型初始化合适的子类
+
+#### 载入模型并创建解释器 ####
+执行推断需要载入一个模型文件并初始化解释器，在Classifier的构造器执行这个过程并载入类型标签列表。设备类型和线程数等信息通过Interpreter.Options实例出入构造函数来配置解释器
+	
+	protected Classifier(Activity activity, Device device, int numThreads) throws
+	    IOException {
+	  tfliteModel = FileUtil.loadMappedFile(activity, getModelPath());
+	  switch (device) {
+	    case NNAPI:
+	      nnApiDelegate = new NnApiDelegate();
+	      tfliteOptions.addDelegate(nnApiDelegate);
+	      break;
+	    case GPU:
+	      gpuDelegate = new GpuDelegate();
+	      tfliteOptions.addDelegate(gpuDelegate);
+	      break;
+	    case CPU:
+	      break;
+	  }
+	  tfliteOptions.setNumThreads(numThreads);
+	  tflite = new Interpreter(tfliteModel, tfliteOptions);
+	  labels = FileUtil.loadLabels(activity, getLabelPath());
+
+FileUtil.loadMappedFile 执行预载入和模型文件的内存映射，加快了装载时间减少了内存中的脏数据页，并返回一个包含模型的MappedByteBuffer
+
+MappedByteBuffer和Interperter.Options对象一起被传给Interpreter的构造函数。
+
+#### 位图图片的预处理 ####
+Classfier的构造函数中，将相机的位图图片转换成TensorImage格式，以便更高效处理和预处理。
+
+	/** Loads input image, and applys preprocessing. */
+	private TensorImage loadImage(final Bitmap bitmap, int sensorOrientation) {
+	  // Loads bitmap into a TensorImage.
+	  image.load(bitmap);
+	
+	  // Creates processor for the TensorImage.
+	  int cropSize = Math.min(bitmap.getWidth(), bitmap.getHeight());
+	  int numRoration = sensorOrientation / 90;
+	  ImageProcessor imageProcessor =
+	      new ImageProcessor.Builder()
+	          .add(new ResizeWithCropOrPadOp(cropSize, cropSize))
+	          .add(new ResizeOp(imageSizeX, imageSizeY, ResizeMethod.BILINEAR))
+	          .add(new Rot90Op(numRoration))
+	          .add(getPreprocessNormalizeOp())
+	          .build();
+	  return imageProcessor.process(inputImageBuffer);
+	}
+
+#### 分配输出对象 ####
+初始化TensorBuffer作为模型的输出
+	
+	/** Output probability TensorBuffer. */
+	private final TensorBuffer outputProbabilityBuffer;
+	
+	//...
+	// Get the array size for the output buffer from the TensorFlow Lite model file
+	int probabilityTensorIndex = 0;
+	int[] probabilityShape =
+	    tflite.getOutputTensor(probabilityTensorIndex).shape(); // {1, 1001}
+	DataType probabilityDataType =
+	    tflite.getOutputTensor(probabilityTensorIndex).dataType();
+	
+	// Creates the output tensor and its processor.
+	outputProbabilityBuffer =
+	    TensorBuffer.createFixedSize(probabilityShape, probabilityDataType);
+	
+	// Creates the post processor for the output probability.
+	probabilityProcessor =
+	    new TensorProcessor.Builder().add(getPostprocessNormalizeOp()).build();
+
+#### 运行推断 ####
+	tflite.run(inputImageBuffer.getBuffer(),
+	    outputProbabilityBuffer.getBuffer().rewind());
+
+#### 识别图像 ####
+不同于直接调用run函数，recognizeImage方法接收一个位图和传感器方向，运行推断，并返回Recognition实例，各自对应一个标签，该方法返回的数目由MAX_RESULTS限制，默认是3。
+
+使用处理后正规化方法，置信度被转换成成0到1之间表示用给定类别表征图片。
+
+	Map<String, Float> labeledProbability =
+	    new TensorLabel(labels,
+	        probabilityProcessor.process(outputProbabilityBuffer))
+	        .getMapWithFloatValue();
+
+优先队列被用于排序
+
+	/** Gets the top-k results. */
+	private static List<Recognition> getTopKProbability(
+	    Map<String, Float> labelProb) {
+	  // Find the best classifications.
+	  PriorityQueue<Recognition> pq =
+	      new PriorityQueue<>(
+	          MAX_RESULTS,
+	          new Comparator<Recognition>() {
+	            @Override
+	            public int compare(Recognition lhs, Recognition rhs) {
+	              // Intentionally reversed to put high confidence at the head of
+	              // the queue.
+	              return Float.compare(rhs.getConfidence(), lhs.getConfidence());
+	            }
+	          });
+	
+	  for (Map.Entry<String, Float> entry : labelProb.entrySet()) {
+	    pq.add(new Recognition("" + entry.getKey(), entry.getKey(),
+	               entry.getValue(), null));
+	  }
+	
+	  final ArrayList<Recognition> recognitions = new ArrayList<>();
+	  int recognitionsSize = Math.min(pq.size(), MAX_RESULTS);
+	  for (int i = 0; i < recognitionsSize; ++i) {
+	    recognitions.add(pq.poll());
+	  }
+	  return recognitions;
+	}
 # Q&A #
 #### Could not resolve com.android.tools.build:gradle:3.0.1 ####
 配置代理地址，地址为127.0.0.1不是0.0.0.0 
 
 Gradle不支持socks协议，本地安装privoxy，将socks协议转成Http协议，勾选Http Proxy中勾选Http，端口从socks的1080换成privoxy的8118端口
 
+*不适用代理*
+
+关闭setting中的Http Proxy，删除用户文件夹下.gradle文件夹中gradle.properties中的代理设置(**配置中的代理设置在编译的时候是有效的**)
+
 #### AndroidStudio中出现Failed to resolve:com.android.support:appcompat-v7报错 ####
-调低compiledSdkVersion 和targetSdkVersion与sdk工具版本相同，调整appcompat-v[N]:[sdk-tool-version]+
+#### aapt.v2.Aapt2Exception: Android resource linking failed ####
+#### error: resource android:attr/colorError not found. ####
+**调低compiledSdkVersion 和targetSdkVersion与sdk工具版本相同，调整appcompat-v[N]:[sdk-tool-version]+**
+
+#### Failed to notify build listener ####
+是gradle5.0和android studio3.2不兼容的问题，解决方案是升级android studio到3.3x
 
 #### Resources$NotFoundException: String resource ID #0x0 ####
 setText() 参数为int型，系统去查找资源而不是直接设置文字
 
+#### Execution failed for task ':app:transformClassesAndResourcesWithR8ForRelease'.
+> com.android.tools.r8.CompilationFailedException: Compilation failed to complete ####
+
+   xxx
 #### Android 3.2 Read Time Out ####
 项目的jdk使用本地的jdk，而不是自带的openjdk
 
@@ -188,3 +353,11 @@ dependencies 中加入
 
 #### 监听器不起作用 ####
 可能监听事件在其他地方重新设置了监听器setXXXListener
+
+#### AndroidStudio识别不了手机 ####
+安装相应品牌手机android USB驱动
+ 
+#### 安卓保持屏幕常亮 ####
+FLAG_KEEP_SCREEN_ON
+
+	getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

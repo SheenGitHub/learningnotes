@@ -549,14 +549,139 @@ Symbol Table
 静态检查:确保一些特定类型的程序错误，包括类型不匹配，能在编译过程中被检测并报告。
 
 *为表达式和语句构造抽象语法树*
+	
+	program -> block              { return block.n; }
+	
+	  block -> '{' stmts '}'      { block.n = stmts.n; }
+	
+	  stmts -> stmts1 stmt        { stmts.n = new Seq(stmts1.n, stmt.n) }
+			| ε                   { stmts.n = null;}
+	 
+	  stmt-> expr;                { stmt.n = new Eval(expr.n);}
+			| if (expr) stmt1 	  { stmt.n = new If(expr.n, stmt1.n)}
+			| while (expr) stmts  { stmt.n = new While(expr.n, stmt1.n);}
+			| do stmts while(expr); {stmt.n = new Do(stmt1.n, expr.n);}
+			| block               { stmt.n = block.n;}
+	
+	  expr -> rel = expr1         { expr.n = new Assign('=', rel.n expr1.n);}
+			| rel                 { expr.n = rel.n;}
+	
+	  rel -> rel1 < add           { rel.n = new Rel('<', rel1.n, add.n);}
+			| rel1 <= add         { rel.n = new Rel('<='), rel1.n, add.n);}
+			| add                 { rel.n = add.n;}
+	
+	  add -> add1 + term          { add.n = new Op('+', add1.n, term.n);}
+			| term                { add.n = term.n;}
+	
+	  term -> term1 * factor      { term.n = new Op('*', term1.n, factor.n);}
+			| factor              { term.n = factor.n;}
+	
+	  factor -> (expr)            { factor.n = expr.n;}
+			| num                 { factor.n = new Number(number.value);}	
 
-program -> block              { return block.n; }
+子类Seq代表一个语句序列，这个子类对应于文法中的非终结符号stmts，这些类都是Stmt的子类，而Stmt又是Node的子类。
 
-  block -> '{' stmts '}'      { block.n = stmts.n; }
+表达式语句不以某个关键字开头，定义了一个新的运算符eval；
+        
+另一个语句构造是一系列语句组成的语句块:
 
-  stmts -> stmts1 stmt        { stmts.n = new Seq(stmts1.n, stmt.n) }
-		| ε
+	 stmt -> block;            { stmt.n = block.n;}
+	block -> '{' stmts '}'     { block.n = stmts.n;}
 
-   stmt -> expr;               
-# 希腊字母表 #
+第一个规则说明当一个语句时一个语句块时，它的抽象语法树和这个语句块的相同；第二个规则说明非终结符block对应的抽象语法树就是该块中的语句序列对应的语法树。
+
+以上语言中不包含声明。因为声明的信息已经加入符号表中，所以它们不需要出现在抽象语法树中。
+
+一个语句序列的表示方法：用一个叶子结点null表示一个语句空序列，用运算符seq表示一个语句序列 
+
+	stmts -> stmts1 stmt { stmts.n = new Seq(stmts1.n, stmts.n);}
+
+ *表达式的语法树*
+
+抽象语法允许我们将'相似的'运算符分为一组，以减少在实现表达式时需要处理的不同情况和需要设计的子类。
+	
+	具体语法            抽象语法
+	  =                  assign
+	 ||                  cond 
+	 &&                  cond
+	 == ！=              rel
+	 < <= >= >           rel
+	 + -                 op
+	 * / %               op
+	  !                  not 
+	 -unary              minus
+	 []                  access 
+
+几乎所有的运算符都是左结合的，只有赋值运算符=是右结合的。
+
+### 静态检查 ###
+静态检查是指在编译过程中完成一致性检查。这些一致性检查不但可以确保一个程序被顺序地编译。还能在程序运行之前发现编程错误。
+
+- 语法检查
+- 类型检查
+
+*左值和右值*
+
+复制表达式左部和右部的标识符的含义是不一样的
+
+	i = 5;
+	i = i+1;
+
+表达式的右部描述了一个整数值，而左部描述的是用来存放该值的存储位置。右值是我们通常所说的值，而左值是存储位置。静态见擦汗要确保赋值表达式的左部表示一个左值。一个像i这样的标识符是一个左值，a[2]这样的数组访问也是左值，但是2这样的常量不可以出现在表达式的左部，它有一个右值，但不是左值
+
+*类型检查*
+
+类型检查按照抽象语法运算符/运算分量的结构进行描述
+
+自动类型转换 当一个运算分量的类型被自动换成为运算符所期望的类型
+重载 如果一个符号在不同上下文中有不同的含义，这个符号时重载的(overloading) 
+
+#### 三地址码 ####
+x = y **op** z
+
+当遇到一个条件或无条件调整指令时，执行过程就会调整。控制流：
+
+	ifFalse x goto L 如果x为假，下一步执行标号为L的指令
+	ifTrue x goto L  如果x为真，下一步执行标号为L的指令
+	goto L           下一步执行标号为L的指令
+
+在一个指令前加前缀L：就表示将标号L附加到该指令。同一个指令可以同时拥有多个标号。
+
+*表达式的翻译*
+
+为表达式的语法树中的每一个运算符结点都生成一个三地址指令。不需要为标识符和常量生成任何代码，因为它们都可以作为地址出现在指令中。
+
+当a[i]出现在一个赋值表达式的左边时，不能简单地以临时量来替换a[i]
+
+当函数rvalue被应用于一个非叶子结点，它生成一些指令这些指令对x求值并存放到一个临时量中，然后该函数返回一个表示此临时量的新结点。当函数lvalue被应用于一个非叶子结点x时，它也会生成一些指令，这些指令计算x之下的各个子树。然后这个函数返回代表x的“地址”的新结点。
+
+	E lvalue(x:Expr) {
+		if(x是一个Id结点) return x;
+		else if(x是一个Access(y,z)结点，且y是一个Id结点) {
+			return new Access(y, rvalue(x));
+		}
+		else error;
+	}
+
+	Expr rvalue(x:Expr) {
+		if(x是一个Id或者Constant结点) returnx；
+		else if(x是一个Op(op,y,z)或者Rel(op,y,z)结点){
+			t = 新的临时结点;
+			生成对应 t = rvalue(y) op rvalue(z)的指令串;
+			return 一个代表t的新结点
+		}
+		else if(x是一个Access(y,z)结点){
+			t = 新的临时名字;
+			调用lvalue(x),它返回Access(y,z)的结点；
+			生成对应于 t= Access(y,z)的指令串;
+			return 一个代表t的新结点;
+		}
+		else if(x 是一个Assign(y,z)结点){
+			z1 = rvalue(z);
+			生成对应于lvalue(y) = z1指令串；
+			return z1；
+		}
+	}
+
+# 希腊字母表 # 
 αβγδεζηθικλμνξοπρστυφχψω
