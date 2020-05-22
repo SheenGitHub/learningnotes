@@ -248,6 +248,248 @@ view.animate().scaleX()这样使用时，就算不主动调用start(),其实内�
 
 整理信息
 
+
+### Camera ###
+#### CameraX ####
+这个 CameraView 类是一个 ViewGroup，本质上包含了一个 TextureView 来显示 camera 流，以及配置这个组件的一些属性
+
+- scaleType—给捕获的流设置缩放类型。可以使 CENTER_CROP 或者 CENTER_INSIDE
+- quality—设置捕获的媒体的质量。可以是 MAX，HIGH，MEDIUM 或者 LOW
+- pinchToZoomEnabled—一个布尔值，控制用户是否能够在 CameraView 内使用手指缩放视图
+- captureMode—设置捕获模式。可以是 IMAGE，VIDEO 或者 FIXED
+- lensFacing—设置镜头。可以是 FRONT，BACK 或者 NONE
+- flashMode—设置闪光灯模式。可以是 FRONT，BACK 或者 NONE
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gezuccvvifj20hs07mgll.jpg)
+
+	TextureView viewFinder = findViewById(R.id.view_finder);
+        viewFinder.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override
+            public void onLayoutChange(View view, int i, int i1, int i2, int i3, int i4, int i5, int i6, int i7) {
+                updateTransform();
+            }
+        });
+
+        viewFinder.post(new Runnable() {
+            @Override
+            public void run() {
+                startCamera();
+            }
+        });
+
+更新相机预览：主要是给TextureView设置一个旋转的矩阵变化，防止预览方向不对
+
+	private void updateTransform() {
+        Matrix matrix = new Matrix();
+        // Compute the center of the view finder
+        float centerX = viewFinder.getWidth() / 2f;
+        float centerY = viewFinder.getHeight() / 2f;
+
+        float[] rotations = {0,90,180,270};
+        // Correct preview output to account for display rotation
+        float rotationDegrees = rotations[viewFinder.getDisplay().getRotation()];
+
+        matrix.postRotate(-rotationDegrees, centerX, centerY);
+
+        // Finally, apply transformations to our TextureView
+        viewFinder.setTransform(matrix);
+    }
+
+启动相机：创建PreviewConfig和Preview这两个对象，可以设置预览图像的尺寸和比例，在OnPreviewOutputUpdateListener回调中用setSurfaceTexture方法，将相机图像输出到TextureView。最后用CameraX.bindToLifecycle方法将相机与当前页面的生命周期绑定。
+
+	private void startCamera() {
+        // 1. preview
+        PreviewConfig previewConfig = new PreviewConfig.Builder()
+                .setTargetAspectRatio(new Rational(1, 1))
+                .setTargetResolution(new Size(640,640))
+                .build();
+
+        Preview preview = new Preview(previewConfig);
+        preview.setOnPreviewOutputUpdateListener(new Preview.OnPreviewOutputUpdateListener() {
+            @Override
+            public void onUpdated(Preview.PreviewOutput output) {
+                ViewGroup parent = (ViewGroup) viewFinder.getParent();
+                parent.removeView(viewFinder);
+                parent.addView(viewFinder, 0);
+
+                viewFinder.setSurfaceTexture(output.getSurfaceTexture());
+                updateTransform();
+            }
+        });
+
+        CameraX.bindToLifecycle(this, preview);
+
+CameraX 可以绑定对Camera的各种使用
+
+	bindToLifecycle(LifecycleOwner lifecycleOwner, UseCase... useCases)
+#### Camera2 ####
+[https://www.jianshu.com/p/b9d994f2b381](https://www.jianshu.com/p/b9d994f2b381)
+通过CameraManager能查询到本设备上有多少available的Camera设备
+
+每个CameraDevice设备提供一系列参数来描述当前Camera设备，通过getCameraCharacteristics获取
+
+从相机设备上获取一个或多个image，首先必须创建一个CameraCaptureSession并输出到一个或多个目标Surface上。每个Surface必须预先设置合适的尺寸。目标Surface可以背一系列类(SurfaceView,SurfaceTexture,ImageReader..)持有。
+
+相机设备要获取Image，需要创建一个定义了相机参数的CaptureRequest,CameraDevice有一个工厂方法区创建一个request builder。
+
+一旦request被创建出来，它可以被一个active状态的session拿去得到一个Image或多个Image，也就是说session通过request去得到一张或者多张图
+
+API使用大体如下:
+
+1. 通过context.getSystemService(Contxt.CAMERA_SERVICE)获取CameraManager.
+1. 通过CameraManager.open()方法在回调中得到CameraDevice.
+1. 通过CameraDevice.createCaptureSession()在回调中获取CameraCaptureSession.
+1. 构建CaptureRequest,有三种模式可选 预览/拍照/录像.
+1. 通过CameraCaptureSession发送CaptureRequest, capture表示只发一次请求，setRepeatingRequest表示不断发送请求
+1. 拍照数据可以在ImageReader.OnImageAvailableListener回调中获取，CaptureCallback中则可获取拍照实际获取的参数和Camera当前状态
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gezzldhmzkj20p00cxdfw.jpg)
+
+
+*ImageReader获得预览数据*
+
+Image类允许应用通过一个或多个ByteBuffers直接访问Image的像素数据， ByteBuffer包含在Image.Plane类中，同时包含了这些像素数据的配置信息。因为是作为提供raw数据使用的，Image不像Bitmap类可以直接填充到UI上使用。
+
+因为Image的生产消费是跟硬件直接挂钩的，所以为了效率起见，Image如果不被使用了应该尽快的被销毁掉。比如说，当我们使用ImageReader从不用的媒体来源获取到Image的时候，如果Image的数量到达了maxImages，不关闭之前老的Image，新的Image就不会继续生产。
+
+	...
+	          //构造一个ImageReader的实例，设置宽高，输出格式，缓存max数量
+	           mImageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(),
+	                            ImageFormat.JPEG, 2);
+	           mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, mCameraHandler);
+	...
+
+	private CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
+	        @Override
+	        public void onOpened(CameraDevice camera) {
+	            ...
+	                mPreviewBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+	                mPreviewBuilder.addTarget(previewSurface);
+					//把ImageReader的surface添加给CaptureRequest.Builder，使预览surface和ImageReader同时收到数据回调。
+	                mPreviewBuilder.addTarget(mImageReader.getSurface());
+	                mCameraDevice.createCaptureSession(Arrays.asList(previewSurface, mImageReader.getSurface()), mStateCallBack, mCameraHandler);
+	            ...
+	        }
+	}
+
+	private ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
+	        @Override
+	        public void onImageAvailable(ImageReader reader) {
+	            Image image = reader.acquireNextImage();
+	           //因为是ImageFormat.JPEG格式，所以 image.getPlanes()返回的数组只有一个，也就是第0个。
+	            ByteBuffer byteBuffer = image.getPlanes()[0].getBuffer();
+	            byte[] bytes = new byte[byteBuffer.remaining()];
+	            byteBuffer.get(bytes);
+				//ImageFormat.JPEG格式直接转化为Bitmap格式。
+	            Bitmap temp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+				//因为摄像机数据默认是横的，所以需要旋转90度。
+	            Bitmap newBitmap = BitmapUtil.rotateBitmap(temp, 90);
+				//抛出去展示或存储。
+	            mOnGetBitmapInterface.getABitmap(newBitmap);
+				//一定需要close，否则不会收到新的Image回调。
+		            image.close();
+	        }
+	    };
+
+camera2格式设置为YUV_420_888时ImageReader会得到三个Plane，分别对应y,u,v，每个Plane都有自己的规格，两个Plane重要的参数
+
+*getRowStride*
+
+getRowStride是每一行数据相隔的间隔。getRowStride并不一定等于camera预览的宽度
+
+*getPixelStride*
+
+表示相邻的相同YUV数据间隔的距离。
+Y分量应该都是1，表示Y都是紧密挨着的
+UV分量可能是1，也可能是2
+1、 UV分量是1：表示UV跟Y一样，两个U之间没有间隔，也就是YU12(也叫I420：YYYYYYYYUUVV)或者YV12(YYYYYYYYVVUU)
+2、UV分量是2：表示每两个UV之间间隔一个，也就是NV12(YYYYYYYYUVUV)或者NV21(YYYYYYYYVUVU)
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gf12h6vzmij20i209rq2v.jpg)
+
+
+	private ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
+	        @Override
+	        public void onImageAvailable(ImageReader reader) {
+	            Image image = reader.acquireLatestImage();
+	            if (image == null) {
+	                return;
+	            }
+	                try {
+	                    int w = image.getWidth(), h = image.getHeight();
+	                    // size是宽乘高的1.5倍 可以通过ImageFormat.getBitsPerPixel(ImageFormat.YUV_420_888)得到
+	                    int i420Size = w * h * 3 / 2;
+	
+	                    Image.Plane[] planes = image.getPlanes();
+	                    //remaining0 = rowStride*(h-1)+w => 27632= 192*143+176 Y分量byte数组的size
+	                    int remaining0 = planes[0].getBuffer().remaining();
+	                    int remaining1 = planes[1].getBuffer().remaining();
+	                    //remaining2 = rowStride*(h/2-1)+w-1 =>  13807=  192*71+176-1 V分量byte数组的size
+	                    int remaining2 = planes[2].getBuffer().remaining();
+	                    //获取pixelStride，可能跟width相等，可能不相等
+	                    int pixelStride = planes[2].getPixelStride();
+	                    int rowOffest = planes[2].getRowStride();
+	                    byte[] nv21 = new byte[i420Size];
+	                    //分别准备三个数组接收YUV分量。
+	                    byte[] yRawSrcBytes = new byte[remaining0];
+	                    byte[] uRawSrcBytes = new byte[remaining1];
+	                    byte[] vRawSrcBytes = new byte[remaining2];
+	                    planes[0].getBuffer().get(yRawSrcBytes);
+	                    planes[1].getBuffer().get(uRawSrcBytes);
+	                    planes[2].getBuffer().get(vRawSrcBytes);
+	                    if (pixelStride == width) {
+	                        //两者相等，说明每个YUV块紧密相连，可以直接拷贝
+	                        System.arraycopy(yRawSrcBytes, 0, nv21, 0, rowOffest * h);
+	                        System.arraycopy(vRawSrcBytes, 0, nv21, rowOffest * h, rowOffest * h / 2 - 1);
+	                    } else {
+	                        //根据每个分量的size先生成byte数组
+	                        byte[] ySrcBytes = new byte[w * h];
+	                        byte[] uSrcBytes = new byte[w * h / 2 - 1];
+	                        byte[] vSrcBytes = new byte[w * h / 2 - 1];
+	                        for (int row = 0; row < h; row++) {
+	                            //源数组每隔 rowOffest 个bytes 拷贝 w 个bytes到目标数组
+	                            System.arraycopy(yRawSrcBytes, rowOffest * row, ySrcBytes, w * row, w);
+	                            //y执行两次，uv执行一次
+	                            if (row % 2 == 0) {
+	                                //最后一行需要减一
+	                                if (row == h - 2) {
+	                                    System.arraycopy(vRawSrcBytes, rowOffest * row / 2, vSrcBytes, w * row / 2, w - 1);
+	                                } else {
+	                                    System.arraycopy(vRawSrcBytes, rowOffest * row / 2, vSrcBytes, w * row / 2, w);
+	                                }
+	                            }
+	                        }
+	                        //yuv拷贝到一个数组里面
+	                        System.arraycopy(ySrcBytes, 0, nv21, 0, w * h);
+	                        System.arraycopy(vSrcBytes, 0, nv21, w * h, w * h / 2 - 1);
+	                    }
+	                    //这里使用了YuvImage，接收NV21的数据，得到一个Bitmap
+	                    Bitmap bitmap = BitmapUtil.getBitmapImageFromYUV(nv21, width, height);
+	
+	                    if (mOnGetBitmapInterface != null) {
+	                        mOnGetBitmapInterface.getABitmap(bitmap);
+	                    }
+	                } catch (Exception e) {
+	                    e.printStackTrace();
+	                    LogUtil.d(e.toString());
+	                }
+	            image.close();
+	        }
+	    };
+	
+	//BitmapUtil.java
+	    public static Bitmap getBitmapImageFromYUV(byte[] data, int width, int height) {
+	        YuvImage yuvimage = new YuvImage(data, ImageFormat.NV21, width, height, null);
+	        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+	        yuvimage.compressToJpeg(new Rect(0, 0, width, height), 80, baos);
+	        byte[] jdata = baos.toByteArray();
+	        BitmapFactory.Options bitmapFatoryOptions = new BitmapFactory.Options();
+	        bitmapFatoryOptions.inPreferredConfig = Bitmap.Config.RGB_565;
+	        Bitmap bmp = BitmapFactory.decodeByteArray(jdata, 0, jdata.length, bitmapFatoryOptions);
+	        return bmp;
+	    }
+
+> 数据字节少1是因为我们数据从下标0开始取，直到最后取到的有效自然数序列为奇数（即下标0、2、4.....2n对应于自然数1、3、5.....2n+1）,同时这个值每行中有效范围一定小于width，所以取到的有效个数一定是width/pixelStride*height/pixelStride = 一个偶数，此时有效序列在奇数位上，所以最后一位一定是无效的。系统取值时，拿到UV数据前移一字节得到U数据，此时数据有效范围为width*height/pixelStride-1；拿到UV数据直接取V数据，最后取到的有效范围也是width/pixelStride*height/pixelStride-1，所以以此推测这就是为什么UV数据总是比Y少1字节的原因，虽然少了但U或V的数据实则都是正常的偶数位。在YUV420这个格式下Y = 4U = 4V 是一定成立的。
 ### TextView ###
 #### Compound Drawable ####
 我们可以用 LinearLayout 里面嵌套 ImageView 和 TextView 实现，也可以只用一个带 Drawable 的 TextView 做到。
@@ -391,6 +633,102 @@ somewhere (for instance in a static structure) for later use.
 	}
 
 > 如果内部类的生命周期和Activity的生命周期不一致（比如上面那种，Activity finish()之后要等10分钟，内部类的实例才会执行），则在Activity中要避免使用非静态的内部类，这种情况，就使用一个静态内部类，同时持有一个对Activity的WeakReference
+
+*在主线程向子线程发消息*
+
+		Thread thread = new Thread(){
+            @Override
+            public void run() {
+                super.run();
+                //初始化Looper
+                Looper.prepare();
+                //在子线程内部初始化handler即可，发送消息的代码可在主线程任意地方发送
+                handler=new Handler(){
+                    @Override
+                    public void handleMessage(Message msg) {
+                        super.handleMessage(msg);
+                      //所有的事情处理完成后要退出looper，即终止Looper循环
+                        //这两个方法都可以，有关这两个方法的区别自行寻找答案
+                        handler.getLooper().quit();
+                        handler.getLooper().quitSafely();
+                    }
+                };
+              
+                //启动Looper循环
+                Looper.loop();
+            }
+        };
+        thread.start();
+
+Can't create handler inside thread " + Thread.currentThread()+ " that has not called Looper.prepare()
+
+**handleMessage（）的执行线程就是handler初始化时所在的线程，那么答案真的是这样的吗？
+答案是否定的！！！**
+
+#### Handler机制中最重要的四个对象 ####
+
+- Handler：负责发送消息及处理消息
+- Looper：复制不断的从消息队列中取出消息，并且给发送本条消息的Handler
+- MessageQueue：负责存储消息
+- Message:消息本身，负责携带数据
+
+
+#### Handler构造方法 ####
+	public Handler() {
+	        this(null, false);
+	    }
+	
+	//两个参数的构造方法
+	public Handler(Callback callback, boolean async) {
+	        mLooper = Looper.myLooper();
+	        if (mLooper == null) {
+	            throw new RuntimeException(
+	                "Can't create handler inside thread that has not called Looper.prepare()");
+	        }
+	        mQueue = mLooper.mQueue;
+	        mCallback = callback;
+	        mAsynchronous = async;
+	    }
+
+Handler的构造方法中会验证Looper，如果Looper为空，那么会抛出空指针异常
+
+将自己的一个全局消息队列对象（mQueue）指向了Looper中的消息队列
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1geyzjp6qv4j20xc0nbgm3.jpg)
+
+#### Looper的构造函数 ####
+
+	//Looper暴露出的静态初始化方法
+	//这个方法会调用下面的私有静态方法
+	  public static void prepare() {
+	        prepare(true);
+	    }
+	//Looper私有的静态方法
+	   private static void prepare(boolean quitAllowed) {
+	        if (sThreadLocal.get() != null) {
+	            throw new RuntimeException("Only one Looper may be created per thread");
+	        }
+	        sThreadLocal.set(new Looper(quitAllowed));
+	    }
+	//私有的构造方法，禁止外界调用
+	  private Looper(boolean quitAllowed) {
+	        mQueue = new MessageQueue(quitAllowed);
+	        mThread = Thread.currentThread();
+	    }
+	
+	//从sThreadLocal中获取一个Looper
+	 public static @Nullable Looper myLooper() {
+	        return sThreadLocal.get();
+	    }
+
+- 我们只能通过Looper.prepare()方法去初始化一个Looper
+- Looper.prepare(boolean)方法的逻辑是一个线程中只能有一个Looper对象，否则在第二次尝试初始化Looper的时候，就会抛出异常。
+- 以线程为单位存储Looper的主要逻辑是通过ThreadLocal实现的
+- 私有的构造方法，禁止外界任意new出一个Looper
+
+每个线程只有一个Looper
+
+只有跟MessageQueue同一个包下才可以实例化MessageQueue，换句话说，我们用户是无法直接new一个MessageQueue对象出来的。而因为Looper在一个线程中只能有一个，从而导致MessageQueue也只能有一个
 ## 布局 ##
 ### LayoutParams ###
 LayoutParams 的作用是：子控件告诉父控件，自己要如何布局
@@ -1979,3 +2317,89 @@ Presentation实际上是一个Dialog，所以里面无法弹出Dialog、PopupWin
 #### design editor is unavailable until after a success sync ####
 close project,重新import项目
 
+# 散列 #
+## 散列函数 ##
+让键的各个部分均参与散列函数的计算
+
+单个字符以Unicode将单个字符变成整数，浮点数以其32位二进制表示，组合键用霍纳法则简化，类似各个点位表示二进制的点位，Java中以31为基
+
+Java中散列使用基于红黑树的拉链法
+
+# 图像 #
+H.265标准围绕着现有的视频编码标准H.264，保留原来的某些技术，同时对一些相关的技术加以改进。
+
+新技术使用先进的技术用以改善码流、编码质量、延时和算法复杂度之间的关系，达到最优化设置。具体的研究内容包括：提高压缩效率、提高鲁棒性和错误恢复能力、减少实时的时延、减少信道获取时间和随机接入时延、降低复杂度等。H264由于算法优化，可以低于1Mbps的速度实现标清数字图像传送；H265则可以实现利用1~2Mbps的传输速度传送720P（分辨率1280*720）普通高清音视频传送。
+
+#### 什么是H.264 ####
+> H.264，同时也是MPEG-4第十部分，是由ITU-T视频编码专家组（VCEG）和ISO/IEC动态图像专家组（MPEG）联合组成的联合视频组（JVT，Joint Video Team）提出的高度压缩数字视频编解码器标准。这个标准通常被称之为H.264/AVC（或者AVC/H.264或者H.264/MPEG-4AVC或MPEG-4/H.264 AVC）而明确的说明它两方面的开发者。
+> 
+> H.264最大的优势是具有很高的数据压缩比率，在同等图像质量的条件下，H.264的压缩比是MPEG-2的2倍以上，是MPEG-4的1.5～2倍。举个例子，原始文件的大小如果为88GB，采用MPEG-2压缩标准压缩后变成3.5GB，压缩比为25∶1，而采用H.264压缩标准压缩后变为879MB，从88GB到879MB，H.264的压缩比达到惊人的102∶1。低码率（Low Bit Rate）对H.264的高的压缩比起到了重要的作用，和MPEG-2和MPEG-4ASP等压缩技术相比，H.264压缩技术将大大节省用户的下载时间和数据流量收费。尤其值得一提的是，H.264在具有高压缩比的同时还拥有高质量流畅的图像，正因为如此，经过H.264压缩的视频数据，在网络传输过程中所需要的带宽更少，也更加经济。
+
+#### H.265与H.264有何不同 ####
+> H.265/HEVC的编码架构大致上和H.264/AVC的架构相似，也主要包含：帧内预测(intra prediction)、帧间预测(inter prediction)、转换(transform)、量化(quantization)、去区块滤波器(deblocking filter)、熵编码(entropy coding)等模块。但在HEVC编码架构中，整体被分为了三个基本单位，分別是：编码单位(coding unit，CU)、预测单位(predict unit，PU)和转换单位(transform unit，TU)。
+> 比起H.264/AVC，H.265/HEVC提供了更多不同的工具来降低码率，以编码单位来说， 最小的8x8到最大的64x64。信息量不多的区域(颜色变化不明显，比如车体的红色部分和地面的灰色部分)划分的宏块较大，编码后的码字较少，而细节多的地方(轮胎)划分的宏块就相应的小和多一些，编码后的码字较多，这样就相当于对图像进行了有重点的编码，从而降低了整体的码率，编码效率就相应提高了。同时，H.265的帧内预测模式支持33种方向(H.264只支持8种)，并且提供了更好的运动补偿处理和矢量预测方法。
+
+## 颜色空间 ##
+### HSV ###
+*色调H*
+
+用角度度量，取值范围为0°～360°，从红色开始按逆时针方向计算，红色为0°，绿色为120°,蓝色为240°。它们的补色是：黄色为60°，青色为180°,紫色为300°；
+
+*饱和度S*
+
+饱和度S表示颜色接近光谱色的程度。一种颜色，可以看成是某种光谱色与白色混合的结果。其中光谱色所占的比例愈大，颜色接近光谱色的程度就愈高，颜色的饱和度也就愈高。饱和度高，颜色则深而艳。光谱色的白光成分为0，饱和度达到最高。通常取值范围为0%～100%，值越大，颜色越饱和。
+
+*明度V*
+
+明度表示颜色明亮的程度，对于光源色，明度值与发光体的光亮度有关；对于物体色，此值和物体的透射比或反射比有关。通常取值范围为0%（黑）到100%（白）。
+
+RGB和CMY颜色模型都是面向硬件的，而HSV（Hue Saturation Value）颜色模型是面向用户的。
+
+HSV模型的三维表示从RGB立方体演化而来。设想从RGB沿立方体对角线的白色顶点向黑色顶点观察，就可以看到立方体的六边形外形。六边形边界表示色彩，水平轴表示纯度，明度沿垂直轴测量。
+
+### YUV格式 ###
+YUV，分为三个分量，“Y”表示明亮度（Luminance或Luma），也就是灰度值；而“U”和“V” 表示的则是色度（Chrominance或Chroma），作用是描述影像色彩及饱和度，用于指定像素的颜色。
+
+>     与我们熟知的RGB类似，YUV也是一种颜色编码方法，主要用于电视系统以及模拟视频领域，它将亮度信息（Y）与色彩信息（UV）分离，没有UV信息一样可以显示完整的图像，只不过是黑白的，这样的设计很好地解决了彩色电视机与黑白电视的兼容问题。并且，YUV不像RGB那样要求三个独立的视频信号同时传输，所以用YUV方式传送占用极少的频宽。
+
+YUV 表示三个分量， Y 表示 亮度（Luminance），即灰度值，UV表示色度（Chrominance），描述图像色彩和饱和度，指定颜色。YUV格式有YUV444、 YUV422 和 YUV420 三种，差别在于：
+
+- YUV444： 每个Y分量对应一组UV分量
+- YUV422：每两个Y分量共用一组UV分量
+- YUV420：每四个Y分量共用一组UV分量
+
+#### YUV的 planar和packed的差别？ ####
+这是yuv格式的两大类
+
+planar格式：连续存储所有像素点Y，然后是所有像素点U，接着是V
+
+packed格式：所有像素点的YUV信息连续交错存储
+
+#### YUV,YCbCr,YPbPr写法的含义 ####
+它们分别代表在不同领域时使用的名称，总的大类都是一致的。主流上所说的YUV即是YCbCr
+
+- YCbCr：其中Y是指亮度分量，Cb指蓝色色度分量，而Cr指红色色度分量
+- YPbPr：他和YCbCr的区别在于YCbCr是数字系统的标识，YPbPr是模拟系统的标识
+
+#### YUV中stride跨距的含义 ####
+跨距的由来，因为CPU存储和读取必须是2的密次方，故而很多分辨率的yuv格式通常会有一个stride，比如某个720*536的YUV420SP视频，它的stride是768，那么中间48就是跨距。通常如果自己去解析，可以通过偏移裁取，如果采用第三方库，一般都会有传入跨距的值
+
+#### YUV420 ####
+
+- YV12和YU12都属于YUV420p，**其中Y\U\V分别对应一个plane**，区别在于UV的位置对调
+- NV12和NV21,其中NV12就是我们Android常见的YUV420SP，他们不像上一个YV12，有3个plane，**而是由Y和UV分别两个Plane组成，UV交替排列，U在前的是NV12，V在前为NV21.**
+- I420：或表示为IYUV,数码摄像机专用表示法.
+
+- 一般来说，直接采集到的视频数据是RGB24的格式，RGB24一帧的大小size=width×heigth×3 Byte，RGB32的size=width×heigth×4 Byte，如果是I420（即YUV标准格式4：2：0）的数据量是 size=width×heigth×1.5 Byte。 在采集到RGB24数据后，需要对这个格式的数据进行第一次压缩。即将图像的颜色空间由RGB24转化为IYUV。因为，X264在进行编码的时候需要标准的YUV（4：2：0）。但是这里需要注意的是，虽然YV12也是（4：2：0），但是YV12和I420的却是不同的，在存储空间上面有些区别。如下：
+- YV12 ： 亮度（行×列） + V（行×列/4) + U（行×列/4）
+- I420 ： 亮度（行×列） +U（行×列/4) + V（行×列/4）
+
+可以看出，YV12和I420基本上是一样的，就是UV的顺序不同。（摘自百度百科I420）
+
+*通常编码时查看支持列表有它都可以传入，那我们来看看它可替代的这些format的含义：*
+
+- COLOR_FormatYUV411PackedPlanar： YUV411，每4个连续的Y分量公用一个UV分量，并且Y分量和UV分量打包到同一个平面，用的不多。
+- COLOR_FormatYUV420Planar：YUV420P,每2x2像素公用一个UV空间，Y分量空间–>U分量平面–>V分量平面
+- COLOR_FormatYUV420PackedPlanar：YUV420 packet每2X2像素公用一个UV分量，并且将YUV打包到一个平面
+- COLOR_FormatYUV420SemiPlanar:YUV420SP,即上述的NV12
+- COLOR_FormatYUV420PackedSemiPlanar：Y分量空间–>V分量平面–>U分量平面，与COLOR_FormatYUV420Planar uv相反
