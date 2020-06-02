@@ -248,6 +248,113 @@ view.animate().scaleX()这样使用时，就算不主动调用start(),其实内�
 
 整理信息
 
+### 自定义View ###
+1. 自定义View：继承View
+2. 基于现有组件：继承View的派生类
+3. 组合的方式：自定义控件中包含了其他的组件
+
+#### 自定义样式属性 ####
+	<resources>
+	    <declare-styleable name="MenuItemLayout">
+	        <attr name="title_text" format="string" />
+	        <attr name="hint_text" format="string" />
+	        <attr name="icon_reference" format="reference" />
+	        <attr name="icon_uri" format="string" />
+	        <attr name="jump_url" format="string" />
+	        <attr name="divide_line_style" format="integer" />
+	    </declare-styleable>
+	</resources>
+
+*读取自定义属性*
+
+		TypedArray a = mContext.obtainStyledAttributes(attrs, R.styleable.MenuItemLayout);
+		setTitleText(a.getString(R.styleable.MenuItemLayout_title_text));
+		setHintText(a.getString(R.styleable.MenuItemLayout_hint_text));
+		setIconImgId(a.getResourceId(R.styleable.MenuItemLayout_icon_reference, 10000));
+		setJumpUrl(a.getString(R.styleable.MenuItemLayout_jump_url));
+
+#### 绘制流程 ####
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gfdrn8jemvj20fc0heaay.jpg)
+
+*测量View大小(onMeasure)*
+
+	@Override
+	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+	    int widthsize  MeasureSpec.getSize(widthMeasureSpec);      //取出宽度的确切数值
+	    int widthmode  MeasureSpec.getMode(widthMeasureSpec);      //取出宽度的测量模式
+	    
+	    int heightsize  MeasureSpec.getSize(heightMeasureSpec);    //取出高度的确切数值
+	    int heightmode  MeasureSpec.getMode(heightMeasureSpec);    //取出高度的测量模式
+	}
+
+widthMeasureSpec 和 heightMeasureSpec 这两个 int 类型的参数， 毫无疑问他们是和宽高相关的， 但它们其实不是宽和高， 而是由宽、高和各自方向上对应的测量模式来合成的一个值
+
+	模式	        二进制数值	描述
+	UNSPECIFIED	 00	        默认值，父控件没有给子view任何限制，子View可以设置为任意大小。
+	EXACTLY	     01	        表示父控件已经确切的指定了子View的大小。
+	AT_MOST	     10	        表示子View具体大小没有尺寸限制，但是存在上限，上限一般为父View大小。
+
+如果对View的宽高进行修改了，不要调用 super.onMeasure( widthMeasureSpec, heightMeasureSpec); 要调用 setMeasuredDimension( widthsize, heightsize); 这个函数。
+
+### Android硬件加速 ###
+[原Android文档翻译 https://www.jianshu.com/p/601a21b00475](https://www.jianshu.com/p/601a21b00475)
+
+[https://developer.android.com/guide/topics/graphics/hardware-accel](https://developer.android.com/guide/topics/graphics/hardware-accel)
+
+### Android drawing models ###
+[https://developer.android.google.cn/guide/topics/graphics/hardware-accel](https://developer.android.google.cn/guide/topics/graphics/hardware-accel)
+#### Software-based drawing model ####
+views are drawn with the following two steps:
+
+1. Invalidate the hierarchy
+1. Draw the hierarchy
+
+> The invalidation messages are propagated all the way up the view hierarchy to compute the regions of the screen that need to be redrawn (the dirty region). The Android system then draws any view in the hierarchy that intersects with the dirty region
+
+#### Hardware accelerated drawing model ####
+Instead of executing the drawing commands immediately, the Android system records them inside display lists, which contain the output of the view hierarchy’s drawing code. 
+
+Another optimization is that the Android system only needs to record and update display lists for views marked dirty by an invalidate() call. Views that have not been invalidated can be redrawn simply by re-issuing the previously recorded display list.
+
+1. Invalidate the hierarchy
+1. Record and update display lists
+1. Draw the display lists 
+
+To ensure that the Android system records a view’s display list, you must call invalidate() 和脏区重叠的区域不保证执行绘制，绘制必须执行明确执行invalidate
+
+Using display lists also benefits animation performance because setting specific properties, such as alpha or rotation, does not require invalidating the targeted view (it is done automatically) 透明通道，旋转角度不用需要invalidate制动执行
+
+If your application is affected by any of these missing features or limitations, you can turn off hardware acceleration for just the affected portion of your application by calling **setLayerType(View.LAYER_TYPE_SOFTWARE, null)**
+
+ Calling the setter for any of these properties results in optimal invalidation and no redrawing of the targeted view:某些属性的修改不需要整个View重绘
+
+- alpha: Changes the layer's opacity
+- x, y, translationX, translationY: Changes the layer's position
+- scaleX, scaleY: Changes the layer's size
+- rotation, rotationX, rotationY: Changes the layer's orientation in 3D space
+- pivotX, pivotY: Changes the layer's transformations origin
+
+	view.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+	ObjectAnimator animator = ObjectAnimator.ofFloat(view, "rotationY", 180);
+	animator.addListener(new AnimatorListenerAdapter() {
+	    @Override
+	    public void onAnimationEnd(Animator animation) {
+	        view.setLayerType(View.LAYER_TYPE_NONE, null);
+	    }
+	});
+	animator.start();
+
+动画结束之后关闭硬件layer加速，硬件加速消耗内存
+
+*建议*
+
+Reduce the number of views in your application
+Avoid overdraw 
+Don't create render objects in draw methods
+Don't modify shapes too often
+Don't modify bitmaps too often
+Use alpha with care  alpha值设置尽量使用硬件Layer
+
 
 ### Camera ###
 #### CameraX ####
@@ -1650,6 +1757,86 @@ Android 8.0之后所有隐式广播都不允许使用静态注册的方式来接
 一旦用户同意了某个权限之后，同组的其他权限也会被系统自动授权
 ## Service ##
 
+启动远程服务中的包名时setPackage使用的是远程项目根目录的包名，并非到服务所在的具体的路径，因为aidl引入时，使用了相同的根目录包名，故此可以识别
+### AIDL ###
+> 定向Tag表示在跨进程通信中数据的流向，用于标注方法的参数值，分为 in、out、inout 三种。其中 in 表示数据只能由客户端流向服务端， out 表示数据只能由服务端流向客户端，而 inout 则表示数据可在服务端与客户端之间双向流通。
+#### AIDL refusing to generate code from aidl file defining parcelable ####
+在aidl文件中缺少了对aidl中定义的类型的引用import
+
+### Binder是如何出现的 ###
+Android团队想要实现进程之间的通信，需要解决以下几个问题：
+
+1. 如何知道客户端需要调用哪个进程以及该进程中的函数
+1. 客户端如何将函数形参发送给远程进程中的函数，以及如何将远程进程函数计算结果返回客户端
+1. 如何去屏蔽底层通信细节，让实现客户端调用远程函数就像调用本地函数一样
+
+定义一个类，解决问题
+
+1. 每个需要远程通信的类唯一标识就可以通过包名+类名的字符串，然后在类里面给每个函数编号即可对函数唯一编码。
+1. 定义一个可打包的接口Parcelable，这个接口提供2个重要函数，分别是将对象中的属性写入到数组和从数组中的数据还原对象，每个可以发送到远程函数作为形参的对象只需实现Parcelable对象即可
+1. 屏蔽进程之间的通信细节，帮用户发送远程请求并将拿到返回结果提交给用户
+
+服务端想要实现被跨进程访问，就必须继承Binder类
+
+#### Binder机制 ####
+客户端将请求数据发送给Binder驱动并同时被挂起，Binder驱动从线程池中去取指定服务线程，并执行客户端指定的函数，将结果返回给Binder驱动，驱动将唤醒被挂起的线程并将结果返回给客户端
+
+ServiceManager管理服务的注册和请求
+#### Binder驱动实现原理 ####
+客户端所持有的Binder引用并不是实际的远程Binder对象，引用在Binder驱动中还要做一次映射,客户端调用远程对象函数时，把数据写入Parcel，在调用Binder引用的transact函数时，transact函数会把参数、标识符(表示远程对象及其函数)等数据放入Client的共享内容,Binder驱动从Client共享内存中读取数据，并根据这些数据找到对应的远程进程的共享内存，把数据拷贝到远程进程的共享内存中，并通知远程进程执行onTransact函数。远程函数执行完成后，将得到的写入自己的共享内存中，Binder再将远程进程的共享内存通过映射拷贝到客户端的共享内存。
+
+	//获取WindowManager服务引用
+	WindowManager wm = (WindowManager)getSystemService(getApplication().WINDOW_SERVICE);  
+	//布局参数layoutParams相关设置略...
+	View view=LayoutInflater.from(getApplication()).inflate(R.layout.float_layout, null);  
+	//添加view
+	wm.addView(view, layoutParams);
+
+在getSystemService内部就是向ServiceManager查询标识符为getApplication().WINDOW_SERVICE的远程对象的引用。得到这个引用之后，调用addView时，真正的实现在代理引用里面，代理把参数到包到Parcel对象中，然后调用transact函数，触发Binder驱动的一系列调用过程。
+ 
+## Context ##
+> Interface to global information about an application environment. This is an abstract class whose implementation is provided by the Android system. It allows access to application-specific resources and classes, as well as up-calls for application-level operations such as launching activities, broadcasting and receiving intents, etc
+> 
+> 提供应用环境全局信息的接口，并且这个接口是由抽象类实现的，它的执行被android系统所提供，允许我们获取以应用为特征的资源和类型，同时启动应用级的操作，如启动Activity，broadcasting和接收intent。
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gf4rmsc157j20fh0cp3yf.jpg)
+
+	Context数量 = Activity数量 + Service数量 + 1
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gf4rpdex8rj20el0ak0sl.jpg)
+
+**Application是属于系统组件，系统组件的实例是要由系统来去创建的，如果这里我们自己去new一个MyApplication的实例，它就只是一个普通的Java对象而已，而不具备任何Context的能力**
+
+	/** 
+	 * Common implementation of Context API, which provides the base 
+	 * context object for Activity and other application components. 
+	 */  
+	class ContextImpl extends Context{  
+	    //所有Application程序公用一个mPackageInfo对象  
+	    /*package*/ ActivityThread.PackageInfo mPackageInfo;  
+	      
+	    @Override  
+	    public Object getSystemService(String name){  
+	        ...  
+	        else if (ACTIVITY_SERVICE.equals(name)) {  
+	            return getActivityManager();  
+	        }   
+	        else if (INPUT_METHOD_SERVICE.equals(name)) {  
+	            return InputMethodManager.getInstance(this);  
+	        }  
+	    }   
+	    @Override  
+	    public void startActivity(Intent intent) {  
+	        ...  
+	        //开始启动一个Activity  
+	        mMainThread.getInstrumentation().execStartActivity(  
+	            getOuterContext(), mMainThread.getApplicationThread(), null, null, intent, -1);  
+	    }  
+	}  
+
+Context的类型有两种，一种是Activity-Context，另一种是Application-Activity，这两种的区别就在于它们的生命周期不一样，一个是随着Activity的销毁而销毁，另一个是伴随整个Application
+
+Application-Context的生命周期是整个应用，所以，对于它的使用必须慎重，大部分情况下都要避免使用它，因为它会导致内存泄露的问题。
 
 ## ViewModel ##
 [https://mp.weixin.qq.com/s/pomNsh-nrbXTXmg4nkmEbw](https://mp.weixin.qq.com/s/pomNsh-nrbXTXmg4nkmEbw)
@@ -2403,3 +2590,97 @@ packed格式：所有像素点的YUV信息连续交错存储
 - COLOR_FormatYUV420PackedPlanar：YUV420 packet每2X2像素公用一个UV分量，并且将YUV打包到一个平面
 - COLOR_FormatYUV420SemiPlanar:YUV420SP,即上述的NV12
 - COLOR_FormatYUV420PackedSemiPlanar：Y分量空间–>V分量平面–>U分量平面，与COLOR_FormatYUV420Planar uv相反
+
+# Java #
+## 单例模式 ##
+### 饿汉式 ###
+	public class Singleton {
+	
+	    private static Singleton instance = new Singleton();
+	
+	    private Singleton() {
+	    }
+	
+	    public static Singleton getInstance() {
+	        return instance;
+	    }
+	
+	}
+### 懒汉式 ###
+	public class Singleton {
+	    
+	    private static Singleton instance;
+	
+	    private Singleton() {
+	    }
+	
+	    public static Singleton getInstance() {
+	        if (instance == null) {
+	            instance = new Singleton();
+	        }
+	        return instance;
+	    }
+	    
+	}
+### 双重校验 ###
+	public class SingletonSafe {
+	
+	    private static volatile SingletonSafe singleton;
+	
+	    private SingletonSafe() {
+	    }
+	
+	    public static SingletonSafe getSingleton() {
+	        if (singleton == null) {
+	            synchronized (SingletonSafe.class) {
+	                if (singleton == null) {
+	                    singleton = new SingletonSafe();
+	                }
+	            }
+	        }
+	        return singleton;
+	    }
+	}
+
+### 静态内部类 ###
+	public class Singleton {
+	
+	    private static class SingletonHolder {
+	        private static Singleton instance = new Singleton();
+	    }
+	
+	    private Singleton() {
+	        
+	    }
+	
+	    public static Singleton getInstance() {
+	        return SingletonHolder.instance;
+	    }
+	}
+
+### 单例模式 ###
+	public enum Singleton {
+	
+	    INSTANCE;
+	
+	    public void doSomething() {
+	        System.out.println("doSomething");
+	    }
+	
+	}
+
+### 反射攻击 ###
+	public static void main(String[] args) throws Exception {
+	    Singleton singleton = Singleton.getInstance();
+	    Constructor<Singleton> constructor = Singleton.class.getDeclaredConstructor();
+	    constructor.setAccessible(true);
+	    Singleton newSingleton = constructor.newInstance();
+	    System.out.println(singleton == newSingleton);
+	}
+### 反序列化攻击 ###
+	public static void main(String[] args) {
+        Singleton instance = Singleton.getInstance();
+        byte[] serialize = SerializationUtils.serialize(instance);
+        Singleton newInstance = SerializationUtils.deserialize(serialize);
+        System.out.println(instance == newInstance);
+    }
