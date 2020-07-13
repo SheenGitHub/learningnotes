@@ -7150,6 +7150,9 @@ However, there is an additional overriding condition on the preceding rules: a s
 jquery点击事件无效，父元素的mousedown事件一直有效，跟随鼠标移动的图片的大小只能保持固定值才有效；
 
 鼠标点一直位于图片上，所有的点击事件效果都发生在绝对定位的图标上，不会再传给子元素。
+
+#### Vue的组件的$attrs上多了一个同名的label属性 ####
+label拼写成了lable，因此不属于组件固有的props，会被添加到$attrs上
 ## 视频宽度 ##
 视频宽度引起的问题总结
 

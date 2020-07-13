@@ -295,6 +295,13 @@ widthMeasureSpec 和 heightMeasureSpec 这两个 int 类型的参数， 毫无�
 	AT_MOST	     10	        表示子View具体大小没有尺寸限制，但是存在上限，上限一般为父View大小。
 
 如果对View的宽高进行修改了，不要调用 super.onMeasure( widthMeasureSpec, heightMeasureSpec); 要调用 setMeasuredDimension( widthsize, heightsize); 这个函数。
+#### 画布操作 ####
+所有的画布操作都只影响后续的绘制，对之前已经绘制过的内容没有影响
+
+#### 绘制图片 ####
+**可以把Picture看作是一个录制Canvas操作的录像机**
+
+
 
 ### Android硬件加速 ###
 [原Android文档翻译 https://www.jianshu.com/p/601a21b00475](https://www.jianshu.com/p/601a21b00475)
@@ -354,6 +361,160 @@ Don't create render objects in draw methods
 Don't modify shapes too often
 Don't modify bitmaps too often
 Use alpha with care  alpha值设置尽量使用硬件Layer
+
+### 事件分发机制 ###
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gfgdy20btfj208q09ut8v.jpg)
+
+*View的结构*
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gfgdy20btfj208q09ut8v.jpg)
+
+*可以看到在上面的View结构中莫名多出来的两个东西，PhoneWindow 和 DecorView ，这两个我们并没有在Layout文件中定义过，但是为什么会存在呢？*
+
+> 仔细观察上面的 layout 文件，你会发现一个问题，我在 layout 文件中的最顶层 View(Group) 的大小并不是填满父窗体的，留下了大量的空白区域，由于我们的手机屏幕不能透明，所以这些空白区域肯定要显示一些东西，那么应该显示什么呢？
+> 
+> 有过安卓开发经验的都知道，屏幕上没有View遮挡的部分会显示主题的颜色。不仅如此，最上面的一个标题栏也没有在 layout 文件中，这个标题栏又是显示在哪里的呢？
+> 
+> 你没有猜错，这个主题颜色和标题栏等内容就是显示在DecorView中的。
+
+*现在知道 DecorView 是干什么的了，那么PhoneWindow 又有什么作用？*
+
+> 要了解 PhoneWindow 是干啥的，首先要了解啥是 Window ，看官方说明：
+> 
+> Abstract base class for a top-level window look and behavior policy. An instance of this class should be used as the top-level view added to the window manager. It provides standard UI policies such as a background, title area, default key processing, etc.
+> 
+> 简单来说，Window是一个抽象类，是所有视图的最顶层容器，视图的外观和行为都归他管，不论是背景显示，标题栏还是事件处理都是他管理的范畴，它其实就像是View界的太上皇(虽然能管的事情看似很多，但是没实权，因为抽象类不能直接使用)。
+> 
+> 而 PhoneWindow 作为 Window 的唯一亲儿子(唯一实现类)，自然就是 View 界的皇帝了，PhoneWindow 的权利可是非常大大，不过对于我们来说用处并不大，因为皇帝平时都是躲在深宫里面的，虽然偶尔用特殊方法能见上一面，但想要完全指挥 PhoneWindow 为你工作是很困难的。
+> 
+> 而上面说的 DecorView 是 PhoneWindow 的一个内部类，其职位相当于小太监，就是跟在 PhoneWindow 身边专业为 PhoneWindow 服务的，除了自己要干活之外，也负责消息的传递，PhoneWindow 的指示通过 DecorView 传递给下面的 View，而下面 View 的信息也通过 DecorView 回传给 PhoneWindow。
+
+#### 事件分发、拦截与消费 ####
+
+*Activity 和 View 都是没有事件拦截的，这是因为：*
+
+> Activity 作为原始的事件分发者，如果 Activity 拦截了事件会导致整个屏幕都无法响应事件，这肯定不是我们想要的效果。
+> 
+> View最为事件传递的最末端，要么消费掉事件，要么不处理进行回传，根本没必要进行事件拦截
+
+#### 事件分发流程 ####
+事件收集之后最先传递给 Activity， 然后依次向下传递，大致如下
+
+	Activity －> PhoneWindow －> DecorView －> ViewGroup －> ... －> View
+
+如果没有任何View消费掉事件，那么这个事件会按照反方向回传，最终传回给Activity，如果最后 Activity 也没有处理，本次事件才会被抛弃:
+
+	Activity <－ PhoneWindow <－ DecorView <－ ViewGroup <－ ... <－ View
+
+上层View既可以直接拦截该事件，自己处理，也可以先询问(分发给)子View，如果子View需要就交给子View处理，如果子View不需要还能继续交给上层View处理。既保证了事件的有序性，又非常的灵活。在我第一次将这个逻辑弄清楚的时候，看着这样精妙的设计，简直想欢呼庆贺一下
+
+*ViewGroup的分法伪代码*
+
+	public boolean dispatchTouchEvent(MotionEvent ev) {
+	    boolean result = false;             // 默认状态为没有消费过
+	
+	    if (!onInterceptTouchEvent(ev)) {   // 如果没有拦截交给子View
+	        result = child.dispatchTouchEvent(ev);
+	    }
+	
+	    if (!result) {                      // 如果事件没有被消费,询问自身onTouchEvent
+	        result = onTouchEvent(ev);
+	    }
+	
+	    return result;
+	}
+
+#### View相关 ####
+
+Q:与 View 事件相关的各个方法调用顺序是怎样的
+
+- 单击事件(onClickListener) 需要两个两个事件(ACTION_DOWN 和 ACTION_UP )才能触发，如果先分配给onClick判断，等它判断完，用户手指已经离开屏幕，黄花菜都凉了，定然造成 View 无法响应其他事件，应该最后调用。(最后)
+- 长按事件(onLongClickListener) 同理，也是需要长时间等待才能出结果，肯定不能排到前面，但因为不需要ACTION_UP，应该排在 onClick 前面。(onLongClickListener > onClickListener)
+- 触摸事件(onTouchListener) 如果用户注册了触摸事件，说明用户要自己处理触摸事件了，这个应该排在最前面。(最前)
+- View自身处理(onTouchEvent) 提供了一种默认的处理方式，如果用户已经处理好了，也就不需要了，所以应该排在 onTouchListener 后面。(onTouchListener > onTouchEvent)
+ 
+所以事件的调度顺序应该是 onTouchListener > onTouchEvent > onLongClickListener > onClickListener
+
+*手指按下，不移动，稍等片刻再抬起。*
+
+	[Listener ]: onTouchListener      ACTION_DOWN
+	[GcsView  ]: onTouchEvent         ACTION_DOWN
+	[Listener ]: onLongClickListener  
+	[Listener ]: onTouchListener      ACTION_UP
+	[GcsView  ]: onTouchEvent         ACTION_UP
+	[Listener ]: onClickListener
+
+*代码省略*
+
+	public boolean dispatchTouchEvent(MotionEvent event) {
+	  if (mOnTouchListener.onTouch(this, event)) {
+	      return true;
+	  } else if (onTouchEvent(event)) {
+	      return true;
+	  }
+	  return false;
+	}
+
+*OnClick 和 OnLongClick 的具体调用位置在 onTouchEvent 中，看源码(同样省略大量无关代码):*
+
+	public boolean onTouchEvent(MotionEvent event) {
+	    ...
+	    final int action = event.getAction();
+	  	// 检查各种 clickable
+	    if (((viewFlags & CLICKABLE) == CLICKABLE ||
+	            (viewFlags & LONG_CLICKABLE) == LONG_CLICKABLE) ||
+	            (viewFlags & CONTEXT_CLICKABLE) == CONTEXT_CLICKABLE) {
+	        switch (action) {
+	            case MotionEvent.ACTION_UP:
+	                ...
+	                removeLongPressCallback();  // 移除长按
+	                ...
+	                performClick();             // 检查单击
+	                ...
+	                break;
+	            case MotionEvent.ACTION_DOWN:
+	                ...
+	                checkForLongClick(0);       // 检测长按
+	                ...
+	                break;
+	            ...
+	        }
+	        return true;                        // ◀︎表示事件被消费
+	    }
+	    return false;
+	}
+
+android:clickable="true" 会消费点击事件，使得父元素无法被调用
+
+1. 不论 View 自身是否注册点击事件，只要 View 是可点击的就会消费事件。
+2. 事件是否被消费由返回值决定，true 表示消费，false 表示不消费，与是否使用了事件无关。
+
+#### ViewGroup的处理 ####
+	public boolean dispatchTouchEvent(MotionEvent ev) {
+	    boolean result = false;             // 默认状态为没有消费过
+	
+	    if (!onInterceptTouchEvent(ev)) {   // 如果没有拦截交给子View
+	        result = child.dispatchTouchEvent(ev);
+	    }
+	
+	    if (!result) {                      // 如果事件没有被消费,询问自身onTouchEvent
+	        result = onTouchEvent(ev);
+	    }
+	
+	    return result;
+	}
+
+当 ChildView 重叠时，一般会分配给显示在最上面的 ChildView。
+
+1. 上面说的是可点击，可点击包括很多种情况，只要你给View注册了 onClickListener、onLongClickListener、OnContextClickListener 其中的任何一个监听器或者设置了 android:clickable=”true” 就代表这个 View 是可点击的。
+另外，某些 View 默认就是可点击的，例如，Button，CheckBox 等。
+2. 给 View 注册 OnTouchListener 不会影响 View 的可点击状态。即使给 View 注册 OnTouchListener ，只要不返回 true 就不会消费事件。
+3. ViewGroup 和 ChildView 同时注册了事件监听器(onClick等)，哪个会执行?
+事件优先给 ChildView，会被 ChildView消费掉，ViewGroup 不会响应。
+4. 所有事件都应该被同一 View 消费
+在上面的例子中我们分析后可以了解到，同一次点击事件只能被一个 View 消费，这是为什呢？主要是为了防止事件响应混乱，如果再一次完整的事件中分别将不同的事件分配给了不同的 View 容易造成事件响应混乱。
+
+安卓为了保证所有的事件都是被一个 View 消费的，对第一次的事件( ACTION_DOWN )进行了特殊判断，View 只有消费了 ACTION_DOWN 事件，才能接收到后续的事件,如果上层 View 拦截了当前正在处理的事件，会收到一个 ACTION_CANCEL，表示当前事件已经结束，后续事件不会再传递过来
 
 
 ### Camera ###
@@ -1377,6 +1538,124 @@ void setTranslate(float dx, float dy);
 相当于矩阵左乘
 
 
+以x，y为中心进行缩放，缩放旋转操作的支点是原点(0,0)先进行平移操作到原点，再缩放，然后在将中心移回x,y
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gfkm5z8sxvj20cq02ia9y.jpg)
+
+	public void onDraw(Canvas canvas){            
+	    canvas.drawBitmap(bitmap, 0, 0, null);        
+	    matrix.reset();       
+	    matrix.postScale(0.5f, 0.5f);  
+	    matrix.preTranslate(-pivotX, -pivotY);  
+	    matrix.postTranslate(pivotX, pivotY);  
+	    canvas.drawBitmap(bitmap, matrix, null);              
+	}   
+
+#### Matrix Camera ####
+
+> 摄像机的位置默认是 (0, 0, -576)。其中 -576＝ -8 x 72，虽然官方文档说距离屏幕的距离是 -8, 但经过测试实际距离是 -576 像素，当距离为 -10 的时候，实际距离为 -720 像素。我使用了3款手机测试，屏幕大小和像素密度均不同，但结果都是一样的。
+
+#### 多指触控 ####
+*action 与 Index 的获得*
+
+Android中的事件一般用最后8位来表示事件类型，再往前8位来表示Index。
+
+	// 获取事件类型
+	int action = event.getAction() & MotionEvent.ACTION_MASK;
+	// 获取index编号
+	int index = (event.getAction() & MotionEvent.ACTION_POINTER_INDEX_MASK)
+	        >> MotionEvent.ACTION_POINTER_INDEX_SHIFT;
+
+
+*index 和 pointId 的变化规则*
+
+1. 从 0 开始，自动增长。
+2. 如果之前落下的手指抬起，后面手指的 Index 会随之减小。
+3. Index 变化趋向于第一次落下的数值(落下手指时，前面有空缺会优先填补空缺)。
+4. 对 move 事件无效。
+
+move 中无法取得 actionIndex 的，我们需要使用 pointerIndex 来获取更多的信息
+
+1. pointerIndex	用于获取具体事件，可能会随着其他手指的抬起和落下而变化
+1. pointerId	用于识别手指，手指按下时产生，手指抬起时回收，期间始终不变
+
+*在多指触控中追踪单个手指*
+
+	/**
+	 * 绘制出第二个手指第位置
+	 */
+	public class MultiTouchTest extends CustomView {
+	    String TAG = "Gcs";
+	
+	    // 用于判断第2个手指是否存在
+	    boolean haveSecondPoint = false;
+	
+	    // 记录第2个手指第位置
+	    PointF point = new PointF(0, 0);
+	
+	    public MultiTouchTest(Context context) {
+	        this(context, null);
+	    }
+	
+	    public MultiTouchTest(Context context, AttributeSet attrs) {
+	        super(context, attrs);
+	
+	        mDeafultPaint.setAntiAlias(true);
+	        mDeafultPaint.setTextAlign(Paint.Align.CENTER);
+	        mDeafultPaint.setTextSize(30);
+	    }
+	
+	    @Override
+	    public boolean onTouchEvent(MotionEvent event) {
+	        int index = event.getActionIndex();
+	
+	        switch (event.getActionMasked()) {
+	            case MotionEvent.ACTION_POINTER_DOWN:
+	                // 判断是否是第2个手指按下
+	                if (event.getPointerId(index) == 1){
+	                    haveSecondPoint = true;
+	                    point.set(event.getY(), event.getX());
+	                }
+	                break;
+	            case MotionEvent.ACTION_POINTER_UP:
+	                // 判断抬起的手指是否是第2个
+	                if (event.getPointerId(index) == 1){
+	                    haveSecondPoint = false;
+	                    point.set(0, 0);
+	                }
+	                break;
+	            case MotionEvent.ACTION_MOVE:
+	                if (haveSecondPoint) {
+	                    // 通过 pointerId 来获取 pointerIndex
+	                    int pointerIndex = event.findPointerIndex(1);
+	                    // 通过 pointerIndex 来取出对应的坐标
+	                    point.set(event.getX(pointerIndex), event.getY(pointerIndex));
+	                }
+	                break;
+	        }
+	
+	        invalidate();   // 刷新
+	
+	        return true;
+	    }
+	
+	    @Override
+	    protected void onDraw(Canvas canvas) {
+	        canvas.save();
+	        canvas.translate(mViewWidth/2, mViewHeight/2);
+	        canvas.drawText("追踪第2个按下手指的位置", 0, 0, mDeafultPaint);
+	        canvas.restore();
+	
+	        // 如果屏幕上有第2个手指则绘制出来其位置
+	        if (haveSecondPoint) {
+	            canvas.drawCircle(point.x, point.y, 50, mDeafultPaint);
+	        }
+	    }
+	}
+
+*onDoubleTapEvent*
+
+onDoubleTap 在第二次手指按下(dowm)时触发，onDoubleTapEvent 是一种实时回调
 ### RecyclerView ###
 #### 自动换行的RecyclerView ####
 重写LayoutManager
@@ -1468,9 +1747,23 @@ PagerAdapter是基类适配器是一个通用的ViewPager适配器，相比Pager
 - ViewPage2#registerOnPageChangeCallback << == addPageChangeListener
 - 用抽象类替代接口，可以不用一次性override三个接口方法了，想用哪个就重载哪个
 
+# App Architecture #
+## Common architectural principles ##
+### Separation of concerns ###
+
+The most important principle to follow is separation of concerns. It's a common mistake to write all your code in an Activity or a Fragment. These UI-based classes should only contain logic that handles UI and operating system interactions. By keeping these classes as lean as possible, you can avoid many lifecycle-related problems.
+
+> Keep in mind that you don't own implementations of Activity and Fragment; rather, these are just glue classes that represent the contract between the Android OS and your app. 
+
+### Drive UI from a model ###
+Another important principle is that you should drive your UI from a model, preferably a persistent model
+
+## Recommended app architechture ##
+### Overview ###
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gfv1fhx776j20qo0k00t9.jpg)
 # 组件 #
 ## Activity ##
-
+您并非拥有 Activity 和 Fragment 的实现；它们只是表示 Android 操作系统与应用之间关系的粘合类
 
 ### 启动过程 ###
 ViewRootImpl 是实现了 ViewParent 接口的，所以虽然 ViewRootImpl 没有继承 View 或 ViewGroup
@@ -1478,6 +1771,11 @@ ViewRootImpl 是实现了 ViewParent 接口的，所以虽然 ViewRootImpl 没�
 ### 生命周期 ###
 7个回调函数覆盖Activity生命周期的每个环节
 
+Order of operations that occur when Activity A starts Activity B:
+
+1. Activity A's onPause() method executes.
+1. Activity B's onCreate(), onStart(), and onResume() methods execute in sequence. (Activity B now has user focus.)
+1. Then, if Activity A is no longer visible on screen, its onStop() method executes.
 #### 3个生存期 ####
 - 完整生存期:在onCreate方法和onDestroy方法之间经历的就是完成的生存期,onCreate中完成各种初始化操作，onDestroy中完成释放内存的操作
 - 可见生存期:onStart方法和onStop方法之间经历的就是可见生存期，onStart中对资源进行加载，onStop中对资源进行释放
@@ -1941,6 +2239,72 @@ ViewModel
 
 - ViewModel 和 onSaveInstaceState方法区别在于：ViewModel只能保存因为配置更改导致重建的数据，但是它能保存大量和复杂的数据；onSaveInstaceState能保存配置更改导致重建和资源限制导致重建的数据，但是它只能保存少量简单的数据。ViewModel使用SavedStateHandle能够保存资源限制导致重建的数据。
 - ViewModel的生命周期之所以比Activity的生命周期生命周期，主要重建之后的Activity用的是之前的ViewStore。ViewModelStore保存的是之前的ViewModel，而ViewStore在配置更改导致重建不会清空已有ViewModel。
+
+### LiveData ###
+当您更新存储在 LiveData 对象中的值时，它会触发所有已注册的观察者（只要附加的 LifecycleOwner 处于活跃状态）。
+
+> LiveData 仅在数据发生更改时才发送更新，并且仅发送给活跃观察者。此行为的一种例外情况是，观察者从非活跃状态更改为活跃状态时也会收到更新。此外，如果观察者第二次从非活跃状态更改为活跃状态，则只有在自上次变为活跃状态以来值发生了更改时，它才会收到更新。
+
+> 让 UI 观察数据的变化，而不是把数据推送给 UI
+
+
+LiveData与MutableLiveData的其实在概念上是一模一样的.唯一几个的区别如下:
+
+1. MutableLiveData的父类是LiveData
+2. LiveData在实体类里可以通知指定某个字段的数据更新.
+3. MutableLiveData则是完全是整个实体类或者数据类型变化后才通知.不会细节到某个字段
+
+# 代码架构 #
+## The Clean Architecture ##
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gg8zhrsw3fj20lg0frwh4.jpg)
+
+[https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
+## MVP ##
+#### 实例代码 ####
+	public class PresenterImpl implements ILoginPresenter,ICallback{
+	  private ILoginView mLoginView;
+	  private ILoginModel mLoginModel;
+	
+	  public PresenterImpl(ILoginView loginView){
+	    this.mLoginView = loginView;
+	    this.mLoginModel = new LoginModelImpl();
+	  }
+	
+	  public void login(String name,String password){
+	    if(isEmpty(name)||isEmpty(password)){
+	        this.mLoginView.showToast("用户名或密码不能为空");
+	        return;
+	    }
+	    this.mLoginModel.login(name,password,this);
+	  }
+	
+	  public void receive(boolean success){
+	    if(success){
+	      this.mLoginView.navigateToMain();
+	    }else{
+	      this.mLoginView.showToast("登录失败");
+	    }
+	  }
+	
+	  private boolean isEmpty(String text){
+	    return text==null||"".equals(text)?true:false;
+	  }
+	}
+
+Activity(Controller)实现IView接口，Presenter分离Activity中的中的行为逻辑，在Presentation中通过抽象的IView和IModel来操作逻辑，实现解耦
+
+IView(Activity/Controller)通过事件回调通知Presenter来执行，Presenter中执行逻辑，并回调IView中相应的行为，或者通过IModel查询相应数据逻辑，最终执行IView中的行为。
+
+将Activity的行为抽象在IView的接口中，Presenter通过持有IView来操作视图行为，通过IView中的视图事件监听被IView调用，相当于Presenter是事件处理分发器。
+
+在MVP中，View只与Presenter交互，Model只与Presenter交互，View与Model不直接交互，MVC中就不一样了，View中是可以直接引用Model的，也就是说MVP中将View与Model进行了隔离
+
+Presenter中都会对View中控件的事件进行注册。其潜台词就是运用了事件机制，既然是事件机制，那么对于数据的流向自然是单向的。View里面仅仅实现单纯独立的UI处理逻辑，处理的数据都是Presenter推送过来的。所以View里面尽可能的不维护数据状态，Presenter所需的关于View的状态应该在接收到View发送的用户交互请求的时候一次得到
+
+### Passive View和 Supervisor Controller ###
+View不会去关注Presenter，但是Presenter会去关注View。然后PV中，View与Model完全隔离开，但是在SC当中View与Model通过数据绑定进行关联的。在PV当中，要求将界面可操作的控件全部定义在IView里面，做过企业信息化系统的人都知道，有的界面不是能用复杂形容的，如果这个时候用PV，在写接口的时候是不是有种崩溃的感觉。因为接口膨胀，那么在Presenter里面，原本简单的控件控制逻辑将会变得复杂，这个时候SC就是很好的选择，如果非要用MVP模式。在SC当中，IView不必去关心界面上的每一个控件UI逻辑，这些可以被View分担，IView里面只会定义一些处理逻辑的方法或者其他。
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gg98welfz3j20go0a50tb.jpg)
 # Android 设备的CPU类型 (ABIs) #
 - armeabiv-v7a: 第7代及以上的 ARM 处理器。2011年12月以后的生产的大部分Android设备都使用它.
 - arm64-v8a: 第8代、64位ARM处理器，很少设备，三星 Galaxy S6是其中之一。
@@ -2392,6 +2756,11 @@ JVM采用了一个特殊的方法，来完成这项功能，那就是桥方法
 - 线程的切换者是操作系统，切换时机是根据操作系统自己的切换策略，用户无感知。线程的切换内容包括内核栈和硬件上下文。线程切换内容保存在内核栈中。线程切换过程是由“用户态到内核态到用户态”， 切换效率中等。
 - 协程的切换者是用户（编程者或应用程序），切换时机是用户自己的程序所决定的。协程的切换内容是硬件上下文，切换内存保存在用户自己的变量（用户栈或堆）中。协程的切换过程只有用户态，即没有陷入内核态，因此切换效率高。
 
+# 屏幕兼容 #
+## 屏幕尺寸 ##
+The screen size as it's known to your app is not the actual size of the device screen—it takes into account the screen orientation, system decorations (such as the navigation bar), and window configuration changes
+### Flexible layouts ###
+The core principle you must follow is to avoid hard-coding the position and size of your UI components. Instead, allow view sizes to stretch and specify view positions relative to the parent view or other sibling views so your intended order and relative sizes remain the same as the layout grows.
 # Q&A #
 #### Could not resolve com.android.tools.build:gradle:3.0.1 ####
 配置代理地址，地址为127.0.0.1不是0.0.0.0 
@@ -2425,6 +2794,10 @@ setText() 参数为int型，系统去查找资源而不是直接设置文字
 
 C:\Users\admin\.android文件夹下
 
+#### Android离线安装插件 ####
+在plugin无法安装的时候查看plugin homepage，然后去下载源码out中输出的zip或jar文件
+
+settings -> plugins -> install plugin from disk，然后重启IDE
 #### 生成高德发布版SHA1码 ####
 keytool -list -v -keystore [keystore路径]
 
@@ -2504,6 +2877,43 @@ Presentation实际上是一个Dialog，所以里面无法弹出Dialog、PopupWin
 #### design editor is unavailable until after a success sync ####
 close project,重新import项目
 
+#### 全屏页跳到非全屏页 ####
+方法1：在页面跳转到非全屏显示的时候加上
+
+getWindow().setFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN, WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+
+使得其为非全屏提前变为非全屏显示
+
+方法2：在非全屏显示的Activity中处理,在setContentView之前add一个和状态等高的View
+
+if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP) {
+
+ViewGroup rootView = ((ViewGroup) this.findViewById(android.R.id.content));
+
+int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+
+//状态栏的高度
+
+int statusBarHeight = getResources().getDimensionPixelSize(resourceId); rootView.setPadding(0, statusBarHeight, 0, 0);
+
+getWindow().addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN); getWindow().addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+ViewGroup decorViewGroup = (ViewGroup) getWindow().getDecorView(); View statusBarView = new View(getWindow().getContext()); FrameLayout.LayoutParams params = new
+
+//设置状态栏的相关参数
+
+FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, statusBarHeight);
+
+params.gravity = Gravity.TOP;
+
+statusBarView.setLayoutParams(params); statusBarView.setBackgroundColor(ContextCompat.getColor(context,R.color.text_666666));
+
+//添加到DecorView中
+
+decorViewGroup.addView(statusBarView); }
+
+#### Toolbar中home图标太大 ####
+- 方法一：把图片做的小一点
+- 方法二：将图片放在更高分辨率的mipmap、drawable目录下, 比如本来放在mdpi的, 放在xxxhdpi就会小很多
 # 散列 #
 ## 散列函数 ##
 让键的各个部分均参与散列函数的计算
@@ -2526,6 +2936,28 @@ H.265标准围绕着现有的视频编码标准H.264，保留原来的某些技�
 > H.265/HEVC的编码架构大致上和H.264/AVC的架构相似，也主要包含：帧内预测(intra prediction)、帧间预测(inter prediction)、转换(transform)、量化(quantization)、去区块滤波器(deblocking filter)、熵编码(entropy coding)等模块。但在HEVC编码架构中，整体被分为了三个基本单位，分別是：编码单位(coding unit，CU)、预测单位(predict unit，PU)和转换单位(transform unit，TU)。
 > 比起H.264/AVC，H.265/HEVC提供了更多不同的工具来降低码率，以编码单位来说， 最小的8x8到最大的64x64。信息量不多的区域(颜色变化不明显，比如车体的红色部分和地面的灰色部分)划分的宏块较大，编码后的码字较少，而细节多的地方(轮胎)划分的宏块就相应的小和多一些，编码后的码字较多，这样就相当于对图像进行了有重点的编码，从而降低了整体的码率，编码效率就相应提高了。同时，H.265的帧内预测模式支持33种方向(H.264只支持8种)，并且提供了更好的运动补偿处理和矢量预测方法。
 
+#### dagger2无法自动生成问题 ####
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gfvcra1cedj20xw16g0xk.jpg)
+
+*Java* 
+
+    implementation 'com.google.dagger:dagger:2.21'
+    implementation 'com.google.dagger:dagger-android:2.21'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.21'
+
+*Kotlin*
+
+	implementation 'com.google.dagger:dagger:2.21'
+	kapt 'com.google.dagger:dagger-compiler:2.21' 
+
+*JAVA和Kotlin混合使用*
+
+需要在目标build.gradle(module)的最后添加下面代码
+
+	apply plugin: 'kotlin-kapt
+	kapt {
+	    generateStubs = true
+	}
 ## 颜色空间 ##
 ### HSV ###
 *色调H*
