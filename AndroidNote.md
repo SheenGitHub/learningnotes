@@ -248,6 +248,22 @@ view.animate().scaleX()这样使用时，就算不主动调用start(),其实内�
 
 整理信息
 
+### Animation ###
+#### DynamicAnimation ####
+基于弹簧特性的动画可以更改屏幕上的视图对象的实际属性，从而为视图添加动画效果。系统中提供了以下视图：
+
+- ALPHA：表示视图的 Alpha 透明度。该值默认为 1（不透明），值为 0 则表示完全透明（不可见）。
+- TRANSLATION_X、TRANSLATION_Y 和 TRANSLATION_Z：这些属性用于控制视图所在的位置，值为视图的布局容器所设置的左侧坐标、顶部坐标和高度的增量。
+- TRANSLATION_X 表示左侧坐标。
+- TRANSLATION_Y 表示顶部坐标。
+- TRANSLATION_Z 表示视图相对于其高度的深度。
+- ROTATION、ROTATION_X 和 ROTATION_Y：这些属性用于控制视图围绕轴心点进行的 2D（rotation属性）和 3D 旋转。
+- SCROLL_X 和 SCROLL_Y：这些属性分别表示视图距离源左侧和顶部边缘的滚动偏移量（以像素为单位）。它还以页面滚动的距离来表示位置。
+- SCALE_X 和 SCALE_Y：这些属性用于控制视图围绕其轴心点进行的 2D 缩放。
+- X、Y 和 Z：这些是基本的实用属性，用于描述视图在容器中的最终位置。
+- X 是左侧值与 TRANSLATION_X 的和。
+- Y 是顶部值与 TRANSLATION_Y 的和。
+- Z 是高度值与 TRANSLATION_Z 的和。
 ### 自定义View ###
 1. 自定义View：继承View
 2. 基于现有组件：继承View的派生类
@@ -516,7 +532,11 @@ android:clickable="true" 会消费点击事件，使得父元素无法被调用
 
 安卓为了保证所有的事件都是被一个 View 消费的，对第一次的事件( ACTION_DOWN )进行了特殊判断，View 只有消费了 ACTION_DOWN 事件，才能接收到后续的事件,如果上层 View 拦截了当前正在处理的事件，会收到一个 ACTION_CANCEL，表示当前事件已经结束，后续事件不会再传递过来
 
+### 图像 ###
+> res/drawable/ 目录下的图片资源可由 aapt 工具在构建过程中自动完成无损图片压缩优化。例如，可以通过调色板将不需要超过 256 种颜色的真彩色 PNG 转换为 8 位 PNG。这样做会生成质量相同但内存占用量更小的图片。因此，此目录下的图片二进制文件可能会在构建时发生更改。如果您打算将某张图片作为比特流进行读取以将其转换为位图，请改为将图片放在 res/raw/ 文件夹下，这样的话，aapt 工具便无法对其进行修改。
 
+#### 图像压缩方案 ####
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1ggtpv5rr1ej20hc09tmx5.jpg)
 ### Camera ###
 #### CameraX ####
 这个 CameraView 类是一个 ViewGroup，本质上包含了一个 TextureView 来显示 camera 流，以及配置这个组件的一些属性
@@ -997,6 +1017,29 @@ Handler的构造方法中会验证Looper，如果Looper为空，那么会抛出�
 每个线程只有一个Looper
 
 只有跟MessageQueue同一个包下才可以实例化MessageQueue，换句话说，我们用户是无法直接new一个MessageQueue对象出来的。而因为Looper在一个线程中只能有一个，从而导致MessageQueue也只能有一个
+
+### 四个对象 ###
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gila3o4kpmj20u00iyjtj.jpg)
+Handle 消息机制中作为一个对外暴露的工具，其内部包含了一个 Looper 。负责Message的发送及处理。Handler.sendMessage() ：向消息队列发送各种消息事件；Handler.handleMessage()：处理相应的消息事件
+
+Looper 作为消息循环的核心，其内部包含了一个消息队列 MessageQueue ，用于记录所有待处理的消息；通过Looper.loop()不断地从MessageQueue中抽取Message，按分发机制将消息分发给目标处理者，可以看成是消息泵。注意，线程切换就是在这一步完成的。
+
+MessageQueue 则作为一个消息队列，则包含了一系列链接在一起的 Message ；不要被这个Queue的名字给迷惑了，就以为它是一个队列，但其实内部通过单链表的数据结构来维护消息列表，等待Looper的抽取。
+
+Message 则是消息体，内部又包含了一个目标处理器 target ，这个 target 正是最终处理它的 Handler
+
+
+Handler往MessageQueue中添加消息，其实就是往Handler的Looper所持有的MessageQueue中添加对象
+
+**在构造Handler之前，必须调用`Looper`的`prepare`方法创建`Looper`。**
+
+从头到尾梳理一下哈~
+
+1. mainThread中ActivityThread首先创建了一个运行在主线程的Looper，并且把它和主线程进行了绑定。
+1. Looper又创建了一个MessageQueue，然后调用Looper.loop方法不断地在主线程中尝试取出Message
+1. Looper如果取到了Message，那么就在主线程中调用发送这个Message的Handler的handleMessage方法。
+1. 我们在主线程或者子线程中通过Looper.getMainLooper为参数创建了一个Handler。
+1. 在子线程中发送了Message，主线程中的Looper不断循环，终于收到了Message，在主线程中调用了这个Handler的handleMessage方法。
 ## 布局 ##
 ### LayoutParams ###
 LayoutParams 的作用是：子控件告诉父控件，自己要如何布局
@@ -1551,6 +1594,73 @@ void setTranslate(float dx, float dy);
 	    canvas.drawBitmap(bitmap, matrix, null);              
 	}   
 
+#### 空间变换 ####
+按x,y,z轴单方向旋转变换
+
+![rotation.jpg](http://ww1.sinaimg.cn/large/48ceb85dly1ghek6cb3wxj209007sq32.jpg)
+
+三轴的变换结合
+
+![d3rotation.jpg](http://ww1.sinaimg.cn/large/48ceb85dly1ghek8fripbj20ki04saak.jpg)
+
+
+旋转矩阵有且只有一个特征值为1的特征向量，满足矢量u平行于旋转轴的时候 Ru=u
+
+#### 旋转矩阵的推导 ####
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gk73jkcuonj20ex0dqq4h.jpg)
+
+*三维空间*
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gk73mr0z81j20au01yglj.jpg)
+
+它表明从{B}到{A}的旋转矩阵的每一列都是{B}的坐标轴单位向量在{A}中的表示(wrt {A})
+
+旋转矩阵的很多神奇之处，比如它是一个**正交矩阵**（orthonormal matrix，不仅正交，且每一行每一列的长度都为1），这意味着它的转置等于求逆
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gk73vypdu5j20h30a3wfd.jpg)
+
+矩阵的每一行就是{A}的坐标轴在{B}中的表示
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gk740utpawj20cj03st8r.jpg)
+
+*连续的平移变换只需要向量相加，那么连续的旋转变换呢？只要矩阵相乘就可以了*
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gk74k46qsij20fc0ahglx.jpg)
+
+#### 齐次坐标变换(homogenous transformation) ####
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gk75971eahj20fb0a60t4.jpg)
+
+把这整个过程用一个矩阵表示呢？齐次坐标变换矩阵(Transformation matrix)就是为了这个目的
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gk759ylts0j209z02qjrc.jpg)
+
+T矩阵在一个4×4的矩阵中同时表示旋转变换和平移变换，它方便了坐标变换的逆运算、多坐标系的连续变换；规则与旋转矩阵类似：
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gk75aq9a1vj20e702vglo.jpg)
+
+永远可以把坐标系中一个点的旋转平移，等效为坐标系本身相反方向的旋转平移。
+
+### 四元数 ###
+#### 复平面 ####
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gk76w5rcr3j20fq0f43yt.jpg)
+
+表示这两个角度的复数相乘，会得到表示这两个角度之和的复数
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gk76wk3sloj20gh01q0ss.jpg)
+
+
+
+
+#### 旋转矢量传感器 ####
+根据欧拉旋转定理（Euler's rotation theorem）
+
+> 在三维空间里，假设一个刚体在做一个位移的时候，刚体内部至少有一点固定不动，则此位移等价于一个绕着包含那固定点的固定轴的旋转。
+
+这也同时带出，两个旋转的组合也是一个旋转。加上单位元（不旋转）和逆元（反向旋转）就是旋转群了。
+
+以轴角表示旋转，乃物体绕一支过原点的轴旋转一个角度 θ 。因该轴穿过原点，只需要一个三维单位矢量 μ 表示该轴的方向。另一种更简洁的表示法是旋转矢量 μ=θμ 。但在实际应用中，常用单位四元数表示三维旋转，因为可以简单地组合、旋转矢量，以及作球面插值（SLERP）。
+
+
 #### Matrix Camera ####
 
 > 摄像机的位置默认是 (0, 0, -576)。其中 -576＝ -8 x 72，虽然官方文档说距离屏幕的距离是 -8, 但经过测试实际距离是 -576 像素，当距离为 -10 的时候，实际距离为 -720 像素。我使用了3款手机测试，屏幕大小和像素密度均不同，但结果都是一样的。
@@ -2056,6 +2166,8 @@ Android 8.0之后所有隐式广播都不允许使用静态注册的方式来接
 ## Service ##
 
 启动远程服务中的包名时setPackage使用的是远程项目根目录的包名，并非到服务所在的具体的路径，因为aidl引入时，使用了相同的根目录包名，故此可以识别
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gh9z3ea2b0j20em0frq3u.jpg)
 ### AIDL ###
 > 定向Tag表示在跨进程通信中数据的流向，用于标注方法的参数值，分为 in、out、inout 三种。其中 in 表示数据只能由客户端流向服务端， out 表示数据只能由服务端流向客户端，而 inout 则表示数据可在服务端与客户端之间双向流通。
 #### AIDL refusing to generate code from aidl file defining parcelable ####
@@ -2092,6 +2204,16 @@ ServiceManager管理服务的注册和请求
 
 在getSystemService内部就是向ServiceManager查询标识符为getApplication().WINDOW_SERVICE的远程对象的引用。得到这个引用之后，调用addView时，真正的实现在代理引用里面，代理把参数到包到Parcel对象中，然后调用transact函数，触发Binder驱动的一系列调用过程。
  
+
+### Android中Service和Thread的区别 ###
+- Thread 是程序执行的最小单元，它是分配CPU的基本单位。可以用 Thread 来执行一些异步的操作。
+- Service是Android的四大组件之一，被用来执行长时间的后台任务。默认情况下Service是运行在主线程中的。
+
+#### 二者的使用上的区别 ####
+1. 在Android中，Thread只是一个用来执行后台任务的工具类，它可以在Activity中被创建，也可以在Service中被创建。
+2. Service组件主要有两个作用：后台运行和跨进程访问。service可以在android系统后台独立运行，线程是不可以。
+3. Service类是可以供其他应用程序来调用这个Service的而Thread只是在本类中在使用，如果本类关闭那么这个thread也就下岗了而Service类则不会。
+4. 如果需要执行复杂耗时的操作，必须在Service中再创建一个Thread来执行任务。Service的优先级高于后台挂起的Activity，当然也高于Activity所创建的Thread，因此，系统可能在内存不足的时候优先杀死后台的Activity或者Thread，而不会轻易杀死Service组件，即使被迫杀死Service，也会在资源可用时重启被杀死的Service。
 ## Context ##
 > Interface to global information about an application environment. This is an abstract class whose implementation is provided by the Android system. It allows access to application-specific resources and classes, as well as up-calls for application-level operations such as launching activities, broadcasting and receiving intents, etc
 > 
@@ -2740,6 +2862,9 @@ JVM采用了一个特殊的方法，来完成这项功能，那就是桥方法
 
 
 ## Java ##
+### 并发 ###
+#### Thread ####
+Thread（线程） 是将任务关联到处理器的软件概念
 ## Kotlin ##
 ### 协程 ###
 协程（Coroutines）是一种比线程更加轻量级的存在，正如一个进程可以拥有多个线程一样，一个线程可以拥有多个协程。
@@ -2877,6 +3002,18 @@ Presentation实际上是一个Dialog，所以里面无法弹出Dialog、PopupWin
 #### design editor is unavailable until after a success sync ####
 close project,重新import项目
 
+#### Android 10创建不了文件夹 ####
+[https://blog.csdn.net/qq_22859147/article/details/104601937](https://blog.csdn.net/qq_22859147/article/details/104601937)
+
+[https://juejin.im/post/5db9760251882557301cb819](https://juejin.im/post/5db9760251882557301cb819)
+
+可以在Androidmainfest 里面的application添加android:requestLegacyExternalStorage="true" 使用原来的存储方式,或者，不要自己创文件夹了
+Android Q 为每个应用程序提供了一个独立的在外部存储设备的存储沙箱
+
+#### syntax error in regexp pattern ####
+aused by: java.util.regex.PatternSyntaxException: Syntax error in regexp pattern near index xx \{([^}]*)}
+
+解决方案为则是将最后的 } 修改成加上转义符后的 \\}，将上面的代码修改如下即可
 #### 全屏页跳到非全屏页 ####
 方法1：在页面跳转到非全屏显示的时候加上
 
@@ -2914,6 +3051,11 @@ decorViewGroup.addView(statusBarView); }
 #### Toolbar中home图标太大 ####
 - 方法一：把图片做的小一点
 - 方法二：将图片放在更高分辨率的mipmap、drawable目录下, 比如本来放在mdpi的, 放在xxxhdpi就会小很多
+
+#### Android resource linking failed v-28 ####
+降级 build.gradle classpath com.android.tools.build:gradle:3.1.4
+#### onServiceConnected 在bindService之后没有执行####
+onServiceConnected在绑定成功时进行回调，但不保证在执行bindService后立马回调；使用startService来启动可以成功
 # 散列 #
 ## 散列函数 ##
 让键的各个部分均参与散列函数的计算
@@ -3023,6 +3165,41 @@ packed格式：所有像素点的YUV信息连续交错存储
 - COLOR_FormatYUV420SemiPlanar:YUV420SP,即上述的NV12
 - COLOR_FormatYUV420PackedSemiPlanar：Y分量空间–>V分量平面–>U分量平面，与COLOR_FormatYUV420Planar uv相反
 
+
+## Media ##
+### 媒体会话和媒体控制器 ###
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gh8z5gv561j20g803j3yg.jpg)
+
+#### 媒体会话 ####
+
+媒体会话负责与播放器的所有通信。它会对应用的其他部分隐藏播放器的 API。系统只能从控制播放器的媒体会话中调用播放器。
+
+*保持播放状态和元数据*
+
+PlaybackStateCompat 类用于描述播放器当前的运行状态
+MediaMetadataCompat 类说明正在播放的素材
+#### 媒体控制器 ####
+
+媒体控制器会隔离您的界面。您的界面代码只与媒体控制器（而非播放器本身）通信。媒体控制器会将传输控制操作转换为对媒体会话的回调。每当会话状态发生变化时，它也会接收来自媒体会话的回调。这提供了一种自动更新关联界面的机制。媒体控制器一次只能连接到一个媒体会话。
+
+### 视频应用 ###
+
+视频应用需要一个窗口来查看内容
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gh8zbfv46ej20aa04jweb.jpg)
+
+### 音频应用概览 ###
+
+音频播放器并不总是需要显示其界面。一旦开始播放音频，播放器就可以作为后台任务运行。用户可以切换到其他应用，同时继续聆听。
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gh8zcxqlvhj20ds0620sq.jpg)
+
+> 当您使用 MediaBrowserService 时，具有 MediaBrowser 的其他组件和应用可以发现您的服务，创建自己的媒体控制器，连接到您的媒体会话，并控制播放器。正是通过这种方式，Wear OS 和 Android Auto 应用才得以访问您的媒体应用。
+
+### MediaPlayer ###
+播放状态图
+
+![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gh9v0utizog20ih0ml0t3.gif)
 # Java #
 ## 单例模式 ##
 ### 饿汉式 ###
@@ -3116,3 +3293,173 @@ packed格式：所有像素点的YUV信息连续交错存储
         Singleton newInstance = SerializationUtils.deserialize(serialize);
         System.out.println(instance == newInstance);
     }
+
+# USB串口通信 #
+[https://www.cnblogs.com/yongdaimi/p/11981553.html](https://www.cnblogs.com/yongdaimi/p/11981553.html)
+
+> 您需要在与 USB 设备通信时使用所有这些类（只有在进行异步通信时才需要 UsbRequest）。一般来说，您需要获取 UsbManager 才能检索所需的 UsbDevice。当您有了设备后，需要找到相应的 UsbInterface 和该接口的 UsbEndpoint 以进行通信。获得正确的端点后，打开 UsbDeviceConnection 以与 USB 设备通信。
+
+## 接口 Interface ##
+### 常用类型参数 ###
+- USB_CLASS_APP_SPEC 254
+- USB_CLASS_AUDIO 1
+- USB_CLASS_CDC_DATA 10
+- USB_CLASS_COMM 2
+- USB_CLASS_CONTENT_SEC 13
+- USB_CLASS_CSCID 11 (content smart card devices)
+- USB_CLASS_HID 3
+- USB_CLASS_HUB 9
+- USB_CLASS_MASS_STORAGE 8
+- USB_CLASS_MISC  239
+- USB_CLASS_PER_INTERFACE 0
+- USB_CLASS_PHYSICA  5
+- USB_CLASS_PRINTER 7
+- USB_CLASS_STILL_IMAGE 6
+- USB_CLASS_VENDOR_SPEC 255
+- USB_CLASS_VIDEO 14
+- USB_CLASS_WIRELESS_CONTROLLER 224
+- USB_TYPE_STANDARD  0
+- USB_CLASS_PER_INTERFACE 0
+- USB_DIR_OUT 0
+- USB_DIR_IN 128
+- USB_ENDPOINT_DIR_MASK 128
+- USB_INTERFACE_SUBCLASS_BOOT 1
+- USB_SUBCLASS_VENDOR_SPEC 255
+- USB_TYPE_CLASS 32
+- USB_TYPE_MASK  96
+- USB_TYPE_RESERVED 96
+- USB_TYPE_STANDARD 0
+- USB_TYPE_VENDOR  64
+## 端点 EndPoint ##
+端点位于USB 外设内部，所有通信数据的来源或目的都基于这些端点，是一个可寻址的FIFO。
+
+### 传输模式 ###
+控制传输（Control Transfer）
+中断传输（Interrupt Transfer）
+批量传输或叫块传输（Bulk Transfer）
+实时传输或叫同步传输（Isochronous Transfer）
+
+#### Android系统中 ####
+- 0 UsbConstants#USB_ENDPOINT_XFER_CONTROL (endpoint zero)
+- 1 UsbConstants#USB_ENDPOINT_XFER_ISOC (isochronous endpoint)
+- 2 UsbConstants#USB_ENDPOINT_XFER_BULK (bulk endpoint)
+- 3 UsbConstants#USB_ENDPOINT_XFER_INT (interrupt endpoint)
+#### 控制传输 ####
+所有设备都要求有支持控制传输的端点，一般端点号为0的为控制端点
+
+#### 中断传输 ####
+中断传输为这样一类设备设计的，它们只发送或接收少量的数据，而且并不经常进行数据传输，但它们有一个确定的传输周期，每隔一定的周期要求传输一次（并不是要求必须按固定周期要发送一次数据）。使用这种传输方式的设备有键盘、鼠标、游戏杆等。
+
+#### 批量传输 ####
+USB协议提供批量传输类型是为了支持在某些不确定的时间内进行大量的数据通信，如打印机、扫描仪、硬盘、光盘等设备的数据传输都有这种特点。
+#### 实时传输（同步传输） ####
+实时传输是为支持某些对时间要求很高、数据量很大应用要求而提出的，使用这种传输类型的设备有麦克风、调制解调器、音频设备等。为了完成实时传输，总线必须事先提供足够的带宽。
+
+
+#### 多个设备的Android USB请求权限 ####
+如果要发出多个权限请求，请一次发出一个。也就是说，在接收方获得对第一个许可请求的响应之后，发出下一个请求。
+# AndroidX版本迁移 #
+	Old build artifact	AndroidX build artifact
+	android.arch.core:common	androidx.arch.core:core-common
+	android.arch.core:core	androidx.arch.core:core
+	android.arch.core:core-testing	androidx.arch.core:core-testing
+	android.arch.core:runtime	androidx.arch.core:core-runtime
+	android.arch.lifecycle:common	androidx.lifecycle:lifecycle-common
+	android.arch.lifecycle:common-java8	androidx.lifecycle:lifecycle-common-java8
+	android.arch.lifecycle:compiler	androidx.lifecycle:lifecycle-compiler
+	android.arch.lifecycle:extensions	androidx.lifecycle:lifecycle-extensions
+	android.arch.lifecycle:livedata	androidx.lifecycle:lifecycle-livedata
+	android.arch.lifecycle:livedata-core	androidx.lifecycle:lifecycle-livedata-core
+	android.arch.lifecycle:reactivestreams	androidx.lifecycle:lifecycle-reactivestreams
+	android.arch.lifecycle:runtime	androidx.lifecycle:lifecycle-runtime
+	android.arch.lifecycle:viewmodel	androidx.lifecycle:lifecycle-viewmodel
+	android.arch.paging:common	androidx.paging:paging-common
+	android.arch.paging:runtime	androidx.paging:paging-runtime
+	android.arch.paging:rxjava2	androidx.paging:paging-rxjava2
+	android.arch.persistence.room:common	androidx.room:room-common
+	android.arch.persistence.room:compiler	androidx.room:room-compiler
+	android.arch.persistence.room:guava	androidx.room:room-guava
+	android.arch.persistence.room:migration	androidx.room:room-migration
+	android.arch.persistence.room:runtime	androidx.room:room-runtime
+	android.arch.persistence.room:rxjava2	androidx.room:room-rxjava2
+	android.arch.persistence.room:testing	androidx.room:room-testing
+	android.arch.persistence:db	androidx.sqlite:sqlite
+	android.arch.persistence:db-framework	androidx.sqlite:sqlite-framework
+	com.android.support.constraint:constraint-layout	androidx.constraintlayout:constraintlayout
+	com.android.support.constraint:constraint-layout-solver	androidx.constraintlayout:constraintlayout-solver
+	com.android.support.test.espresso.idling:idling-concurrent	androidx.test.espresso.idling:idling-concurrent
+	com.android.support.test.espresso.idling:idling-net	androidx.test.espresso.idling:idling-net
+	com.android.support.test.espresso:espresso-accessibility	androidx.test.espresso:espresso-accessibility
+	com.android.support.test.espresso:espresso-contrib	androidx.test.espresso:espresso-contrib
+	com.android.support.test.espresso:espresso-core	androidx.test.espresso:espresso-core
+	com.android.support.test.espresso:espresso-idling-resource	androidx.test.espresso:espresso-idling-resource
+	com.android.support.test.espresso:espresso-intents	androidx.test.espresso:espresso-intents
+	com.android.support.test.espresso:espresso-remote	androidx.test.espresso:espresso-remote
+	com.android.support.test.espresso:espresso-web	androidx.test.espresso:espresso-web
+	com.android.support.test.janktesthelper:janktesthelper	androidx.test.jank:janktesthelper
+	com.android.support.test.services:test-services	androidx.test:test-services
+	com.android.support.test.uiautomator:uiautomator	androidx.test.uiautomator:uiautomator
+	com.android.support.test:monitor	androidx.test:monitor
+	com.android.support.test:orchestrator	androidx.test:orchestrator
+	com.android.support.test:rules	androidx.test:rules
+	com.android.support.test:runner	androidx.test:runner
+	com.android.support:animated-vector-drawable	androidx.vectordrawable:vectordrawable-animated
+	com.android.support:appcompat-v7	androidx.appcompat:appcompat
+	com.android.support:asynclayoutinflater	androidx.asynclayoutinflater:asynclayoutinflater
+	com.android.support:car	androidx.car:car-alpha5
+	com.android.support:cardview-v7	androidx.cardview:cardview
+	com.android.support:collections	androidx.collection:collection
+	com.android.support:coordinatorlayout	androidx.coordinatorlayout:coordinatorlayout
+	com.android.support:cursoradapter	androidx.cursoradapter:cursoradapter
+	com.android.support:customtabs	androidx.browser:browser
+	com.android.support:customview	androidx.customview:customview
+	com.android.support:design	com.google.android.material:material-rc01
+	com.android.support:documentfile	androidx.documentfile:documentfile
+	com.android.support:drawerlayout	androidx.drawerlayout:drawerlayout
+	com.android.support:exifinterface	androidx.exifinterface:exifinterface
+	com.android.support:gridlayout-v7	androidx.gridlayout:gridlayout
+	com.android.support:heifwriter	androidx.heifwriter:heifwriter
+	com.android.support:interpolator	androidx.interpolator:interpolator
+	com.android.support:leanback-v17	androidx.leanback:leanback
+	com.android.support:loader	androidx.loader:loader
+	com.android.support:localbroadcastmanager	androidx.localbroadcastmanager:localbroadcastmanager
+	com.android.support:media2	androidx.media2:media2-alpha03
+	com.android.support:media2-exoplayer	androidx.media2:media2-exoplayer-alpha01
+	com.android.support:mediarouter-v7	androidx.mediarouter:mediarouter
+	com.android.support:multidex	androidx.multidex:multidex
+	com.android.support:multidex-instrumentation	androidx.multidex:multidex-instrumentation
+	com.android.support:palette-v7	androidx.palette:palette
+	com.android.support:percent	androidx.percentlayout:percentlayout
+	com.android.support:preference-leanback-v17	androidx.leanback:leanback-preference
+	com.android.support:preference-v14	androidx.legacy:legacy-preference-v14
+	com.android.support:preference-v7	androidx.preference:preference
+	com.android.support:print	androidx.print:print
+	com.android.support:recommendation	androidx.recommendation:recommendation
+	com.android.support:recyclerview-selection	androidx.recyclerview:recyclerview-selection
+	com.android.support:recyclerview-v7	androidx.recyclerview:recyclerview
+	com.android.support:slices-builders	androidx.slice:slice-builders
+	com.android.support:slices-core	androidx.slice:slice-core
+	com.android.support:slices-view	androidx.slice:slice-view
+	com.android.support:slidingpanelayout	androidx.slidingpanelayout:slidingpanelayout
+	com.android.support:support-annotations	androidx.annotation:annotation
+	com.android.support:support-compat	androidx.core:core
+	com.android.support:support-content	androidx.contentpager:contentpager
+	com.android.support:support-core-ui	androidx.legacy:legacy-support-core-ui
+	com.android.support:support-core-utils	androidx.legacy:legacy-support-core-utils
+	com.android.support:support-dynamic-animation	androidx.dynamicanimation:dynamicanimation
+	com.android.support:support-emoji	androidx.emoji:emoji
+	com.android.support:support-emoji-appcompat	androidx.emoji:emoji-appcompat
+	com.android.support:support-emoji-bundled	androidx.emoji:emoji-bundled
+	com.android.support:support-fragment	androidx.fragment:fragment
+	com.android.support:support-media-compat	androidx.media:media
+	com.android.support:support-tv-provider	androidx.tvprovider:tvprovider
+	com.android.support:support-v13	androidx.legacy:legacy-support-v13
+	com.android.support:support-v4	androidx.legacy:legacy-support-v4
+	com.android.support:support-vector-drawable	androidx.vectordrawable:vectordrawable
+	com.android.support:swiperefreshlayout	androidx.swiperefreshlayout:swiperefreshlayout
+	com.android.support:textclassifier	androidx.textclassifier:textclassifier
+	com.android.support:transition	androidx.transition:transition
+	com.android.support:versionedparcelable	androidx.versionedparcelable:versionedparcelable
+	com.android.support:viewpager	androidx.viewpager:viewpager
+	com.android.support:wear	androidx.wear:wear
+	com.android.support:webkit	androidx.webkit:webkit

@@ -20,6 +20,15 @@ strictfp 关键字可应用于类、接口或方法。使用 strictfp 关键字�
 - f(⋅)是协变（covariant）的，当A≤B时有f(A)≤f(B)成立；
 - f(⋅)是不变（invariant）的，当A≤B时上述两个式子均不成立，即f(A)与f(B)相互之间没有继承关系。
 
+#### 以下哪种类型是 Dog → Dog 的子类呢？ ####
+
+- Greyhound → Greyhound
+- Greyhound → Animal
+- Animal → Animal
+- Animal → Greyhound
+
+函数必须有处理类型的能力，输出必须具有类型的特性
+
 #### PECS ####
 producer-extends, consumer-super（PECS）
 
@@ -152,6 +161,8 @@ Java规范里确实规定了外部类可以访问内部类的private/protected�
 
 Outer类和Inner类不再是嵌套结构，而是变为一个包中的两个类，然后，对于private变量的访问，编译器会生成一个accessor函数
 # 并发（Concurrent) #
+> 并发性是一系列性能技术，专注于减少等待
+
 
 ## Java 多线程设计模式 ##
 
@@ -1325,6 +1336,22 @@ CAS包括3个操作数————需要读写的内存位置V、进行比较的
 AtomicStampedReference支持两个变量上执行原子的条件更新，在“对象-引用”二元组上加上“版本号”，从而避免ABA问题。
 AtomicMarkableReference跟新一个“对象引用-布尔值”二元组，标记“已删除的节点”
 
+
+### sun.misc.Unsafe类 ###
+常用方法:
+
+(线程安全的)
+
+- public native boolean compareAndSwapInt(Object obj, long offset, int expect, int update);
+- public native boolean compareAndSwapObject(Object obj, long offset, Object expect, Object update);
+- void sun.misc.Unsafe.putOrderedInt(Object obj, long offset, int expect)
+
+### CAS ###
+
+### LockSupport ###
+在LockSupport类中定义了一组以park开头的方法用来阻塞当前线程。以及unPark(Thread thread)方法来唤醒一个被阻塞的线程
+
+	void park(Object blocker)：功能同方法1，入参增加一个Object对象，用来记录导致线程阻塞的阻塞对象，方便进行问题排查
 # Java内存模型 #
 
 aVariable = 3；
@@ -2932,7 +2959,8 @@ Java虚拟机直接支持一下数值类型的宽化类型转换(widening Numeri
 将一个浮点值窄化转换为整数类型T(T限于int或long类型之一)的时候，将遵循以下转换规则：
 
 - 如果浮点值是NaN，那转换结果就是int或long类型的0
-- 如果浮点值不是无穷大的话，浮点值使用IEEE754的向零舍入模式取整，获得整数值v，如果v在目标类型T(int或long)的表示范围，那转换结果解释v
+- 如果浮点值不是无穷大的话，浮点值使用IEEE754的向零舍入
+- 模式取整，获得整数值v，如果v在目标类型T(int或long)的表示范围，那转换结果解释v
 - 否则，将根据v的符号，转换为T所能表示的最大或者最小正数。
 
 ### 对象创建与访问指令 ###
