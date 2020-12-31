@@ -164,6 +164,64 @@ Outer类和Inner类不再是嵌套结构，而是变为一个包中的两个类�
 > 并发性是一系列性能技术，专注于减少等待
 
 
+## Synchronized ##
+[https://mp.weixin.qq.com/s?__biz=MzI0MzI1Mjg5Nw==&mid=2247483689&idx=1&sn=4bd727cc4991e54e273e099010c82d3b&chksm=e96eaae7de1923f14db6ab744331c5f3ea1176af0cfd16df598f9e8817f2e4512dae6dd17d16&token=860755966&lang=zh_CN&scene=21#wechat_redirect](https://mp.weixin.qq.com/s?__biz=MzI0MzI1Mjg5Nw==&mid=2247483689&idx=1&sn=4bd727cc4991e54e273e099010c82d3b&chksm=e96eaae7de1923f14db6ab744331c5f3ea1176af0cfd16df598f9e8817f2e4512dae6dd17d16&token=860755966&lang=zh_CN&scene=21#wechat_redirect "Synchronized原理分析")
+
+- 偏向锁：无实际竞争，且将来只有第一个申请锁的线程会使用锁。 
+- 轻量级锁：无实际竞争，多个线程交替使用锁；允许短时间的锁竞争。 
+- 重量级锁：有实际竞争，且锁竞争时间长。
+
+### 场景 ###
+- 情况一：只有Thread#1会进入临界区；
+- 情况二：Thread#1和Thread#2交替进入临界区；
+- 情况三：Thread#1和Thread#2同时进入临界区。
+
+若Thread#2尝试进入时Thread#1已退出临界区，即此时lockObject处于未锁定状态，这时说明偏向锁上发生了竞争（对应情况二），此时会撤销偏向，Mark Word中不再存放偏向线程ID，而是存放hashCode和GC分代年龄，同时锁标识位变为“01”（表示未锁定），这时Thread#2会获取lockObject的轻量级锁。因为此时Thread#1和Thread#2交替进入临界区，所以偏向锁无法满足需求，需要膨胀到轻量级锁。
+
+## AQS ##
+![](https://image-static.segmentfault.com/812/383/812383398-f2f4b74d4eea63e1_articlex)
+[https://segmentfault.com/a/1190000022909099](https://segmentfault.com/a/1190000022909099 "队列同步器")
+
+[https://segmentfault.com/a/1190000017372067](https://segmentfault.com/a/1190000017372067 "深入分析AQS实现原理")
+
+## 线程池 ##
+[http://www.ideabuffer.cn/2017/04/04/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E7%BA%BF%E7%A8%8B%E6%B1%A0%EF%BC%9AThreadPoolExecutor/](http://www.ideabuffer.cn/2017/04/04/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E7%BA%BF%E7%A8%8B%E6%B1%A0%EF%BC%9AThreadPoolExecutor/ "深入理解Java线程池")
+
+[https://juejin.cn/post/6844903475197788168#heading-9](https://juejin.cn/post/6844903475197788168#heading-9 "掘金版")
+
+### 四种常用类型 ###
+#### FixedThreadPool ####
+	public static ExecutorService newFixedThreadPool(int nThreads){
+	    return new ThreadPoolExecutor(nThreads,nThreads,0L,TimeUnit.MILLISECONDS,new LinkedBlockingQueue<Runnable>());
+	}
+
+- 它是一种固定大小的线程池；
+- corePoolSize和maximunPoolSize都为用户设定的线程数量nThreads；
+- keepAliveTime为0，意味着一旦有多余的空闲线程，就会被立即停止掉；
+- 但这里keepAliveTime无效；
+- 阻塞队列采用了LinkedBlockingQueue，它是一个无界队列；
+- 由于阻塞队列是一个无界队列，因此永远不可能拒绝任务；由于采用了无界队列，实际线程数量将永远维持在nThreads，因此maximumPoolSize和keepAliveTime将无效。
+
+#### CachedThreadPool ####
+	public static ExecutorService newCachedThreadPool(){
+	    return new ThreadPoolExecutor(0,Integer.MAX_VALUE,60L,TimeUnit.MILLISECONDS,new SynchronousQueue<Runnable>());
+	}
+
+- 它是一个可以无限扩大的线程池；
+- 它比较适合处理执行时间比较小的任务；
+- corePoolSize为0，maximumPoolSize为无限大，意味着线程数量可以无限大；
+- keepAliveTime为60S，意味着线程空闲时间超过60S就会被杀死；
+- 采用SynchronousQueue装等待的任务，这个阻塞队列没有存储空间，这意味着只要有请求到来，就必须要找到一条工作线程处理他，如果当前没有空闲的线程，那么就会再创建一条新的线程。
+
+#### SingleThreadExecutor ####
+	public static ExecutorService newSingleThreadExecutor(){
+	    return new ThreadPoolExecutor(1,1,0L,TimeUnit.MILLISECONDS,new LinkedBlockingQueue<Runnable>());
+	}
+
+- 它只会创建一条工作线程处理任务；
+- 采用的阻塞队列为LinkedBlockingQueue；
+
+#### ScheduledThreadPool ####
 ## Java 多线程设计模式 ##
 
 **wait set 线程的休息室**
@@ -835,6 +893,67 @@ JVM关闭
 **避免使用终结器**
 
 ## 线程池 ##
+### 执行过程 ###
+![](http://www.ideabuffer.cn/2017/04/04/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E7%BA%BF%E7%A8%8B%E6%B1%A0%EF%BC%9AThreadPoolExecutor/executor.png)
+#### 核心代码 ####
+	public void execute(Runnable command) {
+	    if (command == null)
+	        throw new NullPointerException();
+	    /*
+	     * clt记录着runState和workerCount
+	     */
+	    int c = ctl.get();
+	    /*
+	     * workerCountOf方法取出低29位的值，表示当前活动的线程数；
+	     * 如果当前活动线程数小于corePoolSize，则新建一个线程放入线程池中；
+	     * 并把任务添加到该线程中。
+	     */
+	    if (workerCountOf(c) < corePoolSize) {
+	        /*
+	         * addWorker中的第二个参数表示限制添加线程的数量是根据corePoolSize来判断还是maximumPoolSize来判断；
+	         * 如果为true，根据corePoolSize来判断；
+	         * 如果为false，则根据maximumPoolSize来判断
+	         */
+	        if (addWorker(command, true))
+	            return;
+	        /*
+	         * 如果添加失败，则重新获取ctl值
+	         */
+	        c = ctl.get();
+	    }
+	    /*
+	     * 如果当前线程池是运行状态并且任务添加到队列成功
+	     */
+	    if (isRunning(c) && workQueue.offer(command)) {
+	        // 重新获取ctl值
+	        int recheck = ctl.get();
+	        // 再次判断线程池的运行状态，如果不是运行状态，由于之前已经把command添加到workQueue中了，
+	        // 这时需要移除该command
+	        // 执行过后通过handler使用拒绝策略对该任务进行处理，整个方法返回
+	        if (! isRunning(recheck) && remove(command))
+	            reject(command);
+	        /*
+	         * 获取线程池中的有效线程数，如果数量是0，则执行addWorker方法
+	         * 这里传入的参数表示：
+	         * 1. 第一个参数为null，表示在线程池中创建一个线程，但不去启动；
+	         * 2. 第二个参数为false，将线程池的有限线程数量的上限设置为maximumPoolSize，添加线程时根据maximumPoolSize来判断；
+	         * 如果判断workerCount大于0，则直接返回，在workQueue中新增的command会在将来的某个时刻被执行。
+	         */
+	        else if (workerCountOf(recheck) == 0)
+	            addWorker(null, false);
+	    }
+	    /*
+	     * 如果执行到这里，有两种情况：
+	     * 1. 线程池已经不是RUNNING状态；
+	     * 2. 线程池是RUNNING状态，但workerCount >= corePoolSize并且workQueue已满。
+	     * 这时，再次调用addWorker方法，但第二个参数传入为false，将线程池的有限线程数量的上限设置为maximumPoolSize；
+	     * 如果失败则拒绝该任务
+	     */
+	    else if (!addWorker(command, false))
+	        reject(command);
+	}
+### 拒绝策略 ###
+想要了解线程池什么时候触发拒绝粗略，需要明确上面三个参数的具体含义，是这三个参数总体协调的结果，而不是简单的超过最大线程数就会触发线程拒绝粗略，当提交的任务数大于corePoolSize时，会优先放到队列缓冲区，只有填满了缓冲区后，才会判断当前运行的任务是否大于maxPoolSize，小于时会新建线程处理。大于时就触发了拒绝策略，总结就是：当前提交任务数大于（maxPoolSize + queueCapacity）时就会触发线程池的拒绝策略了
 ### 线程饥饿死锁 ###
 	public class ThreadDeadLock{
 		ExecutorService exec = Executors.newSingleThreadExecutor();
