@@ -3,6 +3,30 @@
 安卓进阶知识
 ![undefined](http://ww1.sinaimg.cn/large/48ceb85dly1gepohcuf3xj22y721mgpo.jpg)
 # UI #
+## Window ##
+![](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9dd8a0d062074e64bcaeb2725dc64ca8~tplv-k3u1fbpfcp-zoom-1.image)
+> window机制就是为了管理屏幕上的view的显示以及触摸事件的传递问题。
+> 
+### View树 ###
+> 什么是view树？例如你在布局中给Activity设置了一个布局xml，那么最顶层的布局如LinearLayout就是view树的根，他包含的所有view就都是该view树的节点，所以这个view树就对应一个window。
+> 
+> 举几个具体的例子：
+> 
+> - 我们在添加dialog的时候，需要给他设置view，那么这个view他是不属于antivity的布局内的，是通过WindowManager添加到屏幕上的，不属于activity的view树内，所以这个dialog是一个独立的view树，所以他是一个window。
+> - popupWindow他也对应一个window，因为它也是通过windowManager添加上去的，不属于Activity的view树。
+> - 当我们使用使用windowManager在屏幕上添加的任何view都不属于Activity的布局view树，即使是只添加一个button。
+
+**view是window的存在形式，window是view的载体**
+
+### type属性 ###
+- 应用程序窗口：应用程序窗口一般位于最底层，Z-Order在1-99
+- 子窗口：子窗口一般是显示在应用窗口之上，Z-Order在1000-1999
+- 系统级窗口：系统级窗口一般位于最顶层，不会被其他的window遮住，如Toast，Z-Order在2000-2999。如果要弹出自定义系统级窗口需要动态申请权限
+
+### Window添加过程 ###
+- window的添加过程是通过PhoneWindow对应的WindowManagerImpl来添加window，内部会调用WindowManagerGlobal来实现。WindowManagerGlobal会使用viewRootImpl来进行跨进程通信让WMS执行创建window的业务。
+- 每个应用都有一个windowSession，用于负责和WMS的通信，如ApplicationThread与AMS的通信。
+
 
 ## View ##
 View.post()
@@ -2896,6 +2920,18 @@ Gradle不支持socks协议，本地安装privoxy，将socks协议转成Http协�
 
 关闭setting中的Http Proxy，删除用户文件夹下.gradle文件夹中gradle.properties中的代理设置(**配置中的代理设置在编译的时候是有效的**)
 
+#### Could not determine the dependencies of task ':app:externalNativeBuildDebug'.
+> Could not resolve all task dependencies for configuration ':app:debugRuntimeClasspath'.
+   > Could not resolve project :uvccamerasdk.
+     Required by:
+         project :app
+      > Unable to find a matching configuration of project :uvccamerasdk:
+          - None of the consumable configurations have attributes.
+ ####
+uvccamerasdk项目只有一个impl文件，没有完整引入项目
+
+#### Failed to transform file 'EasyAR.aar' to match attributes {artifactType=android-classes, org.gradle.usage=java-api} ####
+git大文件存储出了问题，所有类型文件都成了1KB的无法读取文件
 #### AndroidStudio中出现Failed to resolve:com.android.support:appcompat-v7报错 ####
 #### aapt.v2.Aapt2Exception: Android resource linking failed ####
 #### error: resource android:attr/colorError not found. ####

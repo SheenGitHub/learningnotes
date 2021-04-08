@@ -603,7 +603,7 @@ JavaScript数值存储为64位双精度格式,数值精度做多达53个二进�
     | 或运算
     ^ 异或运算
 
-[感受神奇的异或](https://www.lijinma.com/blog/2014/05/29/amazing-xor/)
+[感受神奇的异或](https://blog.csdn.net/shellching/article/details/76559661)
 
 ，但是如果你在解决问题的时候，你可能会忘记异或的这些特性，所以适当的应用可以让我们加深对异或的理解；
 
@@ -2430,6 +2430,9 @@ var 不会执行ASI；一下代码会报错，添加;会正确执行
 	var a = 'x'
 	/^.$/.test(a);
 
+#### NOASI ####
+第二行开头是+-*/[(,.等可运算符的不自动添加分号，因为第二行连在第一行后是合法的；
+
 ### 错误 ###
 > 在编译阶段发现的代码错误叫作“早期错误”（early error）。语法错误是早期错误的一种
 > （如a = ,）这些错误在代码执行之前是无法用try..catch 来捕获的，相反，它们还会导致解析/ 编译失败。
@@ -2766,7 +2769,8 @@ try..catch无法跨异步操作工作
 1. it = foo() 运算并没有执行生成器*foo()，而只是构造了一个迭代器（iterator），这个
 迭代器会控制它的执行。后面会介绍迭代器。
 2. 第一个it.next() 启动了生成器*foo()，并运行了*foo() 第一行的x++。
-3. *foo() 在yield 语句处暂停，在这一点上第一个it.next() 调用结束。此时*foo() 仍
+3. *foo() 在y
+4. ield 语句处暂停，在这一点上第一个it.next() 调用结束。此时*foo() 仍
 在运行并且是活跃的，但处于暂停状态。
 4. 我们查看x 的值，此时为2。
 5. 我们调用bar()，它通过x++ 再次递增x。
@@ -2817,6 +2821,49 @@ return 语句回答这个问题！(最后一个next)
 Object.keys(..) 并不包含来自于[[Prototype]] 链
 上的属性，而for..in 则包含
 
+#### 生成器执行异步任务 ####
+	let fs = require("fs")
+	function readFile(filename){
+	    return function(callback){
+	        fs.readFile(filename, callback);
+	    }
+	}
+	
+	function run(taskDef){
+	    let task = taskDef();
+	    let result = task.next();
+	    function step(){
+	        if(!result.done){
+	            if(typeof result.value === 'function'){
+	                result.value(function(err, data){
+	                    if(err){
+	                        result = task.throw(err);
+	                        return;
+	                    }
+	                    result = task.next(data)
+	                    step()
+	                });
+	            }else {
+	                result = task.next(result.value);
+	                step();
+	            }
+	        }
+	    }
+	    step();
+	}
+	
+	function doSomthingWith(text){
+	    let buffer = Buffer.from(text)
+	    console.log("print:",buffer.toString('utf-8'));
+	}
+	
+	run(function*(){
+	    let contents = yield readFile("config.json");
+	    doSomthingWith(contents);
+	    console.log("Done");
+	})
+
+异步任务执行后立刻返回，但是yield表达式使得函数交出执行权，使函数执行立刻停止。在异步任务的回调函数中执行next函数，将异步处理结果作为yield的返回值，并切回协程，执行后续流程，yield使得协程发生执行权的切换。
 ### 生成器迭代器 ###
 严格说来，生成器本身并不是iterable，尽管非常类似——当你执行一个生成器，就得到了一个迭代器：
 
@@ -3735,6 +3782,7 @@ IIFE 还有一种变化的用途是倒置代码的运行顺序，将需要运行
 	var a = 3;
 	console.log( a ); // 3
 	console.log( global.a ); // 2
+	});
 
 ### 块作用域 ###
 #### with ####
@@ -4758,21 +4806,21 @@ iframe底边的白底去除 display:block；或者vertical-align:bottom;
 - 这能防止和第三方脚本以及我们的其他模块产生名字空间的冲突
 - 在调试和查看HTML文档的时候，我们能立即明白哪些元素是由Shell模块生成和控制
 ## 长度 ##
-em:相对长度单位。相对于当前对象内文本的字体尺寸
-ex:相对长度单位。相对于字符“x”的高度。通常为字体高度的一半
-ch:数字“0”的宽度
-rem:相对长度单位。相对于根元素(即html元素)font-size计算值的倍数
-vw:相对于视口的宽度。视口被均分为100单位的vw
-vh:相对于视口的高度。视口被均分为100单位的vh
-vmax:相对于视口的宽度或高度中较大的那个。其中最大的那个被均分为100单位的vmax
-vmin:相对于视口的宽度或高度中较小的那个。其中最小的那个被均分为100单位的vmin
-cm:厘米（Centimeters）。绝对长度单位
-mm:毫米（Millimeters）。绝对长度单位
-q:1/4毫米（quarter-millimeters）。绝对长度单位
-in:英寸（Inches）。绝对长度单位
-pt:点（Points）。绝对长度单位 1in=72pt=2.54cm=96px=6pc
-pc:派卡（Picas）。绝对长度单位。相当于我国新四号铅字的尺寸
-px:相对长度单位。像素（Pixels）
+- em:相对长度单位。相对于当前对象内文本的字体尺寸
+- ex:相对长度单位。相对于字符“x”的高度。通常为字体高度的一半
+- ch:数字“0”的宽度
+- rem:相对长度单位。相对于根元素(即html元素)font-size计算值的倍数
+- vw:相对于视口的宽度。视口被均分为100单位的vw
+- vh:相对于视口的高度。视口被均分为100单位的vh
+- vmax:相对于视口的宽度或高度中较大的那个。其中最大的那个被均分为100单位的vmax
+- vmin:相对于视口的宽度或高度中较小的那个。其中最小的那个被均分为100单位的vmin
+- cm:厘米（Centimeters）。绝对长度单位
+- mm:毫米（Millimeters）。绝对长度单位
+- q:1/4毫米（quarter-millimeters）。绝对长度单位
+- in:英寸（Inches）。绝对长度单位
+- pt:点（Points）。绝对长度单位 1in=72pt=2.54cm=96px=6pc
+- pc:派卡（Picas）。绝对长度单位。相当于我国新四号铅字的尺寸
+- px:相对长度单位。像素（Pixels）
 
 ## css特性支持 ##
 语法支持
@@ -5556,7 +5604,7 @@ span也继承了line-height: 32px，但两者的font-size不一样，这就导�
     <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
 
 ## Grid 布局 ##
-> 设计师通过在网格容器（grid container）上定义网格定义行（grid definition rows）和网格定义列（grid definition columns）属性各在网格项目（grid item）上定义网格行（grid row）和网格列（grid columns）为每一个网格项目（grid item）定义位置和空间著作权归作者所有。
+> 设计师通过在网格容器（grid container）上定义网格定义行（grid definition rows）和网格定义列（grid definition columns）属性各在网格项目（grid item）上定义网格行（grid row）和网格列（grid columns）为每一个网格项目（grid item）定义位置和空间。
 
 [Grid](https://segmentfault.com/a/1190000012889793)
 
@@ -6804,6 +6852,33 @@ Content-Type: text/xml
 	    </params>
 	</methodCall>
 # Vue #
+## transition ##
+并非6个过程都会发生，只是在插入元素或者离开状态会触发相应的事件
+### Transition Classes ###
+There are six classes applied for enter/leave transitions.
+
+1. v-enter: Starting state for enter. **Added before element is inserted**, **removed one frame after element is inserted**.
+
+2. v-enter-active: Active state for enter. Applied during the entire entering phase. **Added before element is inserted**, **removed when transition/animation finishes**. This class can be used to define the duration, delay and easing curve for the entering transition.
+
+3. v-enter-to: Only available in versions 2.1.8+. Ending state for enter. **Added one frame after element is inserted** (at the same time v-enter is removed), **removed when transition/animation finishes**.
+
+4. v-leave: Starting state for leave. **Added immediately when a leaving transition is triggered**, **removed after one frame**.
+
+5. v-leave-active: Active state for leave. Applied during the entire leaving phase. **Added immediately when leave transition is triggered**, **removed when the transition/animation finishes**. This class can be used to define the duration, delay and easing curve for the leaving transition.
+
+6. v-leave-to: Only available in versions 2.1.8+. Ending state for leave. **Added one frame after a leaving transition is triggered** (at the same time v-leave is removed), **removed when the transition/animation finishes**.****
+
+## Slot ##
+绑定在 <slot> 元素上的 attribute 被称为插槽 prop。现在在父级作用域中，我们可以使用带值的 v-slot 来定义我们提供的插槽 prop 的名字：
+
+	<current-user>
+	  <template v-slot:default="slotProps">
+	    {{ slotProps.user.firstName }}
+	  </template>
+	</current-user>
+
+在这个例子中，我们选择将包含所有插槽 prop 的对象命名为 slotProps，但你也可以使用任意你喜欢的名字。
 ## Props ##
 不要试图在组件内修改Props，在组件内Props是不可更改的，从父组件传递修改子组件props的函数，在子组件内调用函数可以修改父组件属性，从而更新子组件。
 
@@ -7189,3 +7264,10 @@ video元素的伸展会导致兄弟元素的收缩，在flex布局中设置flex-
 在flex中，摆在首位的元素默认不换行，可以直接设置
 	overflow:hidden;
 	text-overflow:ellipsis;
+
+#### Do not access Object.prototype method 'hasOwnProperty' from target object ####
+在ECMAScript 5.1中，新增了 Object.create，它支持使用指定的 [[Prototype]] 创建对象。Object.create(null) 是一种常见的模式，用于创建将用作映射的对象。当假定对象将包含来自Object.prototype 的属性时，这可能会导致错误。该规则防止直接从一个对象调用某些 Object.prototype 的方法。
+
+此外，对象可以具有属性，这些属性可以将 Object.prototype 的内建函数隐藏，可能导致意外行为或拒绝服务安全漏洞。例如，web 服务器解析来自客户机的 JSON 输入并直接在结果对象上调用 hasOwnProperty 是不安全的，因为恶意客户机可能发送一个JSON值，如 {“hasOwnProperty”: 1}，并导致服务器崩溃。
+
+为了避免这种细微的 bug，最好总是从 Object.prototype 调用这些方法。例如，foo.hasOwnProperty(“bar”) 应该替换为 Object.prototype.hasOwnProperty.call(foo, “bar”)。

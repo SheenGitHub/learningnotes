@@ -4,6 +4,9 @@
 strictfp 关键字可应用于类、接口或方法。使用 strictfp 关键字声明一个方法时，该方法中所有的float和double表达式都严格遵守FP-strict的限制,符合IEEE-754规范。当对一个类或接口使用 strictfp 关键字时，该类中的所有代码，包括嵌套类型中的初始设定值和代码，都将严格地进行计算。严格约束意味着所有表达式的结果都必须是 IEEE 754 算法对操作数预期的结果，以单精度和双精度格式表示。
 　　如果你想让你的浮点运算更加精确，而且不会因为不同的硬件平台所执行的结果不一致的话，可以用关键字strictfp
 ## 泛型 ##
+**泛型的本质就是参数化类型**
+
+
 ### 擦除 ###
 
 > 为什么我们往ArrayList<StringarrayList=new ArrayList<String>();所创建的数组列表arrayList中，不能使用add方法添加整形呢？不是说泛型变量Integer会在编译时候擦除变为原始类型Object吗，为什么不能存别的类型呢？既然类型擦除了，如何保证我们只能使用泛型变量限定的类型呢？
@@ -14,11 +17,19 @@ strictfp 关键字可应用于类、接口或方法。使用 strictfp 关键字�
 	Test2.<Integer>add(1, 2)
 
 ### 协变与逆变 ###
+[https://jkchao.github.io/typescript-book-chinese/tips/covarianceAndContravariance.html](https://jkchao.github.io/typescript-book-chinese/tips/covarianceAndContravariance.html)
 逆变与协变用来描述类型转换（type transformation）后的继承关系，其定义：如果A、B表示类型，f(⋅)表示类型转换，≤表示继承关系（比如，A≤B表示A是由B派生出来的子类）
 
 - f(⋅)是逆变（contravariant）的，当A≤B时有f(B)≤f(A)成立；
 - f(⋅)是协变（covariant）的，当A≤B时有f(A)≤f(B)成立；
 - f(⋅)是不变（invariant）的，当A≤B时上述两个式子均不成立，即f(A)与f(B)相互之间没有继承关系。
+
+
+在 Java 中，数组既是可变的，又是协变的。当然，这并不安全
+
+- A ≼ B 意味着 A 是 B 的子类型。
+- A → B 指的是以 A 为参数类型，以 B 为返回值类型的函数类型。
+- x : A 意味着 x 的类型为 A。
 
 #### 以下哪种类型是 Dog → Dog 的子类呢？ ####
 
@@ -29,6 +40,19 @@ strictfp 关键字可应用于类、接口或方法。使用 strictfp 关键字�
 
 函数必须有处理类型的能力，输出必须具有类型的特性
 
+假设 f 是一个以 Dog → Dog 为参数的函数。它的返回值并不重要，为了具体描述问题，我们假设函数结构体是这样的： f : (Dog → Dog) → String。
+
+现在我想给函数 f 传入某个函数 g 来调用。
+
+> (Animal → Greyhound) ≼ (Dog → Dog)
+
+返回值类型是协变的，而参数类型是逆变的
+
+List<Dog> 能否为 List<Animal> 的子类型？
+
+答案有点微妙。如果列表是不可变的（immutable），那么答案是肯定的，因为类型很安全。但是假如列表是可变的，那么答案绝对是否定的！
+
+在 Java 中，数组既是可变的，又是协变的。当然，这并不安全。
 #### PECS ####
 producer-extends, consumer-super（PECS）
 
@@ -2376,7 +2400,13 @@ Survivor的存在意义，就是减少被送到老年代的对象，进而减少
 认识技术运作的本质，是自己思考“程序这样写好不好”的基础和前提
 
 ## Java内存区域 ##
+Java7 
 
+![](https://user-gold-cdn.xitu.io/2020/4/17/17185b71e294b6bb?imageslim)
+
+Java8 
+
+![](https://user-gold-cdn.xitu.io/2020/4/17/17185b71e2e144fc?imageslim)
 ### 常用虚拟机参数 ###
 -XX:PermSize -XX:MaxPermSize 方法区大小
 
@@ -3177,7 +3207,7 @@ Java虚拟机规范中并没有强制约束什么情况下开始类加载过程�
 - 使用java.lang.reflect包的方法对类进行反射调用的时候，如果类没有进行过初始化，则需要先触发其初始化。
 - 当初始化一个类的时候，如果发现其父类还没有进行过初始化，则需要先触发其父类的初始化
 - 当虚拟机启动时，用户需要指定一个要执行的主类(包含main()方法的那个类)，虚拟机会先初始化这个主类。
-- 当使用JDK1.7的动态语言支持时，如果一个java.lang.invoke.MethodHandle实例最后解析结果REF_getStatic、REF_putStatic、REF_invokeStatic的方法句柄,并且这个方法句柄所对应的类没有进行过胡世华，则需要先触发其初始化。
+- 当使用JDK1.7的动态语言支持时，如果一个java.lang.invoke.MethodHandle实例最后解析结果REF_getStatic、REF_putStatic、REF_invokeStatic的方法句柄,并且这个方法句柄所对应的类没有进行过初始化，则需要先触发其初始化。
 
 这5种场景中的行为称为对一个类进行主动引用。除此之外，所有引用类的方法都不会触发初始化，称为被动引用。
 
