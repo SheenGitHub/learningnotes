@@ -102,3 +102,13 @@ npm install "babel-loader" "@babel/core" "@babel/preset-env"
 Be careful of the version for d3.js In version 4.2.1 d3.scale.linear(); gives the following error. TypeError: d3.scale.linear() scale is undefined
 
 I fixed this error in version 4.2.1 by using d3.scaleLinear();
+
+# Python #
+#### can only concatenate str (not "int") to str ####
+python并不能像java一样，在做拼接的时候自动把类型转换为string类型，譬如将print(1+"a")改为print(str(1)+"a")就可以了
+
+# Redis #
+#### Could not get a resource from the pool(SocketTimeoutException:) ####
+- redis本身有没有启动
+- 电脑能不能ping通redis所在的ip
+- redis的设置里有没有设置ip白名单
