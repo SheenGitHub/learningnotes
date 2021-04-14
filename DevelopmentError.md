@@ -112,3 +112,5 @@ python并不能像java一样，在做拼接的时候自动把类型转换为stri
 - redis本身有没有启动
 - 电脑能不能ping通redis所在的ip
 - redis的设置里有没有设置ip白名单
+
+#### redis.clients.jedis.exceptions.JedisConnectionException: java.net.SocketException: Connection reset ####
