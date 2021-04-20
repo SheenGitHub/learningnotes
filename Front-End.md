@@ -1,4 +1,4 @@
-# HTML #
+ # HTML #
 ## table ##
 ## form ##
 #### 设计表单 ####
@@ -6652,6 +6652,12 @@ _(dataList.list).groupBy(item=>item.lc).map((items,lc)=>{return {lc:lc, items:it
 - 算法不会尝试匹配不同节点类型的子树。如果你发现在有类似输出的两个不同节点类型中相互切换，你可能需要将其转化成同种类型，事实上，我们没有在其中发现问题。
 - keys 应该是稳定的、可预测的并且是唯一的。不稳定的 key (类似于 Math.random() 函数的结果)可能会产生非常多的组件实例并且 DOM 节点也会非必要性的重新创建。这将会造成极大的性能损失和组件内state的丢失。
 
+## Hooks ##
+> 通过自定义 Hook，可以将组件逻辑提取到可重用的函数中
+
+自定义 Hook 是一个函数，其名称以 “use” 开头，函数内部可以调用其他的 Hook
+
+> 与 class 组件中的 setState 方法不同，useState 不会自动合并更新对象。
 ## Redux ##
 减少reducer中的switch
 

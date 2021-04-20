@@ -114,3 +114,7 @@ python并不能像java一样，在做拼接的时候自动把类型转换为stri
 - redis的设置里有没有设置ip白名单
 
 #### redis.clients.jedis.exceptions.JedisConnectionException: java.net.SocketException: Connection reset ####
+
+# PPT #
+#### 插入视频 ####
+插入->影片，选择视频；格式->标牌框架(设置视频的预览图像)
