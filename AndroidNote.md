@@ -3499,3 +3499,51 @@ USB协议提供批量传输类型是为了支持在某些不确定的时间内�
 	com.android.support:viewpager	androidx.viewpager:viewpager
 	com.android.support:wear	androidx.wear:wear
 	com.android.support:webkit	androidx.webkit:webkit
+
+# 异常处理 #
+## 捕获OOM ##
+[https://blog.csdn.net/Mr_LiaBill/article/details/50209617](https://blog.csdn.net/Mr_LiaBill/article/details/50209617)
+
+*Volley例子*
+
+	/** Decoding lock so that we don't decode more than one image at a time (to avoid OOM's) */
+	    private static final Object sDecodeLock = new Object();
+	    /**
+	     * The real guts of parseNetworkResponse. Broken out for readability.
+	     */
+	    @Override
+	    protected Response<Bitmap> parseNetworkResponse(NetworkResponse response) {
+	        // Serialize all decode on a global lock to reduce concurrent heap usage.
+	        synchronized (sDecodeLock) {
+	            try {
+	                return doParse(response);
+	            } catch (OutOfMemoryError e) {
+	                VolleyLog.e("Caught OOM for %d byte image, url=%s", response.data.length, getUrl());
+	                return Response.error(new ParseError(e));
+	            }
+	        }
+	    }
+
+- 首先使用sDecodeLock同步锁，防止多线程同时解析一张以上图片，可以减少解析图片时发生OOM发生概率
+- 然后捕获Error，注意不是异常，此时如果捕获Exception是无效的，但是可以捕获Throwable，因为Error和Exception都继承自Throwable OutOfMemoryError -VirtualMachineError -Error -Throwable
+
+虚拟机栈可抛出两种异常状况
+
+- 线程请求的栈深度大于虚拟机所允许的栈深度,抛出StackOverflowError异常
+- 当扩展时无法申请到足够的内存时会抛出OutOfMemoryError异常是
+
+# Android优化 #
+#### 优化目的 ####
+- 更快  流畅性  启动速度，显示速度，相应速度
+- 更稳定 稳定性  避免ANR 避免Crash
+- 更省 资源节约  内存大小 安装包大小，耗电量，网络流量
+
+X2C 使用apt的方式将xml转换为Java
+
+卡顿:启动 响应 跳转 绘制 
+
+So：只保留 Armeabi
+
+减少流量: 缓存 压缩 webp
+
+Binder减少拷贝 id有效性检查

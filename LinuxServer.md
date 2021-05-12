@@ -887,3 +887,62 @@ jvG :normal @a 在每一行上执行Vim命令
 可以用\W\ze\w 模拟元字符 <，而用\w\ze\W 表示元字符 >
 
 元字符\zs 标志着一个匹配的起始，而元字符\ze 则用来界定匹配的结束
+### 查找 ###
+/ 正向查找 ？ 反向查找
+
+#### 禁止高亮 ####
+set nohlsearch
+
+#### 匹配个数 ####
+%s///gn
+
+#### 匹配结尾 ####
+/lang/e<CR>
+
+gU//e<CR> 修改到查找尾端
+
+#### 查找替换组合 ####
+/\v'(([^']|'\w)+)' 查找记录
+
+%s//“\1”/g 替换
+
+相当于 %s/\v'(([^']|'\w)+)'/“\1”/g
+
+#### 可选替换 ####
+/c 标志位，可选
+
+引用寄存器 :%s//\=@0/g
+
+#### 重复上一次substitute命令 ####
+g&
+
+相当于  :%s//~/&
+
+&相当于s &&可以在替换中保留标志位
+
+#### 删除匹配行 ####
+/\v\<\/?\w+>
+g//d
+
+global vglobal相反
+
+v/href/d 只保留匹配行
+
+#### 复制到寄存器 ####
+:g/TODO/yank A 追加到寄存器A ，a覆盖
+
+#### 对大括号内排序 ####
+g/{/ .+1,/}/—1 sort
+
+# 算法 #
+#### 卡特兰数 ####
+![](https://imgconvert.csdnimg.cn/aHR0cHM6Ly9pLmxvbGkubmV0LzIwMTkvMDMvMjkvNWM5ZTE2ZTgxMDhlNS5wbmc?x-oss-process=image/format,png)
+
+在2n步中选择n步为1,方案数位C(2n,n)
+
+![](https://imgconvert.csdnimg.cn/aHR0cHM6Ly9pLmxvbGkubmV0LzIwMTkvMDMvMjkvNWM5ZTE1NjgzODI1MS5wbmc?x-oss-process=image/format,png)
+	 
+有接触y=-1轴的选择方案,就是不符合的方案，将从第一个和y=-1轴接触的点，开始，右侧对y=-1轴旋转，相当于2n步中, n-1步为1,C(2n,n-1)
+
+所以结果就是C(2n,n)-C(2n,n-1)
+	​	

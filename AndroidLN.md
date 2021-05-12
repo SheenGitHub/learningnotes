@@ -75,6 +75,8 @@ Handler消息机制是由一组MessageQueue、Message、Looper、Hanlder共同�
 
 ![](http://ww1.sinaimg.cn/large/48ceb85dgy1fh7pebmbi3j209s09iwew.jpg)
 
+## Activity启动 ##
+![](https://raw.githubusercontent.com/sucese/android-open-source-project-analysis/master/art/app/component/activity_start_flow.png)
 
 ## Android View ##
 [深入理解 Android 之 View 的绘制流程](http://www.cnblogs.com/jycboy/p/6219915.html)
@@ -82,6 +84,7 @@ Handler消息机制是由一组MessageQueue、Message、Looper、Hanlder共同�
 ![](http://ww1.sinaimg.cn/large/48ceb85dgy1fhmxf08aodj20ve0g0thk.jpg)
 
 ### Window ###
+![](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ce6e958a4d7049eea68425b4383052bf~tplv-k3u1fbpfcp-zoom-1.image)
 这个抽象类包含了三个核心组件：
 
 - WindowManager.LayoutParams: 窗口的布局参数；
@@ -150,3 +153,24 @@ Floating Action Button
 NavigationBar
 
 sideNav
+
+## RxJava ##
+### Subject ###
+
+- AsyncSubject	不论订阅发生在什么时候，只会发射最后一个数据
+- BehaviorSubject	发送订阅之前一个数据和订阅之后的全部数据
+- ReplaySubject	不论订阅发生在什么时候，都发射全部数据
+- PublishSubject	发送订阅之后全部数据
+
+#### lift ####
+lift() 过程，有点像一种代理机制，通过事件拦截和处理实现事件序列的变换。
+
+精简掉细节的话，也可以这么说：在 Observable 执行了 lift(Operator) 方法之后，会返回一个新的 Observable，这个新的 Observable 会像一个代理一样，负责接收原始的 Observable 发出的事件，并在处理后发送给 Subscriber。
+
+# OpenGL ES #
+逆时针排列顶点 卷曲顺序(winding order)
+
+#### 裁剪空间 ####
+对于给定的位置,它的x、y以及z分量都需要在那个位置-w和w之间
+
+当为屏幕创建三维的幻想，OpenGL会把每个gl_Position的x、y和z分量都除以它的w分量
